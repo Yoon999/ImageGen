@@ -40,6 +40,14 @@ public class MainViewModel : INotifyPropertyChanged
     // Seed 관련
     private bool _isRandomSeed = true;
 
+    // Sampler 목록
+    public ObservableCollection<string> Samplers { get; } = new ObservableCollection<string>
+    {
+        "k_euler_ancestral",
+        "k_euler",
+        "k_dpmpp_2s_ancestral"
+    };
+
     public MainViewModel()
     {
         _novelAiService = new NovelAiApiService();
@@ -65,6 +73,12 @@ public class MainViewModel : INotifyPropertyChanged
         if (string.IsNullOrEmpty(Request.parameters.uc))
         {
             Request.parameters.uc = "low quality, worst quality, jpeg artifacts, 2::signature, watermark, copyright name, artist name, logo, artist logo, weibo username, twitter username::, mosaic censoring, bar censor, censored, lowres, bad anatomy, bad hands, abstract, 2::multiple views::, deformed, \nhair flaps, armpit hair, shota, loli, beard,\n\nalphes (style), zun (style), toriyama akira (style), \nasanagi, bkub, bb_(baalbuddy), neocoill, gaoo_(frpjx283), yukito_(dreamrider), konoshige_(ryuun), milkpanda, nameo_(judgemasterkou)";
+        }
+        
+        // Sampler 기본값 확인
+        if (!Samplers.Contains(Request.parameters.sampler))
+        {
+            Request.parameters.sampler = "k_euler";
         }
         
         GenerateCommand = new RelayCommand(ExecuteGenerate, CanExecuteGenerate);
@@ -223,6 +237,21 @@ public class MainViewModel : INotifyPropertyChanged
         }
     }
 
+    // SelectedSampler 바인딩 속성
+    public string SelectedSampler
+    {
+        get => Request.parameters.sampler;
+        set
+        {
+            if (Request.parameters.sampler != value)
+            {
+                Request.parameters.sampler = value;
+                OnPropertyChanged();
+                SaveCurrentSettings();
+            }
+        }
+    }
+
     public ICommand GenerateCommand { get; }
     public ICommand SelectFolderCommand { get; }
     public ICommand RandomizeSeedCommand { get; }
@@ -256,7 +285,7 @@ public class MainViewModel : INotifyPropertyChanged
         long newSeed = random.NextInt64(1, 9999999999); 
         Request.parameters.seed = newSeed;
         IsRandomSeed = false; 
-        OnPropertyChanged(nameof(Seed));
+        OnPropertyChanged(nameof(Request));
         SaveCurrentSettings(); // 변경 시 저장
     }
 

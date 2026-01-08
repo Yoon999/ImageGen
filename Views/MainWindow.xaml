@@ -6,7 +6,7 @@
         xmlns:vm="clr-namespace:ImageGen.ViewModels"
         xmlns:helpers="clr-namespace:ImageGen.Helpers"
         mc:Ignorable="d"
-        Title="NovelAI Image Generator" Height="800" Width="900">
+        Title="NovelAI Image Generator" Height="850" Width="900">
     
     <Window.Resources>
         <helpers:CountToBoolConverter x:Key="CountToBoolConverter"/>
@@ -112,6 +112,12 @@
                         <TextBlock Text="Rescale:" Width="50"/>
                         <TextBox Text="{Binding CfgRescale, StringFormat=N2}" Width="50" DockPanel.Dock="Right"/>
                         <Slider Minimum="0.0" Maximum="1.0" Value="{Binding CfgRescale}" TickFrequency="0.05" IsSnapToTickEnabled="True"/>
+                    </DockPanel>
+
+                    <!-- Sampler -->
+                    <DockPanel Margin="0,0,0,5">
+                        <TextBlock Text="Sampler:" Width="50" VerticalAlignment="Center"/>
+                        <ComboBox ItemsSource="{Binding Samplers}" SelectedItem="{Binding SelectedSampler}" DockPanel.Dock="Right"/>
                     </DockPanel>
 
                     <!-- Seed -->

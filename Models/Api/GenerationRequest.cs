@@ -23,9 +23,8 @@ public class RequestParameters
     public bool sm { get; set; } = false;
     public bool sm_dyn { get; set; } = false;
     
-    // 추가된 파라미터
     public double cfg_rescale { get; set; } = 0.0;
-    public string noise_schedule { get; set; } = "native";
+    public string noise_schedule { get; set; } = "karras";
     public bool qualityToggle { get; set; } = true;
     public string uc { get; set; } = string.Empty; // Negative Prompt (Legacy or V3)
     public bool dynamic_thresholding { get; set; } = false;
