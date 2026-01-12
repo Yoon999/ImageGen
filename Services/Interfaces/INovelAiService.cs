@@ -5,19 +5,27 @@ namespace ImageGen.Services.Interfaces;
 public interface INovelAiService
 {
     /// <summary>
-    /// NovelAI API¿¡ ÀÌ¹ÌÁö »ı¼ºÀ» ¿äÃ»ÇÕ´Ï´Ù.
+    /// NovelAI APIì— ì´ë¯¸ì§€ ìƒì„±ì„ ìš”ì²­í•©ë‹ˆë‹¤.
     /// </summary>
-    /// <param name="request">»ı¼º ¿äÃ» ÆÄ¶ó¹ÌÅÍ</param>
-    /// <param name="accessToken">Bearer ÀÎÁõ ÅäÅ«</param>
-    /// <returns>»ı¼ºµÈ ÀÌ¹ÌÁöÀÇ ZIP ¹ÙÀÌ³Ê¸® µ¥ÀÌÅÍ</returns>
+    /// <param name="request">ìƒì„± ìš”ì²­ íŒŒë¼ë¯¸í„°</param>
+    /// <param name="accessToken">Bearer ì¸ì¦ í† í°</param>
+    /// <returns>ìƒì„±ëœ ì´ë¯¸ì§€ì˜ ZIP ë°”ì´ë„ˆë¦¬ ë°ì´í„°</returns>
     Task<byte[]> GenerateImageAsync(GenerationRequest request, string accessToken);
 
     /// <summary>
-    /// ÀÔ·ÂµÈ ÇÁ·ÒÇÁÆ®¸¦ ±â¹İÀ¸·Î ÅÂ±×¸¦ ÃßÃµ¹Ş½À´Ï´Ù.
+    /// NovelAI APIì— ì´ë¯¸ì§€ ìƒì„±ì„ ìš”ì²­í•˜ê³ , ìƒì„± ê³¼ì •ì„ ìŠ¤íŠ¸ë¦¬ë°ìœ¼ë¡œ ë°›ìŠµë‹ˆë‹¤.
     /// </summary>
-    /// <param name="prompt">ÇöÀç ÀÔ·Â ÁßÀÎ ÅÂ±× ÅØ½ºÆ®</param>
-    /// <param name="model">»ç¿ë ÁßÀÎ ¸ğµ¨ (¿¹: nai-diffusion-3)</param>
-    /// <param name="accessToken">Bearer ÀÎÁõ ÅäÅ«</param>
-    /// <returns>ÃßÃµ ÅÂ±× ¸ñ·Ï</returns>
+    /// <param name="request">ìƒì„± ìš”ì²­ íŒŒë¼ë¯¸í„°</param>
+    /// <param name="accessToken">Bearer ì¸ì¦ í† í°</param>
+    /// <returns>ì´ë¯¸ì§€ ë°ì´í„° ìŠ¤íŠ¸ë¦¼ (ì¤‘ê°„ ê²°ê³¼ ë° ìµœì¢… ê²°ê³¼)</returns>
+    IAsyncEnumerable<byte[]> GenerateImageStreamAsync(GenerationRequest request, string accessToken);
+
+    /// <summary>
+    /// ì…ë ¥ëœ í”„ë¡¬í”„íŠ¸ë¥¼ ê¸°ë°˜ìœ¼ë¡œ íƒœê·¸ë¥¼ ì¶”ì²œë°›ìŠµë‹ˆë‹¤.
+    /// </summary>
+    /// <param name="prompt">í˜„ì¬ ì…ë ¥ ì¤‘ì¸ íƒœê·¸ í…ìŠ¤íŠ¸</param>
+    /// <param name="model">ì‚¬ìš© ì¤‘ì¸ ëª¨ë¸ (ì˜ˆ: nai-diffusion-3)</param>
+    /// <param name="accessToken">Bearer ì¸ì¦ í† í°</param>
+    /// <returns>ì¶”ì²œ íƒœê·¸ ëª©ë¡</returns>
     Task<List<TagSuggestion>> SuggestTagsAsync(string prompt, string model, string accessToken);
 }

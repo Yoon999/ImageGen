@@ -6,10 +6,10 @@ namespace ImageGen.Helpers;
 public static class ZipHelper
 {
     /// <summary>
-    /// ZIP ¹ÙÀÌ³Ê¸® µ¥ÀÌÅÍ¿¡¼­ Ã¹ ¹øÂ° ÀÌ¹ÌÁö ÆÄÀÏ(PNG)À» ÃßÃâÇÕ´Ï´Ù.
+    /// ZIP ë°”ì´ë„ˆë¦¬ ë°ì´í„°ì—ì„œ ì²« ë²ˆì§¸ ì´ë¯¸ì§€ íŒŒì¼(PNG)ì„ ì¶”ì¶œí•©ë‹ˆë‹¤.
     /// </summary>
-    /// <param name="zipData">ZIP ÆÄÀÏÀÇ ¹ÙÀÌÆ® ¹è¿­</param>
-    /// <returns>ÃßÃâµÈ ÀÌ¹ÌÁö ÆÄÀÏÀÇ ¹ÙÀÌÆ® ¹è¿­. ½ÇÆĞ ½Ã null ¹İÈ¯.</returns>
+    /// <param name="zipData">ZIP íŒŒì¼ì˜ ë°”ì´íŠ¸ ë°°ì—´</param>
+    /// <returns>ì¶”ì¶œëœ ì´ë¯¸ì§€ íŒŒì¼ì˜ ë°”ì´íŠ¸ ë°°ì—´. ì‹¤íŒ¨ ì‹œ null ë°˜í™˜.</returns>
     public static byte[]? ExtractFirstImage(byte[] zipData)
     {
         try
@@ -17,7 +17,7 @@ public static class ZipHelper
             using var memoryStream = new MemoryStream(zipData);
             using var archive = new ZipArchive(memoryStream, ZipArchiveMode.Read);
 
-            // ZIP ³»ÀÇ Ã¹ ¹øÂ° ÆÄÀÏ(º¸Åë ÀÌ¹ÌÁö)À» Ã£À½
+            // ZIP ë‚´ì˜ ì²« ë²ˆì§¸ íŒŒì¼(ë³´í†µ ì´ë¯¸ì§€)ì„ ì°¾ìŒ
             var entry = archive.Entries.FirstOrDefault();
             if (entry == null) return null;
 
@@ -29,7 +29,7 @@ public static class ZipHelper
         }
         catch
         {
-            // ¾ĞÃà ÇØÁ¦ ½ÇÆĞ ½Ã null ¹İÈ¯ ¶Ç´Â ¿¹¿Ü Ã³¸®
+            // ì••ì¶• í•´ì œ ì‹¤íŒ¨ ì‹œ null ë°˜í™˜ ë˜ëŠ” ì˜ˆì™¸ ì²˜ë¦¬
             return null;
         }
     }

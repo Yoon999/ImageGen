@@ -1,3 +1,4 @@
+using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -11,17 +12,12 @@ namespace ImageGen.Services;
 
 public class NovelAiApiService : INovelAiService
 {
-    private readonly HttpClient _httpClient;
-    private const string BaseUrl = "https://image.novelai.net";
-
-    public NovelAiApiService()
+    private readonly HttpClient _httpClient = new()
     {
-        _httpClient = new HttpClient
-        {
-            BaseAddress = new Uri(BaseUrl),
-            Timeout = TimeSpan.FromMinutes(5) // »ı¼º ½Ã°£ÀÌ °É¸± ¼ö ÀÖÀ¸¹Ç·Î Å¸ÀÓ¾Æ¿ô ³Ë³ËÇÏ°Ô ¼³Á¤
-        };
-    }
+        BaseAddress = new Uri(BaseUrl),
+        Timeout = TimeSpan.FromMinutes(5) // ìƒì„± ì‹œê°„ì´ ê±¸ë¦´ ìˆ˜ ìˆìœ¼ë¯€ë¡œ íƒ€ì„ì•„ì›ƒ ë„‰ë„‰í•˜ê²Œ ì„¤ì •
+    };
+    private const string BaseUrl = "https://image.novelai.net";
 
     public async Task<byte[]> GenerateImageAsync(GenerationRequest request, string accessToken)
     {
@@ -35,7 +31,7 @@ public class NovelAiApiService : INovelAiService
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
                 var errorMessage = $"API Error: {response.StatusCode} - {errorContent}";
-                Logger.LogError(errorMessage); // API ¿¡·¯ ·Î±× ±â·Ï
+                Logger.LogError(errorMessage);
                 throw new HttpRequestException(errorMessage);
             }
 
@@ -45,6 +41,45 @@ public class NovelAiApiService : INovelAiService
         {
             Logger.LogError("Exception in GenerateImageAsync", ex);
             throw;
+        }
+    }
+
+    public async IAsyncEnumerable<byte[]> GenerateImageStreamAsync(GenerationRequest request, string accessToken)
+    {
+        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+        var jsonContent = JsonContent.Create(request);
+        using var requestMessage = new HttpRequestMessage(HttpMethod.Post, "/ai/generate-image-stream")
+        {
+            Content = jsonContent
+        };
+        requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
+
+        using var response = await _httpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorContent = await response.Content.ReadAsStringAsync();
+            var errorMessage = $"API Error: {response.StatusCode} - {errorContent}";
+            Logger.LogError(errorMessage);
+            throw new HttpRequestException(errorMessage);
+        }
+
+        using var stream = await response.Content.ReadAsStreamAsync();
+        using var reader = new StreamReader(stream);
+
+        while (!reader.EndOfStream)
+        {
+            var line = await reader.ReadLineAsync();
+            if (string.IsNullOrEmpty(line) || !line.StartsWith("data:")) continue;
+            
+            var data = line.Substring(5).Trim();
+            if (data == "[DONE]") break;
+                
+            var streamResponse = JsonSerializer.Deserialize<StreamResponse>(data);
+            if (streamResponse == null || string.IsNullOrEmpty(streamResponse.Image)) continue;
+            // Console.WriteLine(streamResponse.EventType + " | " + streamResponse.StepIndex + " | " + streamResponse.GenId + " | " + streamResponse.Image);
+            yield return Convert.FromBase64String(streamResponse.Image);
         }
     }
 
@@ -63,8 +98,6 @@ public class NovelAiApiService : INovelAiService
 
             if (!response.IsSuccessStatusCode)
             {
-                // ÅÂ±× ÃßÃµ ½ÇÆĞ´Â Ä¡¸íÀûÀÌÁö ¾ÊÀ¸¹Ç·Î ºó ¸®½ºÆ® ¹İÈ¯ÇÏ°Å³ª ·Î±× ³²±è
-                // Logger.LogInfo($"Tag suggestion failed: {response.StatusCode}");
                 return new List<TagSuggestion>();
             }
 
@@ -73,7 +106,6 @@ public class NovelAiApiService : INovelAiService
         }
         catch (Exception ex)
         {
-            // Logger.LogError("Exception in SuggestTagsAsync", ex);
             return new List<TagSuggestion>();
         }
     }

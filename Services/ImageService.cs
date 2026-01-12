@@ -32,7 +32,7 @@ public class ImageService : IImageService
             image.StreamSource = mem;
             image.EndInit();
         }
-        image.Freeze(); // UI ½º·¹µå °£ °øÀ¯¸¦ À§ÇØ Freeze È£Ãâ
+        image.Freeze(); // UI ìŠ¤ë ˆë“œ ê°„ ê³µìœ ë¥¼ ìœ„í•´ Freeze í˜¸ì¶œ
         return image;
     }
 }

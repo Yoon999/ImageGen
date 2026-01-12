@@ -52,8 +52,8 @@ public static class Logger
         }
         catch (Exception)
         {
-            // ·Î±ë Áß ¿¡·¯ ¹ß»ı ½Ã ¹«½Ã (¹«ÇÑ ·çÇÁ ¹æÁö)
-            // µğ¹ö±× ¸ğµå¿¡¼­´Â ÄÜ¼Ö Ãâ·Â
+            // ë¡œê¹… ì¤‘ ì—ëŸ¬ ë°œìƒ ì‹œ ë¬´ì‹œ (ë¬´í•œ ë£¨í”„ ë°©ì§€)
+            // ë””ë²„ê·¸ ëª¨ë“œì—ì„œëŠ” ì½˜ì†” ì¶œë ¥
             System.Diagnostics.Debug.WriteLine($"Failed to write log: {message}");
         }
     }

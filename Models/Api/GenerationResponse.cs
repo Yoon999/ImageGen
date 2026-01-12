@@ -2,5 +2,5 @@ namespace ImageGen.Models.Api;
 
 public class GenerationResponse
 {
-    // API ÀÀ´ä ±¸Á¶¿¡ µû¶ó ÃßÈÄ ±¸Çö
+    // API ì‘ë‹µ êµ¬ì¡°ì— ë”°ë¼ ì¶”í›„ êµ¬í˜„
 }

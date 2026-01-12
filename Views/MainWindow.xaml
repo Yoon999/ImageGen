@@ -6,7 +6,8 @@
         xmlns:vm="clr-namespace:ImageGen.ViewModels"
         xmlns:helpers="clr-namespace:ImageGen.Helpers"
         mc:Ignorable="d"
-        Title="NovelAI Image Generator" Height="850" Width="900">
+        Title="NovelAI Image Generator" Height="900" Width="1600"
+        WindowStartupLocation="Manual" Left="100" Top="50">
     
     <Window.Resources>
         <helpers:CountToBoolConverter x:Key="CountToBoolConverter"/>
@@ -31,124 +32,184 @@
             <TextBlock Text="(Required)" Foreground="Gray" VerticalAlignment="Center" Margin="10,0,0,0"/>
         </StackPanel>
 
-        <!-- 2. Main Content -->
-        <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="300"/> <!-- Controls -->
-                <ColumnDefinition Width="*"/>   <!-- Image Viewer -->
-            </Grid.ColumnDefinitions>
+        <!-- 2. Main Content (Tabs) -->
+        <TabControl Grid.Row="1">
+            <!-- Tab 1: Generator -->
+            <TabItem Header="Generator">
+                <Grid Margin="0,10,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="350" MinWidth="250"/> <!-- Controls -->
+                        <ColumnDefinition Width="Auto"/> <!-- Splitter -->
+                        <ColumnDefinition Width="*"/>   <!-- Image Viewer -->
+                    </Grid.ColumnDefinitions>
 
-            <!-- Left Panel: Controls -->
-            <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" Margin="0,0,10,0">
-                <StackPanel>
-                    <TextBlock Text="Prompt" FontWeight="Bold" Margin="0,0,0,5"/>
-                    
-                    <!-- Prompt Input with AutoComplete Popup -->
-                    <Grid>
-                        <TextBox x:Name="PromptBox" 
-                                 Text="{Binding Prompt, UpdateSourceTrigger=PropertyChanged}" 
-                                 Height="100" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
-                                 Margin="0,0,0,15"/>
+                    <!-- Left Panel: Controls -->
+                    <Grid Grid.Column="0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" MinHeight="150"/> <!-- Prompts -->
+                            <RowDefinition Height="Auto"/> <!-- Splitter -->
+                            <RowDefinition Height="Auto" MinHeight="200"/> <!-- Parameters -->
+                        </Grid.RowDefinitions>
+
+                        <!-- Top: Prompts -->
+                        <Grid Grid.Row="0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/> <!-- Label -->
+                                <RowDefinition Height="*"/>    <!-- Prompt -->
+                                <RowDefinition Height="Auto"/> <!-- Tag Suggestions -->
+                                <RowDefinition Height="Auto"/> <!-- Label -->
+                                <RowDefinition Height="*"/>    <!-- Negative Prompt -->
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Text="Prompt" FontWeight="Bold" Margin="0,0,0,5"/>
+                            <TextBox Grid.Row="1" x:Name="PromptBox" 
+                                     Text="{Binding Prompt, UpdateSourceTrigger=PropertyChanged}" 
+                                     TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
+                                     Margin="0,0,0,5"
+                                     TextChanged="PromptBox_OnTextChanged"/>
+                            
+                            <!-- Tag Suggestions Panel -->
+                            <ItemsControl Grid.Row="2" ItemsSource="{Binding TagSuggestions}" Margin="0,0,0,10">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel Orientation="Horizontal"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Content="{Binding Tag}" Margin="0,0,5,5" Padding="5,2"
+                                                Click="TagSuggestionButton_Click" Tag="{Binding}"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <TextBlock Grid.Row="3" Text="Negative Prompt" FontWeight="Bold" Margin="0,0,0,5"/>
+                            <TextBox Grid.Row="4" Text="{Binding NegativePrompt, UpdateSourceTrigger=PropertyChanged}" 
+                                     TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
+                                     Margin="0,0,0,10"/>
+                        </Grid>
                         
-                        <Popup IsOpen="{Binding TagSuggestions.Count, Mode=OneWay, Converter={StaticResource CountToBoolConverter}}" 
-                               PlacementTarget="{Binding ElementName=PromptBox}"
-                               Placement="Bottom"
-                               StaysOpen="False"
-                               MaxHeight="200" Width="280">
-                            <Border Background="White" BorderBrush="Gray" BorderThickness="1">
-                                <ListBox ItemsSource="{Binding TagSuggestions}" 
-                                         SelectedItem="{Binding SelectedSuggestion}"
-                                         x:Name="SuggestionList">
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <StackPanel Orientation="Horizontal">
-                                                <TextBlock Text="{Binding Tag}" FontWeight="Bold"/>
-                                                <TextBlock Text="{Binding Count, StringFormat=' ({0})'}" Foreground="Gray"/>
-                                            </StackPanel>
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
-                            </Border>
-                        </Popup>
+                        <GridSplitter Grid.Row="1" Height="5" HorizontalAlignment="Stretch" Background="LightGray" Margin="0,0,0,10"/>
+
+                        <!-- Bottom: Parameters -->
+                        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <TextBlock Text="Parameters" FontWeight="Bold" Margin="0,0,0,5"/>
+                                
+                                <!-- Width -->
+                                <DockPanel Margin="0,0,0,5">
+                                    <TextBlock Text="Width:" Width="50"/>
+                                    <TextBox Text="{Binding Request.parameters.width}" Width="50" DockPanel.Dock="Right"/>
+                                    <Slider Minimum="64" Maximum="2048" Value="{Binding Request.parameters.width}" TickFrequency="64" IsSnapToTickEnabled="True"/>
+                                </DockPanel>
+
+                                <!-- Height -->
+                                <DockPanel Margin="0,0,0,5">
+                                    <TextBlock Text="Height:" Width="50"/>
+                                    <TextBox Text="{Binding Request.parameters.height}" Width="50" DockPanel.Dock="Right"/>
+                                    <Slider Minimum="64" Maximum="2048" Value="{Binding Request.parameters.height}" TickFrequency="64" IsSnapToTickEnabled="True"/>
+                                </DockPanel>
+
+                                <!-- Steps -->
+                                <DockPanel Margin="0,0,0,5">
+                                    <TextBlock Text="Steps:" Width="50"/>
+                                    <TextBox Text="{Binding Request.parameters.steps}" Width="50" DockPanel.Dock="Right"/>
+                                    <Slider Minimum="1" Maximum="50" Value="{Binding Request.parameters.steps}"/>
+                                </DockPanel>
+
+                                <!-- Scale -->
+                                <DockPanel Margin="0,0,0,5">
+                                    <TextBlock Text="Scale:" Width="50"/>
+                                    <TextBox Text="{Binding Request.parameters.scale}" Width="50" DockPanel.Dock="Right"/>
+                                    <Slider Minimum="1.0" Maximum="20.0" Value="{Binding Request.parameters.scale}"/>
+                                </DockPanel>
+
+                                <!-- CfgRescale -->
+                                <DockPanel Margin="0,0,0,5">
+                                    <TextBlock Text="Rescale:" Width="50"/>
+                                    <TextBox Text="{Binding CfgRescale, StringFormat=N2}" Width="50" DockPanel.Dock="Right"/>
+                                    <Slider Minimum="0.0" Maximum="1.0" Value="{Binding CfgRescale}" TickFrequency="0.05" IsSnapToTickEnabled="True"/>
+                                </DockPanel>
+
+                                <!-- Sampler -->
+                                <DockPanel Margin="0,0,0,5">
+                                    <TextBlock Text="Sampler:" Width="50" VerticalAlignment="Center"/>
+                                    <ComboBox ItemsSource="{Binding Samplers}" SelectedItem="{Binding SelectedSampler}" DockPanel.Dock="Right"/>
+                                </DockPanel>
+
+                                <!-- Seed -->
+                                <TextBlock Text="Seed:" Margin="0,5,0,0"/>
+                                <DockPanel Margin="0,0,0,15">
+                                    <CheckBox Content="Random" IsChecked="{Binding IsRandomSeed}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <Button Content="🎲" Command="{Binding RandomizeSeedCommand}" Width="30" Margin="0,0,5,0" ToolTip="Randomize Seed"/>
+                                    <TextBox Text="{Binding Seed, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsRandomSeed, Converter={StaticResource InverseBoolConverter}}"/>
+                                </DockPanel>
+
+                                <!-- Save Directory -->
+                                <TextBlock Text="Save Directory" FontWeight="Bold" Margin="0,0,0,5"/>
+                                <Grid Margin="0,0,0,15">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Text="{Binding SaveDirectory}" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                    <Button Grid.Column="1" Content="..." Command="{Binding SelectFolderCommand}" Width="30" Height="25"/>
+                                </Grid>
+
+                                <!-- Generate Button -->
+                                <Button Content="Generate Image" Command="{Binding GenerateCommand}" Height="40" FontSize="16" FontWeight="Bold"/>
+                            </StackPanel>
+                        </ScrollViewer>
                     </Grid>
 
-                    <TextBlock Text="Negative Prompt" FontWeight="Bold" Margin="0,0,0,5"/>
-                    <TextBox Text="{Binding NegativePrompt, UpdateSourceTrigger=PropertyChanged}" 
-                             Height="60" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
-                             Margin="0,0,0,15"/>
+                    <!-- Splitter -->
+                    <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center" Background="LightGray"/>
 
-                    <TextBlock Text="Parameters" FontWeight="Bold" Margin="0,0,0,5"/>
+                    <!-- Right Panel: Image Viewer -->
+                    <Border Grid.Column="2" BorderBrush="Gray" BorderThickness="1" Background="#F0F0F0">
+                        <Image Source="{Binding GeneratedImage}" Stretch="Uniform"/>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- Tab 2: EXIF Viewer -->
+            <TabItem Header="EXIF Viewer">
+                <Grid Margin="0,10,0,0" AllowDrop="True" Drop="ExifViewer_Drop">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="300"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Image Display -->
+                    <Border Grid.Column="0" BorderBrush="Gray" BorderThickness="1" Background="#F0F0F0" Margin="0,0,10,0">
+                        <Grid>
+                            <Image Source="{Binding ExifImage}" Stretch="Uniform"/>
+                            <TextBlock Text="Drag &amp; Drop Image Here" 
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" 
+                                       Foreground="Gray" FontSize="20"
+                                       Visibility="{Binding ExifImage, Converter={StaticResource InverseBoolConverter}, FallbackValue=Visible}"/>
+                        </Grid>
+                    </Border>
                     
-                    <!-- Width -->
-                    <DockPanel Margin="0,0,0,5">
-                        <TextBlock Text="Width:" Width="50"/>
-                        <TextBox Text="{Binding Request.parameters.width}" Width="50" DockPanel.Dock="Right"/>
-                        <Slider Minimum="64" Maximum="2048" Value="{Binding Request.parameters.width}" TickFrequency="64" IsSnapToTickEnabled="True"/>
-                    </DockPanel>
+                    <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center" Background="LightGray"/>
 
-                    <!-- Height -->
-                    <DockPanel Margin="0,0,0,5">
-                        <TextBlock Text="Height:" Width="50"/>
-                        <TextBox Text="{Binding Request.parameters.height}" Width="50" DockPanel.Dock="Right"/>
-                        <Slider Minimum="64" Maximum="2048" Value="{Binding Request.parameters.height}" TickFrequency="64" IsSnapToTickEnabled="True"/>
-                    </DockPanel>
-
-                    <!-- Steps -->
-                    <DockPanel Margin="0,0,0,5">
-                        <TextBlock Text="Steps:" Width="50"/>
-                        <TextBox Text="{Binding Request.parameters.steps}" Width="50" DockPanel.Dock="Right"/>
-                        <Slider Minimum="1" Maximum="50" Value="{Binding Request.parameters.steps}"/>
-                    </DockPanel>
-
-                    <!-- Scale -->
-                    <DockPanel Margin="0,0,0,5">
-                        <TextBlock Text="Scale:" Width="50"/>
-                        <TextBox Text="{Binding Request.parameters.scale}" Width="50" DockPanel.Dock="Right"/>
-                        <Slider Minimum="1.0" Maximum="20.0" Value="{Binding Request.parameters.scale}"/>
-                    </DockPanel>
-
-                    <!-- CfgRescale -->
-                    <DockPanel Margin="0,0,0,5">
-                        <TextBlock Text="Rescale:" Width="50"/>
-                        <TextBox Text="{Binding CfgRescale, StringFormat=N2}" Width="50" DockPanel.Dock="Right"/>
-                        <Slider Minimum="0.0" Maximum="1.0" Value="{Binding CfgRescale}" TickFrequency="0.05" IsSnapToTickEnabled="True"/>
-                    </DockPanel>
-
-                    <!-- Sampler -->
-                    <DockPanel Margin="0,0,0,5">
-                        <TextBlock Text="Sampler:" Width="50" VerticalAlignment="Center"/>
-                        <ComboBox ItemsSource="{Binding Samplers}" SelectedItem="{Binding SelectedSampler}" DockPanel.Dock="Right"/>
-                    </DockPanel>
-
-                    <!-- Seed -->
-                    <TextBlock Text="Seed:" Margin="0,5,0,0"/>
-                    <DockPanel Margin="0,0,0,15">
-                        <CheckBox Content="Random" IsChecked="{Binding IsRandomSeed}" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                        <Button Content="?" Command="{Binding RandomizeSeedCommand}" Width="30" Margin="0,0,5,0" ToolTip="Randomize Seed"/>
-                        <TextBox Text="{Binding Seed, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsRandomSeed, Converter={StaticResource InverseBoolConverter}}"/>
-                    </DockPanel>
-
-                    <!-- Save Directory -->
-                    <TextBlock Text="Save Directory" FontWeight="Bold" Margin="0,0,0,5"/>
-                    <Grid Margin="0,0,0,15">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBox Text="{Binding SaveDirectory}" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                        <Button Grid.Column="1" Content="..." Command="{Binding SelectFolderCommand}" Width="30" Height="25"/>
+                    <!-- Metadata Display -->
+                    <Grid Grid.Column="2">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        
+                        <Button Content="Open Image..." Command="{Binding LoadExifImageCommand}" Height="30" Margin="0,0,0,10"/>
+                        
+                        <TextBox Grid.Row="1" Text="{Binding ExifData}" 
+                                 TextWrapping="Wrap" AcceptsReturn="True" 
+                                 VerticalScrollBarVisibility="Auto" IsReadOnly="True"/>
                     </Grid>
-
-                    <!-- Generate Button -->
-                    <Button Content="Generate Image" Command="{Binding GenerateCommand}" Height="40" FontSize="16" FontWeight="Bold"/>
-                </StackPanel>
-            </ScrollViewer>
-
-            <!-- Right Panel: Image Viewer -->
-            <Border Grid.Column="1" BorderBrush="Gray" BorderThickness="1" Background="#F0F0F0">
-                <Image Source="{Binding GeneratedImage}" Stretch="Uniform"/>
-            </Border>
-        </Grid>
+                </Grid>
+            </TabItem>
+        </TabControl>
 
         <!-- 3. Status Bar -->
         <StatusBar Grid.Row="2" Margin="0,10,0,0">

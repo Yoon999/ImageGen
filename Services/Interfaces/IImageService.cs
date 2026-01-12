@@ -5,12 +5,12 @@ namespace ImageGen.Services.Interfaces;
 public interface IImageService
 {
     /// <summary>
-    /// ÀÌ¹ÌÁö µ¥ÀÌÅÍ¸¦ ÆÄÀÏ·Î ÀúÀåÇÕ´Ï´Ù.
+    /// ì´ë¯¸ì§€ ë°ì´í„°ë¥¼ íŒŒì¼ë¡œ ì €ì¥í•©ë‹ˆë‹¤.
     /// </summary>
     Task SaveImageAsync(byte[] imageData, string directoryPath, string fileName);
 
     /// <summary>
-    /// ¹ÙÀÌÆ® ¹è¿­À» WPF¿¡¼­ Ç¥½Ã °¡´ÉÇÑ BitmapImage·Î º¯È¯ÇÕ´Ï´Ù.
+    /// ë°”ì´íŠ¸ ë°°ì—´ì„ WPFì—ì„œ í‘œì‹œ ê°€ëŠ¥í•œ BitmapImageë¡œ ë³€í™˜í•©ë‹ˆë‹¤.
     /// </summary>
     BitmapImage ConvertToBitmapImage(byte[] imageData);
 }

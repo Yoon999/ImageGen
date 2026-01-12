@@ -33,8 +33,7 @@ public class SettingsService
         {
             Logger.LogError("Failed to load settings", ex);
         }
-
-        // 파일이 없거나 로드 실패 시 기본값 반환
+        
         return new AppSettings
         {
             SaveDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Output")

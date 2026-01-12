@@ -28,19 +28,23 @@ public class MainViewModel : INotifyPropertyChanged
     private BitmapImage? _generatedImage;
     private string _saveDirectory;
     
-    // Áßº¹ »ı¼º ¹æÁö¿ë
+    // EXIF Viewer ê´€ë ¨
+    private BitmapImage? _exifImage;
+    private string _exifData = string.Empty;
+    
+    // ì¤‘ë³µ ìƒì„± ë°©ì§€ìš©
     private string _lastRequestJson = string.Empty;
     
-    // ÅÂ±× ÀÚµ¿¿Ï¼º °ü·Ã
+    // íƒœê·¸ ìë™ì™„ì„± ê´€ë ¨
     private CancellationTokenSource? _debounceCts;
     private ObservableCollection<TagSuggestion> _tagSuggestions = new();
     private TagSuggestion? _selectedSuggestion;
     private bool _isUpdatingPrompt;
 
-    // Seed °ü·Ã
+    // Seed ê´€ë ¨
     private bool _isRandomSeed = true;
 
-    // Sampler ¸ñ·Ï
+    // Sampler ëª©ë¡
     public ObservableCollection<string> Samplers { get; } = new ObservableCollection<string>
     {
         "k_euler_ancestral",
@@ -54,7 +58,7 @@ public class MainViewModel : INotifyPropertyChanged
         _imageService = new ImageService();
         _settingsService = new SettingsService();
         
-        // ¼³Á¤ ·Îµå
+        // ì„¤ì • ë¡œë“œ
         var settings = _settingsService.LoadSettings();
         _apiToken = settings.ApiToken;
         _saveDirectory = string.IsNullOrWhiteSpace(settings.SaveDirectory) 
@@ -62,20 +66,20 @@ public class MainViewModel : INotifyPropertyChanged
             : settings.SaveDirectory;
         _prompt = settings.LastPrompt;
         
-        // ÆÄ¶ó¹ÌÅÍ º¹¿ø (null Ã¼Å©)
+        // íŒŒë¼ë¯¸í„° ë³µì› (null ì²´í¬)
         if (settings.LastParameters != null)
         {
             Request.parameters = settings.LastParameters;
             _isRandomSeed = settings.IsRandomSeed;
         }
         
-        // ±âº»°ª ¼³Á¤ (¸¸¾à ·ÎµåµÈ °ªÀÌ ¾ø°Å³ª ºñ¾îÀÖ´Ù¸é)
+        // ê¸°ë³¸ê°’ ì„¤ì • (ë§Œì•½ ë¡œë“œëœ ê°’ì´ ì—†ê±°ë‚˜ ë¹„ì–´ìˆë‹¤ë©´)
         if (string.IsNullOrEmpty(Request.parameters.uc))
         {
             Request.parameters.uc = "low quality, worst quality, jpeg artifacts, 2::signature, watermark, copyright name, artist name, logo, artist logo, weibo username, twitter username::, mosaic censoring, bar censor, censored, lowres, bad anatomy, bad hands, abstract, 2::multiple views::, deformed, \nhair flaps, armpit hair, shota, loli, beard,\n\nalphes (style), zun (style), toriyama akira (style), \nasanagi, bkub, bb_(baalbuddy), neocoill, gaoo_(frpjx283), yukito_(dreamrider), konoshige_(ryuun), milkpanda, nameo_(judgemasterkou)";
         }
         
-        // Sampler ±âº»°ª È®ÀÎ
+        // Sampler ê¸°ë³¸ê°’ í™•ì¸
         if (!Samplers.Contains(Request.parameters.sampler))
         {
             Request.parameters.sampler = "k_euler";
@@ -84,6 +88,7 @@ public class MainViewModel : INotifyPropertyChanged
         GenerateCommand = new RelayCommand(ExecuteGenerate, CanExecuteGenerate);
         SelectFolderCommand = new RelayCommand(ExecuteSelectFolder);
         RandomizeSeedCommand = new RelayCommand(ExecuteRandomizeSeed);
+        LoadExifImageCommand = new RelayCommand(ExecuteLoadExifImage);
     }
 
     public string Prompt
@@ -95,11 +100,8 @@ public class MainViewModel : INotifyPropertyChanged
             {
                 _prompt = value;
                 OnPropertyChanged();
-                SaveCurrentSettings(); // º¯°æ ½Ã ÀúÀå
-                if (!_isUpdatingPrompt)
-                {
-                    OnPromptChanged();
-                }
+                SaveCurrentSettings(); // ë³€ê²½ ì‹œ ì €ì¥
+                // OnPromptChanged() ì œê±°: Viewì—ì„œ ì²˜ë¦¬
             }
         }
     }
@@ -121,12 +123,7 @@ public class MainViewModel : INotifyPropertyChanged
         {
             _selectedSuggestion = value;
             OnPropertyChanged();
-            if (_selectedSuggestion != null)
-            {
-                ApplySuggestion(_selectedSuggestion);
-                _selectedSuggestion = null; 
-                OnPropertyChanged();
-            }
+            // ì„ íƒ ì‹œ ë¡œì§ì€ Viewì—ì„œ ì²˜ë¦¬í•˜ë¯€ë¡œ ì—¬ê¸°ì„œëŠ” ì œê±°
         }
     }
 
@@ -139,7 +136,7 @@ public class MainViewModel : INotifyPropertyChanged
             {
                 _apiToken = value;
                 OnPropertyChanged();
-                SaveCurrentSettings(); // º¯°æ ½Ã ÀúÀå
+                SaveCurrentSettings(); // ë³€ê²½ ì‹œ ì €ì¥
             }
         }
     }
@@ -153,7 +150,7 @@ public class MainViewModel : INotifyPropertyChanged
             {
                 _saveDirectory = value;
                 OnPropertyChanged();
-                SaveCurrentSettings(); // º¯°æ ½Ã ÀúÀå
+                SaveCurrentSettings(); // ë³€ê²½ ì‹œ ì €ì¥
             }
         }
     }
@@ -203,11 +200,11 @@ public class MainViewModel : INotifyPropertyChanged
                 Request.parameters.seed = 0;
                 OnPropertyChanged(nameof(Request));
             }
-            SaveCurrentSettings(); // º¯°æ ½Ã ÀúÀå
+            SaveCurrentSettings(); // ë³€ê²½ ì‹œ ì €ì¥
         }
     }
 
-    // CfgRescale ¹ÙÀÎµù ¼Ó¼º
+    // CfgRescale ë°”ì¸ë”© ì†ì„±
     public double CfgRescale
     {
         get => Request.parameters.cfg_rescale;
@@ -222,7 +219,7 @@ public class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    // Negative Prompt ¹ÙÀÎµù ¼Ó¼º
+    // Negative Prompt ë°”ì¸ë”© ì†ì„±
     public string NegativePrompt
     {
         get => Request.parameters.uc;
@@ -237,7 +234,7 @@ public class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    // SelectedSampler ¹ÙÀÎµù ¼Ó¼º
+    // SelectedSampler ë°”ì¸ë”© ì†ì„±
     public string SelectedSampler
     {
         get => Request.parameters.sampler;
@@ -251,10 +248,32 @@ public class MainViewModel : INotifyPropertyChanged
             }
         }
     }
+    
+    // EXIF Viewer ì†ì„±
+    public BitmapImage? ExifImage
+    {
+        get => _exifImage;
+        set
+        {
+            _exifImage = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public string ExifData
+    {
+        get => _exifData;
+        set
+        {
+            _exifData = value;
+            OnPropertyChanged();
+        }
+    }
 
     public ICommand GenerateCommand { get; }
     public ICommand SelectFolderCommand { get; }
     public ICommand RandomizeSeedCommand { get; }
+    public ICommand LoadExifImageCommand { get; }
 
     private bool CanExecuteGenerate(object? parameter)
     {
@@ -286,7 +305,44 @@ public class MainViewModel : INotifyPropertyChanged
         Request.parameters.seed = newSeed;
         IsRandomSeed = false; 
         OnPropertyChanged(nameof(Request));
-        SaveCurrentSettings(); // º¯°æ ½Ã ÀúÀå
+        SaveCurrentSettings(); // ë³€ê²½ ì‹œ ì €ì¥
+    }
+    
+    private void ExecuteLoadExifImage(object? parameter)
+    {
+        // íŒŒì¼ ì—´ê¸° ë‹¤ì´ì–¼ë¡œê·¸ (WPFìš©)
+        var openFileDialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Filter = "Image files (*.png;*.jpg;*.jpeg)|*.png;*.jpg;*.jpeg|All files (*.*)|*.*"
+        };
+
+        if (openFileDialog.ShowDialog() == true)
+        {
+            LoadExifImage(openFileDialog.FileName);
+        }
+    }
+
+    public void LoadExifImage(string filePath)
+    {
+        try
+        {
+            // ì´ë¯¸ì§€ í‘œì‹œ
+            var bitmap = new BitmapImage();
+            bitmap.BeginInit();
+            bitmap.UriSource = new Uri(filePath);
+            bitmap.CacheOption = BitmapCacheOption.OnLoad;
+            bitmap.EndInit();
+            bitmap.Freeze();
+            ExifImage = bitmap;
+
+            // ë©”íƒ€ë°ì´í„° ì¶”ì¶œ
+            ExifData = ExifHelper.ExtractMetadata(filePath);
+        }
+        catch (Exception ex)
+        {
+            ExifData = $"Error loading image: {ex.Message}";
+            Logger.LogError("Error loading EXIF image", ex);
+        }
     }
 
     public long Seed
@@ -299,7 +355,7 @@ public class MainViewModel : INotifyPropertyChanged
                 Request.parameters.seed = value;
                 OnPropertyChanged();
                 IsRandomSeed = (value == 0);
-                SaveCurrentSettings(); // º¯°æ ½Ã ÀúÀå
+                SaveCurrentSettings(); // ë³€ê²½ ì‹œ ì €ì¥
             }
         }
     }
@@ -321,12 +377,12 @@ public class MainViewModel : INotifyPropertyChanged
     {
         try
         {
-            // V4 ¸ğµ¨ÀÎÁö È®ÀÎ (nai-diffusion-4 Æ÷ÇÔ ¿©ºÎ)
+            // V4 ëª¨ë¸ì¸ì§€ í™•ì¸ (nai-diffusion-4 í¬í•¨ ì—¬ë¶€)
             bool isV4 = Request.model.Contains("nai-diffusion-4");
 
             if (isV4)
             {
-                // V4 ¸ğµ¨ÀÏ °æ¿ì v4_prompt ±¸Á¶Ã¼ ¼³Á¤
+                // V4 ëª¨ë¸ì¼ ê²½ìš° v4_prompt êµ¬ì¡°ì²´ ì„¤ì •
                 Request.parameters.V4Prompt = new V4ConditionInput
                 {
                     Caption = new V4ExternalCaption
@@ -337,45 +393,45 @@ public class MainViewModel : INotifyPropertyChanged
                     UseOrder = true   
                 };
                 
-                // Negative Prompt ¼³Á¤ (»ç¿ëÀÚ ÀÔ·Â°ª »ç¿ë)
+                // Negative Prompt ì„¤ì • (ì‚¬ìš©ì ì…ë ¥ê°’ ì‚¬ìš©)
                 Request.parameters.V4NegativePrompt = new V4ConditionInput
                 {
                     Caption = new V4ExternalCaption
                     {
-                        BaseCaption = NegativePrompt // »ç¿ëÀÚ°¡ ÀÔ·ÂÇÑ Negative Prompt »ç¿ë
+                        BaseCaption = NegativePrompt // ì‚¬ìš©ìê°€ ì…ë ¥í•œ Negative Prompt ì‚¬ìš©
                     },
                     UseCoords = false,
                     UseOrder = false
                 };
                 
-                // V4 ÆÄ¶ó¹ÌÅÍ ¼³Á¤
+                // V4 íŒŒë¼ë¯¸í„° ì„¤ì •
                 Request.parameters.noise_schedule = "karras";
-                // CfgRescaleÀº ¹ÙÀÎµùµÈ °ª »ç¿ë
+                // CfgRescaleì€ ë°”ì¸ë”©ëœ ê°’ ì‚¬ìš©
                 Request.parameters.prefer_brownian = true;
-                // uc´Â ÀÌ¹Ì ¹ÙÀÎµùµÇ¾î ÀÖÁö¸¸ ¸í½ÃÀûÀ¸·Î È®ÀÎ
+                // ucëŠ” ì´ë¯¸ ë°”ì¸ë”©ë˜ì–´ ìˆì§€ë§Œ ëª…ì‹œì ìœ¼ë¡œ í™•ì¸
                 
                 Request.input = Prompt; 
             }
             else
             {
-                // V3 ÀÌÇÏ ¸ğµ¨
+                // V3 ì´í•˜ ëª¨ë¸
                 Request.input = Prompt;
                 Request.parameters.V4Prompt = null;
                 Request.parameters.V4NegativePrompt = null;
             }
             
-            // ·£´ı ½Ãµå Ã³¸®: Å¬¶óÀÌ¾ğÆ®¿¡¼­ Á÷Á¢ »ı¼ºÇÏ¿© Àü¼Û
+            // ëœë¤ ì‹œë“œ ì²˜ë¦¬: í´ë¼ì´ì–¸íŠ¸ì—ì„œ ì§ì ‘ ìƒì„±í•˜ì—¬ ì „ì†¡
             if (IsRandomSeed)
             {
                 var random = new Random();
                 Request.parameters.seed = random.NextInt64(1, 9999999999);
-                OnPropertyChanged(nameof(Seed)); // UI °»½Å
+                OnPropertyChanged(nameof(Seed)); // UI ê°±ì‹ 
             }
             
             string currentRequestJson = JsonSerializer.Serialize(Request);
             
-            // ·£´ı ½ÃµåÀÏ ¶§´Â ¸Å¹ø ½Ãµå°¡ ¹Ù²î¹Ç·Î Áßº¹ °Ë»ç°¡ ÀÚ¿¬½º·´°Ô Åë°úµÊ.
-            // °íÁ¤ ½ÃµåÀÏ ¶§¸¸ Áßº¹ °Ë»ç ¼öÇà
+            // ëœë¤ ì‹œë“œì¼ ë•ŒëŠ” ë§¤ë²ˆ ì‹œë“œê°€ ë°”ë€Œë¯€ë¡œ ì¤‘ë³µ ê²€ì‚¬ê°€ ìì—°ìŠ¤ëŸ½ê²Œ í†µê³¼ë¨.
+            // ê³ ì • ì‹œë“œì¼ ë•Œë§Œ ì¤‘ë³µ ê²€ì‚¬ ìˆ˜í–‰
             if (!IsRandomSeed && currentRequestJson == _lastRequestJson)
             {
                 var result = MessageBox.Show("The settings are identical to the last generation. Generate anyway?", 
@@ -389,21 +445,30 @@ public class MainViewModel : INotifyPropertyChanged
             IsGenerating = true;
             StatusMessage = "Generating image...";
             
-            // »ı¼º ½ÃÀÛ Àü ¼³Á¤ ÀúÀå (ÆÄ¶ó¹ÌÅÍ µî ÃÖ½Å »óÅÂ À¯Áö)
+            // ìƒì„± ì‹œì‘ ì „ ì„¤ì • ì €ì¥ (íŒŒë¼ë¯¸í„° ë“± ìµœì‹  ìƒíƒœ ìœ ì§€)
             SaveCurrentSettings();
 
-            var zipData = await _novelAiService.GenerateImageAsync(Request, ApiToken);
-
-            var imageData = ZipHelper.ExtractFirstImage(zipData);
-            if (imageData == null)
-            {
-                StatusMessage = "Error: Failed to extract image from ZIP.";
-                Logger.LogError("Failed to extract image from ZIP response.");
-                return;
-            }
-
-            GeneratedImage = _imageService.ConvertToBitmapImage(imageData);
-
+            byte[]? imageData = null;
+            var counter = 0;
+             await foreach (var zipData in _novelAiService.GenerateImageStreamAsync(Request, ApiToken))
+             {
+                 
+                 imageData = zipData; // ZipHelper.ExtractFirstImage(zipData);
+                 /*if (imageData == null)
+                 {
+                     StatusMessage = "Error: Failed to extract image from ZIP.";
+                     Logger.LogError("Failed to extract image from ZIP response.");
+                     return;
+                 }*/
+                 if (++counter < 3) continue;
+                 counter = 0;
+                 
+                 GeneratedImage = _imageService.ConvertToBitmapImage(imageData);
+             }
+             if (imageData == null) return;
+             GeneratedImage = _imageService.ConvertToBitmapImage(imageData);
+            //var zipData = await _novelAiService.GenerateImageAsync(Request, ApiToken);
+            
             if (!Directory.Exists(SaveDirectory))
             {
                 try
@@ -436,7 +501,8 @@ public class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    private void OnPromptChanged()
+    // Viewì—ì„œ í˜¸ì¶œí•  ë©”ì„œë“œ: íƒœê·¸ ê²€ìƒ‰
+    public void SearchTags(string query)
     {
         _debounceCts?.Cancel();
         _debounceCts = new CancellationTokenSource();
@@ -446,8 +512,7 @@ public class MainViewModel : INotifyPropertyChanged
         {
             if (token.IsCancellationRequested) return;
             
-            var lastWord = GetLastWord(Prompt);
-            if (string.IsNullOrWhiteSpace(lastWord) || lastWord.Length < 2) 
+            if (string.IsNullOrWhiteSpace(query) || query.Length < 2) 
             {
                 System.Windows.Application.Current.Dispatcher.Invoke(() => TagSuggestions.Clear());
                 return;
@@ -457,7 +522,7 @@ public class MainViewModel : INotifyPropertyChanged
 
             try
             {
-                var suggestions = await _novelAiService.SuggestTagsAsync(lastWord, Request.model, ApiToken);
+                var suggestions = await _novelAiService.SuggestTagsAsync(query, Request.model, ApiToken);
                 
                 System.Windows.Application.Current.Dispatcher.Invoke(() =>
                 {
@@ -473,55 +538,6 @@ public class MainViewModel : INotifyPropertyChanged
                 // Logger.LogError("Tag suggestion failed", ex);
             }
         });
-    }
-
-    private void ApplySuggestion(TagSuggestion suggestion)
-    {
-        if (suggestion == null) return;
-
-        _isUpdatingPrompt = true;
-
-        try
-        {
-            string currentText = Prompt;
-            string lastWord = GetLastWord(currentText);
-            
-            if (!string.IsNullOrEmpty(lastWord))
-            {
-                int lastIndex = currentText.LastIndexOf(lastWord);
-                if (lastIndex >= 0)
-                {
-                    string newText = currentText.Substring(0, lastIndex) + suggestion.Tag + ", ";
-                    Prompt = newText;
-                }
-            }
-            else
-            {
-                Prompt += suggestion.Tag + ", ";
-            }
-            
-            TagSuggestions.Clear();
-        }
-        finally
-        {
-            _isUpdatingPrompt = false;
-        }
-    }
-
-    private string GetLastWord(string text)
-    {
-        if (string.IsNullOrEmpty(text)) return string.Empty;
-        
-        int lastCommaIndex = text.LastIndexOf(',');
-        int lastNewLineIndex = text.LastIndexOf('\n');
-        int splitIndex = Math.Max(lastCommaIndex, lastNewLineIndex);
-
-        if (splitIndex == -1)
-        {
-            return text.Trim();
-        }
-
-        return text.Substring(splitIndex + 1).Trim();
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

@@ -2,5 +2,5 @@ namespace ImageGen.Services;
 
 public class SecurityService
 {
-    // TODO: ÅäÅ« º¸¾È ÀúÀå ±¸Çö
+    // TODO: í† í° ë³´ì•ˆ ì €ì¥ êµ¬í˜„
 }

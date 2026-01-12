@@ -31,7 +31,7 @@ public class RequestParameters
     public bool deliberate_euler_ancestral_bug { get; set; } = false;
     public bool prefer_brownian { get; set; } = true;
 
-    // V4 °ü·Ã ÆÄ¶ó¹ÌÅÍ
+    // V4 ê´€ë ¨ íŒŒë¼ë¯¸í„°
     [JsonPropertyName("v4_prompt")]
     public V4ConditionInput? V4Prompt { get; set; }
 
