@@ -11,28 +11,28 @@
         WindowStartupLocation="Manual" Left="100" Top="50"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         Background="#ff002222">
-    
+
     <Window.Resources>
-        <helpers:CountToBoolConverter x:Key="CountToBoolConverter"/>
-        <helpers:InverseBoolConverter x:Key="InverseBoolConverter"/>
+        <helpers:CountToBoolConverter x:Key="CountToBoolConverter" />
+        <helpers:InverseBoolConverter x:Key="InverseBoolConverter" />
     </Window.Resources>
 
     <Window.DataContext>
-        <vm:MainViewModel/>
+        <vm:MainViewModel />
     </Window.DataContext>
-    
+
     <Grid Margin="10" Background="#ff002222">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/> <!-- Top Bar (Token) -->
-            <RowDefinition Height="*"/>    <!-- Main Content -->
-            <RowDefinition Height="Auto"/> <!-- Status Bar -->
+            <RowDefinition Height="Auto" /> <!-- Top Bar (Token) -->
+            <RowDefinition Height="*" />    <!-- Main Content -->
+            <RowDefinition Height="Auto" /> <!-- Status Bar -->
         </Grid.RowDefinitions>
 
         <!-- 1. Top Bar: API Token -->
         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
-            <ui:TextBlock Text="API Token:" Foreground="LightGray" VerticalAlignment="Center" Margin="0,0,10,0"/>
-            <ui:TextBox Text="{Binding ApiToken, UpdateSourceTrigger=PropertyChanged}" Width="300" VerticalAlignment="Center"/>
-            <ui:TextBlock Text="(Required)" Foreground="LightGray" VerticalAlignment="Center" Margin="10,0,0,0"/>
+            <ui:TextBlock Text="API Token:" Foreground="LightGray" VerticalAlignment="Center" Margin="0,0,10,0" />
+            <ui:TextBox Text="{Binding ApiToken, UpdateSourceTrigger=PropertyChanged}" Width="300" VerticalAlignment="Center" />
+            <ui:TextBlock Text="(Required)" Foreground="LightGray" VerticalAlignment="Center" Margin="10,0,0,0" />
         </StackPanel>
 
         <!-- 2. Main Content (Tabs) -->
@@ -41,73 +41,75 @@
             <TabItem Header="Generator">
                 <Grid Margin="0,10,0,0">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="350" MinWidth="250"/> <!-- Controls -->
-                        <ColumnDefinition Width="Auto"/> <!-- Splitter -->
-                        <ColumnDefinition Width="*"/>   <!-- Image Viewer -->
+                        <ColumnDefinition Width="350" MinWidth="250" /> <!-- Controls -->
+                        <ColumnDefinition Width="Auto" /> <!-- Splitter -->
+                        <ColumnDefinition Width="*" />   <!-- Image Viewer -->
                     </Grid.ColumnDefinitions>
 
                     <!-- Left Panel: Controls -->
                     <Grid Grid.Column="0">
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="*" MinHeight="150"/> <!-- Prompts -->
-                            <RowDefinition Height="Auto"/> <!-- Splitter -->
-                            <RowDefinition Height="Auto" MinHeight="200"/> <!-- Parameters -->
+                            <RowDefinition Height="*" MinHeight="150" /> <!-- Prompts -->
+                            <RowDefinition Height="Auto" /> <!-- Splitter -->
+                            <RowDefinition Height="Auto" MinHeight="200" /> <!-- Parameters -->
                         </Grid.RowDefinitions>
 
                         <!-- Top: Prompts -->
                         <ui:DynamicScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
                             <StackPanel Margin="0,0,12,0">
-                                <ui:TextBlock Text="Prompt" FontWeight="Bold" Margin="0,0,0,5"/>
-                                
+                                <ui:TextBlock Text="Prompt" FontWeight="Bold" Margin="0,0,0,5" />
+
                                 <TabControl Height="240" Margin="0,0, 0, 5">
                                     <TabItem Header="Positive">
-                                        <ui:TextBox x:Name="PromptBox" 
-                                                 Text="{Binding Prompt, UpdateSourceTrigger=PropertyChanged}" 
-                                                 TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
-                                                 BorderThickness="0" Padding="2"
-                                                 TextChanged="PromptBox_OnTextChanged"/>
+                                        <ui:TextBox x:Name="PromptBox"
+                                                    Text="{Binding Prompt, UpdateSourceTrigger=PropertyChanged}"
+                                                    TextAlignment="Left" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
+                                                    BorderThickness="0" Padding="2"
+                                                    ClearButtonEnabled="False"
+                                                    TextChanged="PromptBox_OnTextChanged" />
                                     </TabItem>
                                     <TabItem Header="Negative">
-                                        <ui:TextBox 
-                                                Text="{Binding NegativePrompt, UpdateSourceTrigger=PropertyChanged}" 
-                                                TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
-                                                BorderThickness="0" Padding="2"
-                                                TextChanged="PromptBox_OnTextChanged"/>
+                                        <ui:TextBox
+                                            Text="{Binding NegativePrompt, UpdateSourceTrigger=PropertyChanged}"
+                                            TextAlignment="Left" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
+                                            BorderThickness="0" Padding="2"
+                                            ClearButtonEnabled="False"
+                                            TextChanged="PromptBox_OnTextChanged" />
                                     </TabItem>
                                 </TabControl>
-                                
+
                                 <!-- Tag Suggestions Panel -->
                                 <ItemsControl ItemsSource="{Binding TagSuggestions}" Margin="0,0,0,10">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
-                                            <WrapPanel Orientation="Horizontal"/>
+                                            <WrapPanel Orientation="Horizontal" />
                                         </ItemsPanelTemplate>
                                     </ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
                                             <Button Content="{Binding Tag}" Margin="0,0,5,5" Padding="5,2"
-                                                    Click="TagSuggestionButton_Click" Tag="{Binding}"/>
+                                                    Click="TagSuggestionButton_Click" Tag="{Binding}" />
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
 
                                 <!-- Character Prompts -->
                                 <Grid Margin="0,5,0,5">
-                                    <ui:TextBlock Text="Character Prompts" FontWeight="Bold" VerticalAlignment="Center"/>
-                                    <ui:Button Content="➕ Add Character" Command="{Binding AddCharacterCommand}" HorizontalAlignment="Right" Padding="5,2"/>
+                                    <ui:TextBlock Text="Character Prompts" FontWeight="Bold" VerticalAlignment="Center" />
+                                    <ui:Button Content="➕ Add Character" Command="{Binding AddCharacterCommand}" HorizontalAlignment="Right" Padding="5,2" />
                                 </Grid>
-                                
+
                                 <ItemsControl ItemsSource="{Binding CharacterPrompts}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <controls:CharacterPromptControl/>
+                                            <controls:CharacterPromptControl />
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
                             </StackPanel>
                         </ui:DynamicScrollViewer>
-                        
-                        <GridSplitter Grid.Row="1" Height="5" Background="#ff002020" HorizontalAlignment="Stretch" Margin="0,0,0,10"/>
+
+                        <GridSplitter Grid.Row="1" Height="5" Background="#ff002020" HorizontalAlignment="Stretch" Margin="0,0,0,10" />
 
                         <!-- Bottom: Parameters -->
                         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
@@ -116,78 +118,78 @@
                                     <StackPanel Margin="0,5,0,0">
                                         <!-- Width -->
                                         <DockPanel Margin="0,0,0,5">
-                                            <ui:TextBlock FontWeight="Normal" Text="Width:" Width="50"/>
-                                            <ui:TextBox BorderThickness="0" Padding="0" TextAlignment="Center" FontWeight="Normal" Text="{Binding Request.parameters.width}" Width="50" DockPanel.Dock="Right"/>
-                                            <Slider Minimum="64" Maximum="2048" Value="{Binding Request.parameters.width}" TickFrequency="64" IsSnapToTickEnabled="True"/>
+                                            <ui:TextBlock FontWeight="Normal" Text="Width:" Width="50" />
+                                            <ui:TextBox BorderThickness="0" Padding="0" TextAlignment="Center" FontWeight="Normal" Text="{Binding Request.parameters.width}" Width="50" DockPanel.Dock="Right" />
+                                            <Slider Minimum="64" Maximum="2048" Value="{Binding Request.parameters.width}" TickFrequency="64" IsSnapToTickEnabled="True" />
                                         </DockPanel>
 
                                         <!-- Height -->
                                         <DockPanel Margin="0,0,0,5">
-                                            <ui:TextBlock FontWeight="Normal" Text="Height:" Width="50"/>
-                                            <ui:TextBox BorderThickness="0" Padding="0" TextAlignment="Center" FontWeight="Normal" Text="{Binding Request.parameters.height}" Width="50" DockPanel.Dock="Right"/>
-                                            <Slider Minimum="64" Maximum="2048" Value="{Binding Request.parameters.height}" TickFrequency="64" IsSnapToTickEnabled="True"/>
+                                            <ui:TextBlock FontWeight="Normal" Text="Height:" Width="50" />
+                                            <ui:TextBox BorderThickness="0" Padding="0" TextAlignment="Center" FontWeight="Normal" Text="{Binding Request.parameters.height}" Width="50" DockPanel.Dock="Right" />
+                                            <Slider Minimum="64" Maximum="2048" Value="{Binding Request.parameters.height}" TickFrequency="64" IsSnapToTickEnabled="True" />
                                         </DockPanel>
 
                                         <!-- Steps -->
                                         <DockPanel Margin="0,0,0,5">
-                                            <ui:TextBlock FontWeight="Normal" Text="Steps:" Width="50"/>
-                                            <ui:TextBox BorderThickness="0" Padding="0" TextAlignment="Center" FontWeight="Normal" Text="{Binding Request.parameters.steps}" Width="50" DockPanel.Dock="Right"/>
-                                            <Slider Minimum="1" Maximum="50" Value="{Binding Request.parameters.steps}"/>
+                                            <ui:TextBlock FontWeight="Normal" Text="Steps:" Width="50" />
+                                            <ui:TextBox BorderThickness="0" Padding="0" TextAlignment="Center" FontWeight="Normal" Text="{Binding Request.parameters.steps}" Width="50" DockPanel.Dock="Right" />
+                                            <Slider Minimum="1" Maximum="50" Value="{Binding Request.parameters.steps}" />
                                         </DockPanel>
 
                                         <!-- Scale -->
                                         <DockPanel Margin="0,0,0,5">
-                                            <ui:TextBlock FontWeight="Normal" Text="Scale:" Width="50"/>
-                                            <ui:TextBox BorderThickness="0" Padding="0" TextAlignment="Center" FontWeight="Normal" Text="{Binding Request.parameters.scale}" Width="50" DockPanel.Dock="Right"/>
-                                            <Slider Minimum="1.0" Maximum="20.0" Value="{Binding Request.parameters.scale}"/>
+                                            <ui:TextBlock FontWeight="Normal" Text="Scale:" Width="50" />
+                                            <ui:TextBox BorderThickness="0" Padding="0" TextAlignment="Center" FontWeight="Normal" Text="{Binding Request.parameters.scale}" Width="50" DockPanel.Dock="Right" />
+                                            <Slider Minimum="1.0" Maximum="20.0" Value="{Binding Request.parameters.scale}" />
                                         </DockPanel>
 
                                         <!-- CfgRescale -->
                                         <DockPanel Margin="0,0,0,5">
-                                            <ui:TextBlock FontWeight="Normal" Text="Rescale:" Width="50"/>
-                                            <ui:TextBox BorderThickness="0" Padding="0" TextAlignment="Center" FontWeight="Normal" Text="{Binding CfgRescale, StringFormat=N2}" Width="50" DockPanel.Dock="Right"/>
-                                            <Slider Minimum="0.0" Maximum="1.0" Value="{Binding CfgRescale}" TickFrequency="0.05" IsSnapToTickEnabled="True"/>
+                                            <ui:TextBlock FontWeight="Normal" Text="Rescale:" Width="50" />
+                                            <ui:TextBox BorderThickness="0" Padding="0" TextAlignment="Center" FontWeight="Normal" Text="{Binding CfgRescale, StringFormat=N2}" Width="50" DockPanel.Dock="Right" />
+                                            <Slider Minimum="0.0" Maximum="1.0" Value="{Binding CfgRescale}" TickFrequency="0.05" IsSnapToTickEnabled="True" />
                                         </DockPanel>
 
                                         <!-- Sampler -->
                                         <DockPanel Margin="0,0,0,5">
-                                            <ui:TextBlock FontWeight="Normal" Text="Sampler:" Width="50" VerticalAlignment="Center"/>
-                                            <ComboBox FontWeight="Normal" ItemsSource="{Binding Samplers}" SelectedItem="{Binding SelectedSampler}" DockPanel.Dock="Right"/>
+                                            <ui:TextBlock FontWeight="Normal" Text="Sampler:" Width="50" VerticalAlignment="Center" />
+                                            <ComboBox FontWeight="Normal" ItemsSource="{Binding Samplers}" SelectedItem="{Binding SelectedSampler}" DockPanel.Dock="Right" />
                                         </DockPanel>
 
                                         <!-- Seed -->
-                                        <ui:TextBlock FontWeight="Normal" Text="Seed:" Margin="0,5,0,0"/>
+                                        <ui:TextBlock FontWeight="Normal" Text="Seed:" Margin="0,5,0,0" />
                                         <DockPanel Margin="0,0,0,15">
-                                            <CheckBox FontWeight="Normal" Content="Random" IsChecked="{Binding IsRandomSeed}" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                            <ui:Button BorderThickness="0" Padding="4" FontWeight="Normal" Content="🎲" Command="{Binding RandomizeSeedCommand}" Width="30" Height="30" Margin="0,0,5,0" ToolTip="Randomize Seed"/>
-                                            <ui:TextBox BorderThickness="0" Padding="4" FontWeight="Normal" Text="{Binding Seed, UpdateSourceTrigger=PropertyChanged}" Height="30" IsEnabled="{Binding IsRandomSeed, Converter={StaticResource InverseBoolConverter}}"/>
+                                            <CheckBox FontWeight="Normal" Content="Random" IsChecked="{Binding IsRandomSeed}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                            <ui:Button BorderThickness="0" Padding="4" FontWeight="Normal" Content="🎲" Command="{Binding RandomizeSeedCommand}" Width="30" Height="30" Margin="0,0,5,0" ToolTip="Randomize Seed" />
+                                            <ui:TextBox BorderThickness="0" Padding="4" FontWeight="Normal" Text="{Binding Seed, UpdateSourceTrigger=PropertyChanged}" Height="30" IsEnabled="{Binding IsRandomSeed, Converter={StaticResource InverseBoolConverter}}" />
                                         </DockPanel>
 
                                         <!-- Save Directory -->
-                                        <ui:TextBlock Text="Save Directory" FontWeight="Normal" Margin="0,0,0,5"/>
+                                        <ui:TextBlock Text="Save Directory" FontWeight="Normal" Margin="0,0,0,5" />
                                         <Grid Margin="0,0,0,15">
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <ui:TextBox FontWeight="Normal" Text="{Binding SaveDirectory}" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                                            <Button Grid.Column="1" Content="..." Command="{Binding SelectFolderCommand}" Width="30" Height="25" BorderThickness="0" Padding="0"/>
+                                            <ui:TextBox FontWeight="Normal" Text="{Binding SaveDirectory}" VerticalAlignment="Center" Margin="0,0,5,0" />
+                                            <Button Grid.Column="1" Content="..." Command="{Binding SelectFolderCommand}" Width="30" Height="25" BorderThickness="0" Padding="0" />
                                         </Grid>
                                     </StackPanel>
                                 </ui:CardExpander>
 
                                 <!-- Generate Button -->
-                                <ui:Button Content="Generate Image" HorizontalAlignment="Stretch" Margin="5" Command="{Binding GenerateCommand}" Height="40" FontSize="16" FontWeight="Bold"/>
+                                <ui:Button Content="Generate Image" HorizontalAlignment="Stretch" Margin="5" Command="{Binding GenerateCommand}" Height="40" FontSize="16" FontWeight="Bold" />
                             </StackPanel>
                         </ScrollViewer>
                     </Grid>
 
                     <!-- Splitter -->
-                    <GridSplitter Grid.Column="1" Background="#ff002020" Width="5" HorizontalAlignment="Center"/>
+                    <GridSplitter Grid.Column="1" Background="#ff002020" Width="5" HorizontalAlignment="Center" />
 
                     <!-- Right Panel: Image Viewer -->
                     <Border Grid.Column="2" BorderBrush="Gray" BorderThickness="1">
-                        <Image Source="{Binding GeneratedImage}" Stretch="Uniform"/>
+                        <Image Source="{Binding GeneratedImage}" Stretch="Uniform" />
                     </Border>
                 </Grid>
             </TabItem>
@@ -196,36 +198,39 @@
             <TabItem Header="EXIF Viewer">
                 <Grid Margin="0,10,0,0" AllowDrop="True" Drop="ExifViewer_Drop">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="300"/>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="300" />
                     </Grid.ColumnDefinitions>
 
                     <!-- Image Display -->
                     <Border Grid.Column="0" BorderBrush="Gray" BorderThickness="1" Margin="0,0,10,0">
                         <Grid>
-                            <Image Source="{Binding ExifImage}" Stretch="Uniform"/>
-                            <ui:TextBlock Text="Drag &amp; Drop Image Here" 
-                                       HorizontalAlignment="Center" VerticalAlignment="Center" 
-                                       Foreground="Gray" FontSize="20"
-                                       Visibility="{Binding ExifImage, Converter={StaticResource InverseBoolConverter}, FallbackValue=Visible}"/>
+                            <Image Source="{Binding ExifImage}" Stretch="Uniform" />
+                            <ui:TextBlock Text="Drag &amp; Drop Image Here"
+                                          HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                          TextAlignment="Center"
+                                          Padding="1"
+                                          Foreground="Gray" FontSize="20"
+                                          Visibility="{Binding ExifImage, Converter={StaticResource InverseBoolConverter}, FallbackValue=Visible}" />
                         </Grid>
                     </Border>
-                    
-                    <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center"/>
+
+                    <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center" />
 
                     <!-- Metadata Display -->
                     <Grid Grid.Column="2">
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
-                        
-                        <Button Content="Open Image..." Command="{Binding LoadExifImageCommand}" Height="30" Margin="0,0,0,10"/>
-                        
-                        <ui:TextBox Grid.Row="1" Text="{Binding ExifData}" 
-                                 TextWrapping="Wrap" AcceptsReturn="True" 
-                                 VerticalScrollBarVisibility="Auto" IsReadOnly="True"/>
+
+                        <Button Content="Open Image..." Command="{Binding LoadExifImageCommand}" Height="30" Margin="0,0,0,10" />
+
+                        <ui:TextBox Grid.Row="1" Text="{Binding ExifData}"
+                                    TextAlignment="Left" TextWrapping="Wrap" AcceptsReturn="True"
+                                    VerticalScrollBarVisibility="Auto" IsReadOnly="True" 
+                                    ClearButtonEnabled="False" />
                     </Grid>
                 </Grid>
             </TabItem>
@@ -234,7 +239,7 @@
         <!-- 3. Status Bar -->
         <StatusBar Grid.Row="2" Margin="5,10,0,0">
             <StatusBarItem>
-                <ui:TextBlock Text="{Binding StatusMessage}"/>
+                <ui:TextBlock Text="{Binding StatusMessage}" />
             </StatusBarItem>
         </StatusBar>
     </Grid>
