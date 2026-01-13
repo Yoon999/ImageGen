@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -44,6 +45,9 @@ public class MainViewModel : INotifyPropertyChanged
     // Seed 관련
     private bool _isRandomSeed = true;
 
+    // Character Prompts
+    public ObservableCollection<CharacterPromptViewModel> CharacterPrompts { get; } = new();
+
     // Sampler 목록
     public ObservableCollection<string> Samplers { get; } = new ObservableCollection<string>
     {
@@ -73,6 +77,27 @@ public class MainViewModel : INotifyPropertyChanged
             _isRandomSeed = settings.IsRandomSeed;
         }
         
+        // 캐릭터 프롬프트 복원
+        if (settings.CharacterPrompts != null)
+        {
+            foreach (var charSettings in settings.CharacterPrompts)
+            {
+                var charViewModel = new CharacterPromptViewModel
+                {
+                    Prompt = charSettings.Prompt,
+                    NegativePrompt = charSettings.NegativePrompt,
+                    X = charSettings.X,
+                    Y = charSettings.Y
+                };
+                // 각 캐릭터 ViewModel의 변경 사항도 감지하여 저장
+                charViewModel.PropertyChanged += (s, e) => SaveCurrentSettings();
+                CharacterPrompts.Add(charViewModel);
+            }
+        }
+        
+        // CharacterPrompts 컬렉션 변경 감지 (추가/삭제 시 저장)
+        CharacterPrompts.CollectionChanged += CharacterPrompts_CollectionChanged;
+        
         // 기본값 설정 (만약 로드된 값이 없거나 비어있다면)
         if (string.IsNullOrEmpty(Request.parameters.uc))
         {
@@ -89,6 +114,30 @@ public class MainViewModel : INotifyPropertyChanged
         SelectFolderCommand = new RelayCommand(ExecuteSelectFolder);
         RandomizeSeedCommand = new RelayCommand(ExecuteRandomizeSeed);
         LoadExifImageCommand = new RelayCommand(ExecuteLoadExifImage);
+        AddCharacterCommand = new RelayCommand(ExecuteAddCharacter);
+        RemoveCharacterCommand = new RelayCommand(ExecuteRemoveCharacter);
+    }
+
+    private void CharacterPrompts_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.NewItems != null)
+        {
+            foreach (CharacterPromptViewModel item in e.NewItems)
+            {
+                item.PropertyChanged += (s, args) => SaveCurrentSettings();
+            }
+        }
+        
+        if (e.OldItems != null)
+        {
+            foreach (CharacterPromptViewModel item in e.OldItems)
+            {
+                // 이벤트 핸들러 제거는 선택사항이지만 메모리 누수 방지를 위해 권장됨
+                // 여기서는 람다식이라 정확한 제거가 어렵지만, ViewModel 수명이 짧으므로 큰 문제는 아님
+            }
+        }
+        
+        SaveCurrentSettings();
     }
 
     public string Prompt
@@ -274,6 +323,8 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand SelectFolderCommand { get; }
     public ICommand RandomizeSeedCommand { get; }
     public ICommand LoadExifImageCommand { get; }
+    public ICommand AddCharacterCommand { get; }
+    public ICommand RemoveCharacterCommand { get; }
 
     private bool CanExecuteGenerate(object? parameter)
     {
@@ -319,6 +370,19 @@ public class MainViewModel : INotifyPropertyChanged
         if (openFileDialog.ShowDialog() == true)
         {
             LoadExifImage(openFileDialog.FileName);
+        }
+    }
+
+    private void ExecuteAddCharacter(object? parameter)
+    {
+        CharacterPrompts.Add(new CharacterPromptViewModel());
+    }
+
+    private void ExecuteRemoveCharacter(object? parameter)
+    {
+        if (parameter is CharacterPromptViewModel character)
+        {
+            CharacterPrompts.Remove(character);
         }
     }
 
@@ -368,7 +432,14 @@ public class MainViewModel : INotifyPropertyChanged
             SaveDirectory = SaveDirectory,
             LastPrompt = Prompt,
             IsRandomSeed = IsRandomSeed,
-            LastParameters = Request.parameters
+            LastParameters = Request.parameters,
+            CharacterPrompts = CharacterPrompts.Select(cp => new CharacterPromptSettings
+            {
+                Prompt = cp.Prompt,
+                NegativePrompt = cp.NegativePrompt,
+                X = cp.X,
+                Y = cp.Y
+            }).ToList()
         };
         _settingsService.SaveSettings(settings);
     }
@@ -383,7 +454,7 @@ public class MainViewModel : INotifyPropertyChanged
             if (isV4)
             {
                 // V4 모델일 경우 v4_prompt 구조체 설정
-                Request.parameters.V4Prompt = new V4ConditionInput
+                var v4Prompt = new V4ConditionInput
                 {
                     Caption = new V4ExternalCaption
                     {
@@ -392,9 +463,9 @@ public class MainViewModel : INotifyPropertyChanged
                     UseCoords = true, 
                     UseOrder = true   
                 };
-                
+
                 // Negative Prompt 설정 (사용자 입력값 사용)
-                Request.parameters.V4NegativePrompt = new V4ConditionInput
+                var v4NegativePrompt = new V4ConditionInput
                 {
                     Caption = new V4ExternalCaption
                     {
@@ -403,6 +474,39 @@ public class MainViewModel : INotifyPropertyChanged
                     UseCoords = false,
                     UseOrder = false
                 };
+
+                // 캐릭터 프롬프트 추가
+                foreach (var charPrompt in CharacterPrompts)
+                {
+                    // Positive Prompt 추가
+                    if (!string.IsNullOrWhiteSpace(charPrompt.Prompt))
+                    {
+                        v4Prompt.Caption.CharCaptions.Add(new V4ExternalCharacterCaption
+                        {
+                            CharCaption = charPrompt.Prompt,
+                            Centers = new List<Coordinates>
+                            {
+                                new Coordinates { x = charPrompt.X, y = charPrompt.Y }
+                            }
+                        });
+                    }
+
+                    // Negative Prompt 추가 (캐릭터별 Negative Prompt가 있는 경우)
+                    if (!string.IsNullOrWhiteSpace(charPrompt.NegativePrompt))
+                    {
+                        v4NegativePrompt.Caption.CharCaptions.Add(new V4ExternalCharacterCaption
+                        {
+                            CharCaption = charPrompt.NegativePrompt,
+                            Centers = new List<Coordinates>
+                            {
+                                new Coordinates { x = charPrompt.X, y = charPrompt.Y }
+                            }
+                        });
+                    }
+                }
+
+                Request.parameters.V4Prompt = v4Prompt;
+                Request.parameters.V4NegativePrompt = v4NegativePrompt;
                 
                 // V4 파라미터 설정
                 Request.parameters.noise_schedule = "karras";

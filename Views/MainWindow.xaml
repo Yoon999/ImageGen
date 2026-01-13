@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:ImageGen.ViewModels"
         xmlns:helpers="clr-namespace:ImageGen.Helpers"
+        xmlns:controls="clr-namespace:ImageGen.Views.Controls"
         mc:Ignorable="d"
         Title="NovelAI Image Generator" Height="900" Width="1600"
         WindowStartupLocation="Manual" Left="100" Top="50">
@@ -52,42 +53,55 @@
                         </Grid.RowDefinitions>
 
                         <!-- Top: Prompts -->
-                        <Grid Grid.Row="0">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/> <!-- Label -->
-                                <RowDefinition Height="*"/>    <!-- Prompt -->
-                                <RowDefinition Height="Auto"/> <!-- Tag Suggestions -->
-                                <RowDefinition Height="Auto"/> <!-- Label -->
-                                <RowDefinition Height="*"/>    <!-- Negative Prompt -->
-                            </Grid.RowDefinitions>
+                        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <TextBlock Text="Prompt" FontWeight="Bold" Margin="0,0,0,5"/>
+                                
+                                <TabControl Height="240" Margin="0,0,0,5">
+                                    <TabItem Header="Positive">
+                                        <TextBox x:Name="PromptBox" 
+                                                 Text="{Binding Prompt, UpdateSourceTrigger=PropertyChanged}" 
+                                                 TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
+                                                 BorderThickness="0" Padding="2"
+                                                 TextChanged="PromptBox_OnTextChanged"/>
+                                    </TabItem>
+                                    <TabItem Header="Negative">
+                                        <TextBox Text="{Binding NegativePrompt, UpdateSourceTrigger=PropertyChanged}" 
+                                                 TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
+                                                 BorderThickness="0" Padding="2"/>
+                                    </TabItem>
+                                </TabControl>
+                                
+                                <!-- Tag Suggestions Panel -->
+                                <ItemsControl ItemsSource="{Binding TagSuggestions}" Margin="0,0,0,10">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel Orientation="Horizontal"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Content="{Binding Tag}" Margin="0,0,5,5" Padding="5,2"
+                                                    Click="TagSuggestionButton_Click" Tag="{Binding}"/>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
 
-                            <TextBlock Grid.Row="0" Text="Prompt" FontWeight="Bold" Margin="0,0,0,5"/>
-                            <TextBox Grid.Row="1" x:Name="PromptBox" 
-                                     Text="{Binding Prompt, UpdateSourceTrigger=PropertyChanged}" 
-                                     TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
-                                     Margin="0,0,0,5"
-                                     TextChanged="PromptBox_OnTextChanged"/>
-                            
-                            <!-- Tag Suggestions Panel -->
-                            <ItemsControl Grid.Row="2" ItemsSource="{Binding TagSuggestions}" Margin="0,0,0,10">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <WrapPanel Orientation="Horizontal"/>
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Button Content="{Binding Tag}" Margin="0,0,5,5" Padding="5,2"
-                                                Click="TagSuggestionButton_Click" Tag="{Binding}"/>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-
-                            <TextBlock Grid.Row="3" Text="Negative Prompt" FontWeight="Bold" Margin="0,0,0,5"/>
-                            <TextBox Grid.Row="4" Text="{Binding NegativePrompt, UpdateSourceTrigger=PropertyChanged}" 
-                                     TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
-                                     Margin="0,0,0,10"/>
-                        </Grid>
+                                <!-- Character Prompts -->
+                                <Grid Margin="0,5,0,5">
+                                    <TextBlock Text="Character Prompts" FontWeight="Bold" VerticalAlignment="Center"/>
+                                    <Button Content="➕ Add Character" Command="{Binding AddCharacterCommand}" HorizontalAlignment="Right" Padding="5,2"/>
+                                </Grid>
+                                
+                                <ItemsControl ItemsSource="{Binding CharacterPrompts}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <controls:CharacterPromptControl/>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </ScrollViewer>
                         
                         <GridSplitter Grid.Row="1" Height="5" HorizontalAlignment="Stretch" Background="LightGray" Margin="0,0,0,10"/>
 

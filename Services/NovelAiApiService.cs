@@ -49,10 +49,8 @@ public class NovelAiApiService : INovelAiService
         _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
         var jsonContent = JsonContent.Create(request);
-        using var requestMessage = new HttpRequestMessage(HttpMethod.Post, "/ai/generate-image-stream")
-        {
-            Content = jsonContent
-        };
+        using var requestMessage = new HttpRequestMessage(HttpMethod.Post, "/ai/generate-image-stream");
+        requestMessage.Content = jsonContent;
         requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
 
         using var response = await _httpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead);
@@ -65,7 +63,7 @@ public class NovelAiApiService : INovelAiService
             throw new HttpRequestException(errorMessage);
         }
 
-        using var stream = await response.Content.ReadAsStreamAsync();
+        await using var stream = await response.Content.ReadAsStreamAsync();
         using var reader = new StreamReader(stream);
 
         while (!reader.EndOfStream)
