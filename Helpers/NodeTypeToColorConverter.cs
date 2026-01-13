@@ -18,6 +18,7 @@ public class NodeTypeToColorConverter : IValueConverter
                 NodeType.End => new SolidColorBrush(Color.FromRgb(90, 30, 30)),   // Red-ish
                 NodeType.Base => new SolidColorBrush(Color.FromRgb(30, 90, 30)),  // Green-ish
                 NodeType.Character => new SolidColorBrush(Color.FromRgb(90, 30, 90)), // Purple-ish
+                NodeType.BaseConcat => new SolidColorBrush(Color.FromRgb(30, 90, 90)), // Cyan-ish
                 _ => new SolidColorBrush(Color.FromRgb(51, 51, 51))               // Default Dark Gray
             };
         }

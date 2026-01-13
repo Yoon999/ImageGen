@@ -38,7 +38,7 @@
                                  MouseLeftButtonDown="InputPort_MouseLeftButtonDown"
                                  ToolTip="Flow Input (Ctrl+Click to disconnect)"/>
                         
-                        <!-- Base Input (Specific for Normal Node) -->
+                        <!-- Base Input (Specific for Normal Node & BaseConcat) -->
                         <Ellipse Width="10" Height="10" Fill="#AAFFAA" Margin="0,2"
                                  Visibility="{Binding Type, Converter={StaticResource NodeTypeToVisibilityConverter}, ConverterParameter=BaseInput}"
                                  ToolTip="Base Node Input"/>
@@ -153,10 +153,24 @@
                                 </Grid>
                             </StackPanel>
                             
-                            <!-- Delete Button (Hidden for Begin/End nodes) -->
-                            <ui:Button Content="Delete" Command="{Binding DataContext.DeleteNodeCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" 
-                                    CommandParameter="{Binding}" Background="#552222" FontSize="10" Padding="2" HorizontalAlignment="Right" Margin="0,5,0,0"
-                                    Visibility="{Binding Type, Converter={StaticResource NodeTypeToVisibilityConverter}, ConverterParameter=Delete}"/>
+                            <!-- BaseConcat Node Content -->
+                            <StackPanel Visibility="{Binding Type, Converter={StaticResource NodeTypeToVisibilityConverter}, ConverterParameter=BaseConcatContent}">
+                                <ui:TextBlock Text="Concatenates inputs from Base nodes" Foreground="Gray" FontSize="10" FontStyle="Italic" HorizontalAlignment="Center"/>
+                                <ui:TextBlock Text="Output acts as a Base node" Foreground="Gray" FontSize="10" FontStyle="Italic" HorizontalAlignment="Center" Margin="0,0,0,5"/>
+                            </StackPanel>
+
+                            <!-- Action Buttons -->
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,5,0,0">
+                                <!-- Duplicate Button -->
+                                <ui:Button Content="Duplicate" Command="{Binding DataContext.DuplicateNodeCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" 
+                                        CommandParameter="{Binding}" Background="#222255" FontSize="10" Padding="2" Margin="0,0,5,0"
+                                        Visibility="{Binding Type, Converter={StaticResource NodeTypeToVisibilityConverter}, ConverterParameter=Delete}"/>
+                                        
+                                <!-- Delete Button (Hidden for Begin/End nodes) -->
+                                <ui:Button Content="Delete" Command="{Binding DataContext.DeleteNodeCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" 
+                                        CommandParameter="{Binding}" Background="#552222" FontSize="10" Padding="2"
+                                        Visibility="{Binding Type, Converter={StaticResource NodeTypeToVisibilityConverter}, ConverterParameter=Delete}"/>
+                            </StackPanel>
                         </StackPanel>
                     </StackPanel>
                     
@@ -191,6 +205,7 @@
             
             <Button Content="Add Node" Command="{Binding AddNodeCommand}" Margin="0,0,5,0"/>
             <Button Content="Add Base" Command="{Binding AddBaseNodeCommand}" Margin="0,0,5,0"/>
+            <Button Content="Add Concat" Command="{Binding AddBaseConcatNodeCommand}" Margin="0,0,5,0"/>
             <Button Content="Add Character" Command="{Binding AddCharacterNodeCommand}" Margin="0,0,15,0"/>
 
             <Button Content="Run All" Command="{Binding GenerateChainCommand}" Margin="0,0,10,0" Background="#225522"/>

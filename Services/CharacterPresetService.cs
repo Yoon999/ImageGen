@@ -11,13 +11,14 @@ public class CharacterPresetService
 
     public CharacterPresetService()
     {
-        string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        /*string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         string folder = Path.Combine(appData, "ImageGen");
         if (!Directory.Exists(folder))
         {
             Directory.CreateDirectory(folder);
         }
-        _filePath = Path.Combine(folder, "character_presets.json");
+        _filePath = Path.Combine(folder, "character_presets.json");*/
+        _filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "character_presets.json");
         LoadPresets();
     }
 

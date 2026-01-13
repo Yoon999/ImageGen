@@ -12,7 +12,8 @@ public enum NodeType
     Begin,
     End,
     Base,
-    Character
+    Character,
+    BaseConcat
 }
 
 public class GenerationNode : INotifyPropertyChanged
@@ -37,6 +38,10 @@ public class GenerationNode : INotifyPropertyChanged
     [JsonIgnore]
     public ObservableCollection<GenerationNode> NextNodes { get; } = new();
     
+    // For BaseConcat inputs
+    [JsonIgnore]
+    public ObservableCollection<GenerationNode> InputNodes { get; } = new();
+    
     public string Id 
     { 
         get => _id; 
@@ -46,6 +51,7 @@ public class GenerationNode : INotifyPropertyChanged
     public GenerationNode()
     {
         NextNodes.CollectionChanged += (s, e) => OnPropertyChanged(nameof(NextNodes));
+        InputNodes.CollectionChanged += (s, e) => OnPropertyChanged(nameof(InputNodes));
     }
 
     public NodeType Type

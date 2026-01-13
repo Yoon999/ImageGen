@@ -20,7 +20,6 @@ public class NodeTypeToBooleanConverter : IValueConverter
 
             if (param == "IsFocusable")
             {
-                // All nodes should be focusable
                 return type != NodeType.Begin && type != NodeType.End;
             }
         }

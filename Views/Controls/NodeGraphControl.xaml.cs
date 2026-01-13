@@ -34,6 +34,9 @@ public partial class NodeGraphControl : UserControl
 
     private void Canvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
+        // Clear focus from any text box when clicking on the canvas background
+        Keyboard.ClearFocus();
+
         // Cancel connection if clicking on empty canvas
         if (DataContext is NodeGraphViewModel vm && vm.IsConnecting)
         {
@@ -45,6 +48,9 @@ public partial class NodeGraphControl : UserControl
     {
         if (sender is FrameworkElement element && element.DataContext is GenerationNode node)
         {
+            // Clear focus when clicking on a node (e.g. to drag), unless clicking a TextBox which handles the event itself.
+            Keyboard.ClearFocus();
+
             // If we are in connecting mode, this click might be to complete the connection
             if (DataContext is NodeGraphViewModel vm && vm.IsConnecting)
             {
@@ -113,6 +119,8 @@ public partial class NodeGraphControl : UserControl
 
     private void InputPort_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
+        Keyboard.ClearFocus();
+
         // Ctrl + Click on Input Port to disconnect incoming connections
         if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
         {
@@ -129,6 +137,8 @@ public partial class NodeGraphControl : UserControl
 
     private void OutputPort_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
+        Keyboard.ClearFocus();
+
         // Ctrl + Click on Output Port to disconnect outgoing connection
         if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
         {

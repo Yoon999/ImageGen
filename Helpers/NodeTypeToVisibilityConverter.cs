@@ -19,19 +19,21 @@ public class NodeTypeToVisibilityConverter : IValueConverter
                 // Base and Character nodes don't have input flow (they are sources)
                 // Begin node doesn't have input flow
                 // Normal and End nodes have input flow
+                // BaseConcat has input flow (from Base nodes)
                 return (type == NodeType.Begin || type == NodeType.Base || type == NodeType.Character) ? Visibility.Hidden : Visibility.Visible;
             }
             
             // Base/Character Input Ports (Specific for Normal Node)
-            // Only Normal nodes should have these inputs visible?
-            // Or maybe we just use the main input port for everything and distinguish by connection type?
-            // The request said "Base, Character 인풋 핀 추가".
-            // If we add specific pins, we need to handle them.
-            // For now, let's just show them on Normal nodes.
-            if (param == "BaseInput" || param == "CharacterInput")
+            if (param == "BaseInput")
             {
-                // Only Normal nodes accept Base/Character inputs?
-                // Actually, the user might want to chain them differently, but typically Base/Character feed into Normal.
+                // Normal nodes accept Base inputs
+                // BaseConcat nodes accept Base inputs
+                return (type == NodeType.Normal || type == NodeType.BaseConcat) ? Visibility.Visible : Visibility.Collapsed;
+            }
+            
+            if (param == "CharacterInput")
+            {
+                // Only Normal nodes accept Character inputs
                 return type == NodeType.Normal ? Visibility.Visible : Visibility.Collapsed;
             }
             
@@ -58,13 +60,19 @@ public class NodeTypeToVisibilityConverter : IValueConverter
             {
                 return type == NodeType.Character ? Visibility.Visible : Visibility.Collapsed;
             }
+            
+            // BaseConcat Content
+            if (param == "BaseConcatContent")
+            {
+                return type == NodeType.BaseConcat ? Visibility.Visible : Visibility.Collapsed;
+            }
 
             // Delete Button: Hidden for Begin and End nodes
             if (param == "Delete")
             {
                 return (type == NodeType.Begin || type == NodeType.End) ? Visibility.Collapsed : Visibility.Visible;
             }
-
+            
             if (param == "Collapse")
             {
                 return (type == NodeType.Begin || type == NodeType.End) ? Visibility.Collapsed : Visibility.Visible;

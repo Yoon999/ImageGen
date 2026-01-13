@@ -40,9 +40,11 @@ public class NodeGraphViewModel : INotifyPropertyChanged
     public ICommand AddNodeCommand { get; }
     public ICommand AddBaseNodeCommand { get; }
     public ICommand AddCharacterNodeCommand { get; }
+    public ICommand AddBaseConcatNodeCommand { get; }
     public ICommand AddBeginNodeCommand { get; }
     public ICommand AddEndNodeCommand { get; }
     public ICommand DeleteNodeCommand { get; }
+    public ICommand DuplicateNodeCommand { get; }
     public ICommand StartConnectionCommand { get; }
     public ICommand CompleteConnectionCommand { get; }
     public ICommand ClearConnectionsCommand { get; }
@@ -66,9 +68,11 @@ public class NodeGraphViewModel : INotifyPropertyChanged
         AddNodeCommand = new RelayCommand(ExecuteAddNode);
         AddBaseNodeCommand = new RelayCommand(ExecuteAddBaseNode);
         AddCharacterNodeCommand = new RelayCommand(ExecuteAddCharacterNode);
+        AddBaseConcatNodeCommand = new RelayCommand(ExecuteAddBaseConcatNode);
         AddBeginNodeCommand = new RelayCommand(ExecuteAddBeginNode);
         AddEndNodeCommand = new RelayCommand(ExecuteAddEndNode);
         DeleteNodeCommand = new RelayCommand(ExecuteDeleteNode);
+        DuplicateNodeCommand = new RelayCommand(ExecuteDuplicateNode);
         StartConnectionCommand = new RelayCommand(ExecuteStartConnection);
         CompleteConnectionCommand = new RelayCommand(ExecuteCompleteConnection);
         ClearConnectionsCommand = new RelayCommand(ExecuteClearConnections);
@@ -261,6 +265,18 @@ public class NodeGraphViewModel : INotifyPropertyChanged
         Nodes.Add(node);
     }
     
+    private void ExecuteAddBaseConcatNode(object? parameter)
+    {
+        var node = new GenerationNode
+        {
+            UiX = 200,
+            UiY = 200,
+            BasePrompt = "Concatenated Prompt",
+            Type = NodeType.BaseConcat
+        };
+        Nodes.Add(node);
+    }
+    
     private void ExecuteAddBeginNode(object? parameter)
     {
         // Begin node is now permanent, this might be redundant or used for recovery
@@ -326,6 +342,37 @@ public class NodeGraphViewModel : INotifyPropertyChanged
         }
     }
 
+    private void ExecuteDuplicateNode(object? parameter)
+    {
+        if (parameter is GenerationNode node)
+        {
+            // Prevent duplication of Begin and End nodes
+            if (node.Type == NodeType.Begin || node.Type == NodeType.End)
+            {
+                return;
+            }
+
+            var newNode = new GenerationNode
+            {
+                UiX = node.UiX + 20,
+                UiY = node.UiY + 20,
+                Type = node.Type,
+                Title = node.Title,
+                BasePrompt = node.BasePrompt,
+                NegativePrompt = node.NegativePrompt,
+                CharacterPrompt = node.CharacterPrompt,
+                PresetName = node.PresetName,
+                CharX = node.CharX,
+                CharY = node.CharY,
+                Width = node.Width,
+                Height = node.Height,
+                IsCollapsed = node.IsCollapsed
+            };
+            
+            Nodes.Add(newNode);
+        }
+    }
+
     private void ExecuteStartConnection(object? parameter)
     {
         if (parameter is GenerationNode node)
@@ -358,7 +405,8 @@ public class NodeGraphViewModel : INotifyPropertyChanged
                 }
                 
                 // If source is Character or Base node, allow multiple outputs
-                if (_connectingSource.Type == NodeType.Character || _connectingSource.Type == NodeType.Base)
+                // BaseConcat also acts as a Base node source
+                if (_connectingSource.Type == NodeType.Character || _connectingSource.Type == NodeType.Base || _connectingSource.Type == NodeType.BaseConcat)
                 {
                     if (!_connectingSource.NextNodes.Contains(targetNode))
                     {
@@ -568,7 +616,7 @@ public class NodeGraphViewModel : INotifyPropertyChanged
 
                         if (source != null && target != null)
                         {
-                            if (source.Type == NodeType.Character || source.Type == NodeType.Base)
+                            if (source.Type == NodeType.Character || source.Type == NodeType.Base || source.Type == NodeType.BaseConcat)
                             {
                                 source.NextNodes.Add(target);
                             }
@@ -643,7 +691,43 @@ public class NodeGraphViewModel : INotifyPropertyChanged
                     // We need to check both NextNode and NextNodes of all nodes to find who points to currentNode
                     var incomingNodes = Nodes.Where(n => n.NextNode == currentNode || n.NextNodes.Contains(currentNode)).ToList();
 
-                    var baseNode = incomingNodes.FirstOrDefault(n => n.Type == NodeType.Base);
+                    // Handle BaseConcat nodes logic here if needed
+                    // For now, we just treat BaseConcat as a Base node provider if it's connected
+                    // But we need to resolve its content first (concatenate inputs)
+                    
+                    // First, resolve any BaseConcat nodes in the incoming list
+                    foreach (var node in incomingNodes.Where(n => n.Type == NodeType.BaseConcat).ToList())
+                    {
+                        // Find inputs to this BaseConcat node
+                        var concatInputs = Nodes.Where(n => n.NextNodes.Contains(node)).ToList();
+                        
+                        // Concatenate prompts
+                        string combinedPositive = "";
+                        string combinedNegative = "";
+                        
+                        foreach (var input in concatInputs)
+                        {
+                            if (!string.IsNullOrWhiteSpace(input.BasePrompt))
+                            {
+                                if (!string.IsNullOrWhiteSpace(combinedPositive)) combinedPositive += ", ";
+                                combinedPositive += input.BasePrompt;
+                            }
+                            if (!string.IsNullOrWhiteSpace(input.NegativePrompt))
+                            {
+                                if (!string.IsNullOrWhiteSpace(combinedNegative)) combinedNegative += ", ";
+                                combinedNegative += input.NegativePrompt;
+                            }
+                        }
+                        
+                        // Update the BaseConcat node's prompt temporarily (or permanently?)
+                        // Ideally we shouldn't modify the node's stored prompt if it's meant to be dynamic,
+                        // but for generation we need the value.
+                        // Let's assume BaseConcat node's BasePrompt is the output.
+                        node.BasePrompt = combinedPositive;
+                        node.NegativePrompt = combinedNegative;
+                    }
+
+                    var baseNode = incomingNodes.FirstOrDefault(n => n.Type == NodeType.Base || n.Type == NodeType.BaseConcat);
                     var charNodes = incomingNodes.Where(n => n.Type == NodeType.Character).ToList();
                     
                     // Prepare Request
