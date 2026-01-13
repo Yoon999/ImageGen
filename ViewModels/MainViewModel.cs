@@ -22,6 +22,7 @@ public class MainViewModel : INotifyPropertyChanged
     private readonly INovelAiService _novelAiService;
     private readonly IImageService _imageService;
     private readonly SettingsService _settingsService;
+    private readonly CharacterPresetService _characterPresetService;
     
     private string _prompt = string.Empty;
     private string _apiToken = string.Empty;
@@ -62,6 +63,7 @@ public class MainViewModel : INotifyPropertyChanged
         _novelAiService = new NovelAiApiService();
         _imageService = new ImageService();
         _settingsService = new SettingsService();
+        _characterPresetService = new CharacterPresetService();
         
         // 설정 로드
         var settings = _settingsService.LoadSettings();
@@ -83,7 +85,7 @@ public class MainViewModel : INotifyPropertyChanged
         {
             foreach (var charSettings in settings.CharacterPrompts)
             {
-                var charViewModel = new CharacterPromptViewModel
+                var charViewModel = new CharacterPromptViewModel(_characterPresetService)
                 {
                     Prompt = charSettings.Prompt,
                     NegativePrompt = charSettings.NegativePrompt,
@@ -376,7 +378,7 @@ public class MainViewModel : INotifyPropertyChanged
 
     private void ExecuteAddCharacter(object? parameter)
     {
-        CharacterPrompts.Add(new CharacterPromptViewModel());
+        CharacterPrompts.Add(new CharacterPromptViewModel(_characterPresetService));
     }
 
     private void ExecuteRemoveCharacter(object? parameter)

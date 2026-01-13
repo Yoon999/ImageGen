@@ -1,14 +1,75 @@
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Windows.Input;
+using ImageGen.Helpers;
+using ImageGen.Models;
+using ImageGen.Services;
 
 namespace ImageGen.ViewModels;
 
 public class CharacterPromptViewModel : INotifyPropertyChanged
 {
+    private readonly CharacterPresetService _presetService;
+    
     private string _prompt = string.Empty;
     private string _negativePrompt = string.Empty;
     private double _x = 0.5;
     private double _y = 0.5;
+    private CharacterPreset? _selectedPreset;
+    private string _newPresetName = string.Empty;
+    private bool _isSavingPreset;
+
+    public CharacterPromptViewModel(CharacterPresetService presetService)
+    {
+        _presetService = presetService;
+        LoadPresets();
+        
+        UpdatePresetCommand = new RelayCommand(ExecuteUpdatePreset);
+        SavePresetCommand = new RelayCommand(ExecuteSavePreset);
+        DeletePresetCommand = new RelayCommand(ExecuteDeletePreset);
+        ToggleSaveModeCommand = new RelayCommand(ExecuteToggleSaveMode);
+        
+    }
+
+    public ObservableCollection<CharacterPreset> Presets { get; } = new();
+
+    public CharacterPreset? SelectedPreset
+    {
+        get => _selectedPreset;
+        set
+        {
+            if (_selectedPreset != value)
+            {
+                _selectedPreset = value;
+                OnPropertyChanged();
+                if (_selectedPreset != null)
+                {
+                    ApplyPreset(_selectedPreset);
+                }
+            }
+        }
+    }
+
+    public string NewPresetName
+    {
+        get => _newPresetName;
+        set
+        {
+            _newPresetName = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool IsSavingPreset
+    {
+        get => _isSavingPreset;
+        set
+        {
+            _isSavingPreset = value;
+            OnPropertyChanged();
+        }
+    }
 
     public string Prompt
     {
@@ -60,6 +121,91 @@ public class CharacterPromptViewModel : INotifyPropertyChanged
                 OnPropertyChanged();
             }
         }
+    }
+
+    public ICommand UpdatePresetCommand { get; }
+    public ICommand SavePresetCommand { get; }
+    public ICommand DeletePresetCommand { get; }
+    public ICommand ToggleSaveModeCommand { get; }
+
+    private void LoadPresets()
+    {
+        Presets.Clear();
+        foreach (var preset in _presetService.GetPresets())
+        {
+            Presets.Add(preset);
+        }
+    }
+
+    private void ApplyPreset(CharacterPreset preset)
+    {
+        Prompt = preset.Prompt;
+        NegativePrompt = preset.NegativePrompt;
+        // 좌표는 프리셋에 저장되어 있어도, 현재 배치 상황에 따라 다를 수 있으므로
+        // 사용자가 원할 때만 적용하는 것이 좋을 수도 있지만, 일단은 같이 불러옵니다.
+        // X = preset.X;
+        // Y = preset.Y;
+    }
+
+    private void ExecuteToggleSaveMode(object? parameter)
+    {
+        Console.WriteLine("ExecuteToggleSaveMode called");
+        IsSavingPreset = !IsSavingPreset;
+        if (IsSavingPreset)
+        {
+            NewPresetName = string.Empty;
+        }
+    }
+
+    private void ExecuteUpdatePreset(object? parameter)
+    {
+        if (SelectedPreset == null) return;
+        var preset = new CharacterPreset
+        {
+            Name = SelectedPreset.Name,
+            Prompt = Prompt,
+            NegativePrompt = NegativePrompt,
+            X = X,
+            Y = Y
+        };
+
+        _presetService.SavePreset(preset);
+        LoadPresets();
+        
+        // 방금 저장한 프리셋 선택
+        SelectedPreset = Presets.FirstOrDefault(p => p.Name == preset.Name);
+        IsSavingPreset = false;
+    }
+    
+    private void ExecuteSavePreset(object? parameter)
+    {
+        Console.WriteLine("ExecuteSavePreset called");
+        if (string.IsNullOrWhiteSpace(NewPresetName)) return;
+
+        var preset = new CharacterPreset
+        {
+            Name = NewPresetName,
+            Prompt = Prompt,
+            NegativePrompt = NegativePrompt,
+            X = X,
+            Y = Y
+        };
+
+        _presetService.SavePreset(preset);
+        LoadPresets();
+        
+        // 방금 저장한 프리셋 선택
+        SelectedPreset = Presets.FirstOrDefault(p => p.Name == NewPresetName);
+        IsSavingPreset = false;
+    }
+
+    private void ExecuteDeletePreset(object? parameter)
+    {
+        if (SelectedPreset == null) return;
+
+        _presetService.DeletePreset(SelectedPreset.Name);
+        LoadPresets();
+        SelectedPreset = null;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

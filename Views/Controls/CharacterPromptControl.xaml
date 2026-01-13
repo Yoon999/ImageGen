@@ -4,8 +4,13 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:ImageGen.Views.Controls"
+             xmlns:helpers="clr-namespace:ImageGen.Helpers"
              mc:Ignorable="d" 
              d:DesignHeight="200" d:DesignWidth="400">
+    <UserControl.Resources>
+        <helpers:NullToBoolConverter x:Key="NullToBoolConverter"/>
+    </UserControl.Resources>
+    
     <Border BorderBrush="Gray" BorderThickness="1" Margin="0,0,0,5" Padding="5" Background="#FAFAFA">
         <Grid>
             <Grid.RowDefinitions>
@@ -14,14 +19,106 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             
+            <!-- Header / Toolbar -->
             <Grid Grid.Row="0" Margin="0,0,0,5">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Text="Character Prompt" FontWeight="Bold" VerticalAlignment="Center"/>
-                <Button Grid.Column="1" Content="❌" Command="{Binding DataContext.RemoveCharacterCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" 
-                        CommandParameter="{Binding}" Width="25" Height="20" Background="Transparent" BorderThickness="0" Foreground="Red"/>
+                
+                <!-- Preset Selector -->
+                <ComboBox Grid.Column="0" ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}" 
+                          DisplayMemberPath="Name" Margin="0,0,5,0" Height="22" VerticalAlignment="Center">
+                    <ComboBox.Style>
+                        <Style TargetType="ComboBox">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsSavingPreset}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ComboBox.Style>
+                </ComboBox>
+                
+                <!-- Save Name Input (Visible only when saving) -->
+                <TextBox Grid.Column="0" Text="{Binding NewPresetName, UpdateSourceTrigger=PropertyChanged}" 
+                         Margin="0,0,5,0" Height="22" VerticalAlignment="Center">
+                    <TextBox.Style>
+                        <Style TargetType="TextBox">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsSavingPreset}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBox.Style>
+                </TextBox>
+
+                <Button Grid.Column="1" Width="25" Height="22" Margin="0,0,2,0" ToolTip="Update Preset" 
+                        Content="⏫" Command="{Binding UpdatePresetCommand}" 
+                        CommandParameter="{Binding}">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding SelectedPreset, Converter={StaticResource NullToBoolConverter}}" Value="True"/>
+                                        <Condition Binding="{Binding IsSavingPreset}" Value="False"/>
+                                    </MultiDataTrigger.Conditions>
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </MultiDataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+                
+                <!-- Save/Confirm Button -->
+                <Button Grid.Column="2" Width="25" Height="22" Margin="0,0,2,0">
+                     <Button.Style>
+                        <Style TargetType="Button">
+                            <!-- 기본 상태: 저장 모드 진입 -->
+                            <Setter Property="Command" Value="{Binding ToggleSaveModeCommand}"/>
+                            <Setter Property="Content" Value="💾"/>
+                            <Setter Property="ToolTip" Value="Save Preset"/>
+                            
+                            <Style.Triggers>
+                                <!-- 저장 모드 활성화 시: 저장 실행 -->
+                                <DataTrigger Binding="{Binding IsSavingPreset}" Value="True">
+                                    <Setter Property="Command" Value="{Binding SavePresetCommand}"/>
+                                    <Setter Property="Content" Value="✅"/>
+                                    <Setter Property="ToolTip" Value="Confirm Save"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                     </Button.Style>
+                </Button>
+
+                <!-- Delete Preset Button (Visible only when preset selected and not saving) -->
+                <Button Grid.Column="3" Command="{Binding DeletePresetCommand}" Content="🗑️" Width="25" Height="22" Margin="0,0,5,0" ToolTip="Delete Preset">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding SelectedPreset, Converter={StaticResource NullToBoolConverter}}" Value="True"/>
+                                        <Condition Binding="{Binding IsSavingPreset}" Value="False"/>
+                                    </MultiDataTrigger.Conditions>
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </MultiDataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+
+                <!-- Remove Character Button -->
+                <Button Grid.Column="4" Content="❌" Command="{Binding DataContext.RemoveCharacterCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" 
+                        CommandParameter="{Binding}" Width="25" Height="22" Background="Transparent" BorderThickness="0" Foreground="Red" ToolTip="Remove Character"/>
             </Grid>
             
             <TabControl Grid.Row="1" Height="120" Margin="0,0,0,5">

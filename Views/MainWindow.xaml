@@ -108,67 +108,69 @@
                         <!-- Bottom: Parameters -->
                         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
                             <StackPanel>
-                                <TextBlock Text="Parameters" FontWeight="Bold" Margin="0,0,0,5"/>
-                                
-                                <!-- Width -->
-                                <DockPanel Margin="0,0,0,5">
-                                    <TextBlock Text="Width:" Width="50"/>
-                                    <TextBox Text="{Binding Request.parameters.width}" Width="50" DockPanel.Dock="Right"/>
-                                    <Slider Minimum="64" Maximum="2048" Value="{Binding Request.parameters.width}" TickFrequency="64" IsSnapToTickEnabled="True"/>
-                                </DockPanel>
+                                <Expander Header="Parameters" IsExpanded="True" FontWeight="Bold" Margin="0,0,0,5">
+                                    <StackPanel Margin="0,5,0,0">
+                                        <!-- Width -->
+                                        <DockPanel Margin="0,0,0,5">
+                                            <TextBlock FontWeight="Normal" Text="Width:" Width="50"/>
+                                            <TextBox FontWeight="Normal" Text="{Binding Request.parameters.width}" Width="50" DockPanel.Dock="Right"/>
+                                            <Slider Minimum="64" Maximum="2048" Value="{Binding Request.parameters.width}" TickFrequency="64" IsSnapToTickEnabled="True"/>
+                                        </DockPanel>
 
-                                <!-- Height -->
-                                <DockPanel Margin="0,0,0,5">
-                                    <TextBlock Text="Height:" Width="50"/>
-                                    <TextBox Text="{Binding Request.parameters.height}" Width="50" DockPanel.Dock="Right"/>
-                                    <Slider Minimum="64" Maximum="2048" Value="{Binding Request.parameters.height}" TickFrequency="64" IsSnapToTickEnabled="True"/>
-                                </DockPanel>
+                                        <!-- Height -->
+                                        <DockPanel Margin="0,0,0,5">
+                                            <TextBlock FontWeight="Normal" Text="Height:" Width="50"/>
+                                            <TextBox FontWeight="Normal" Text="{Binding Request.parameters.height}" Width="50" DockPanel.Dock="Right"/>
+                                            <Slider Minimum="64" Maximum="2048" Value="{Binding Request.parameters.height}" TickFrequency="64" IsSnapToTickEnabled="True"/>
+                                        </DockPanel>
 
-                                <!-- Steps -->
-                                <DockPanel Margin="0,0,0,5">
-                                    <TextBlock Text="Steps:" Width="50"/>
-                                    <TextBox Text="{Binding Request.parameters.steps}" Width="50" DockPanel.Dock="Right"/>
-                                    <Slider Minimum="1" Maximum="50" Value="{Binding Request.parameters.steps}"/>
-                                </DockPanel>
+                                        <!-- Steps -->
+                                        <DockPanel Margin="0,0,0,5">
+                                            <TextBlock FontWeight="Normal" Text="Steps:" Width="50"/>
+                                            <TextBox FontWeight="Normal" Text="{Binding Request.parameters.steps}" Width="50" DockPanel.Dock="Right"/>
+                                            <Slider Minimum="1" Maximum="50" Value="{Binding Request.parameters.steps}"/>
+                                        </DockPanel>
 
-                                <!-- Scale -->
-                                <DockPanel Margin="0,0,0,5">
-                                    <TextBlock Text="Scale:" Width="50"/>
-                                    <TextBox Text="{Binding Request.parameters.scale}" Width="50" DockPanel.Dock="Right"/>
-                                    <Slider Minimum="1.0" Maximum="20.0" Value="{Binding Request.parameters.scale}"/>
-                                </DockPanel>
+                                        <!-- Scale -->
+                                        <DockPanel Margin="0,0,0,5">
+                                            <TextBlock FontWeight="Normal" Text="Scale:" Width="50"/>
+                                            <TextBox FontWeight="Normal" Text="{Binding Request.parameters.scale}" Width="50" DockPanel.Dock="Right"/>
+                                            <Slider Minimum="1.0" Maximum="20.0" Value="{Binding Request.parameters.scale}"/>
+                                        </DockPanel>
 
-                                <!-- CfgRescale -->
-                                <DockPanel Margin="0,0,0,5">
-                                    <TextBlock Text="Rescale:" Width="50"/>
-                                    <TextBox Text="{Binding CfgRescale, StringFormat=N2}" Width="50" DockPanel.Dock="Right"/>
-                                    <Slider Minimum="0.0" Maximum="1.0" Value="{Binding CfgRescale}" TickFrequency="0.05" IsSnapToTickEnabled="True"/>
-                                </DockPanel>
+                                        <!-- CfgRescale -->
+                                        <DockPanel Margin="0,0,0,5">
+                                            <TextBlock FontWeight="Normal" Text="Rescale:" Width="50"/>
+                                            <TextBox FontWeight="Normal" Text="{Binding CfgRescale, StringFormat=N2}" Width="50" DockPanel.Dock="Right"/>
+                                            <Slider Minimum="0.0" Maximum="1.0" Value="{Binding CfgRescale}" TickFrequency="0.05" IsSnapToTickEnabled="True"/>
+                                        </DockPanel>
 
-                                <!-- Sampler -->
-                                <DockPanel Margin="0,0,0,5">
-                                    <TextBlock Text="Sampler:" Width="50" VerticalAlignment="Center"/>
-                                    <ComboBox ItemsSource="{Binding Samplers}" SelectedItem="{Binding SelectedSampler}" DockPanel.Dock="Right"/>
-                                </DockPanel>
+                                        <!-- Sampler -->
+                                        <DockPanel Margin="0,0,0,5">
+                                            <TextBlock FontWeight="Normal" Text="Sampler:" Width="50" VerticalAlignment="Center"/>
+                                            <ComboBox FontWeight="Normal" ItemsSource="{Binding Samplers}" SelectedItem="{Binding SelectedSampler}" DockPanel.Dock="Right"/>
+                                        </DockPanel>
 
-                                <!-- Seed -->
-                                <TextBlock Text="Seed:" Margin="0,5,0,0"/>
-                                <DockPanel Margin="0,0,0,15">
-                                    <CheckBox Content="Random" IsChecked="{Binding IsRandomSeed}" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                    <Button Content="🎲" Command="{Binding RandomizeSeedCommand}" Width="30" Margin="0,0,5,0" ToolTip="Randomize Seed"/>
-                                    <TextBox Text="{Binding Seed, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsRandomSeed, Converter={StaticResource InverseBoolConverter}}"/>
-                                </DockPanel>
+                                        <!-- Seed -->
+                                        <TextBlock FontWeight="Normal" Text="Seed:" Margin="0,5,0,0"/>
+                                        <DockPanel Margin="0,0,0,15">
+                                            <CheckBox FontWeight="Normal" Content="Random" IsChecked="{Binding IsRandomSeed}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                            <Button FontWeight="Normal" Content="🎲" Command="{Binding RandomizeSeedCommand}" Width="30" Margin="0,0,5,0" ToolTip="Randomize Seed"/>
+                                            <TextBox FontWeight="Normal" Text="{Binding Seed, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsRandomSeed, Converter={StaticResource InverseBoolConverter}}"/>
+                                        </DockPanel>
 
-                                <!-- Save Directory -->
-                                <TextBlock Text="Save Directory" FontWeight="Bold" Margin="0,0,0,5"/>
-                                <Grid Margin="0,0,0,15">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBox Text="{Binding SaveDirectory}" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                                    <Button Grid.Column="1" Content="..." Command="{Binding SelectFolderCommand}" Width="30" Height="25"/>
-                                </Grid>
+                                        <!-- Save Directory -->
+                                        <TextBlock Text="Save Directory" FontWeight="Normal" Margin="0,0,0,5"/>
+                                        <Grid Margin="0,0,0,15">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBox FontWeight="Normal" Text="{Binding SaveDirectory}" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                            <Button Grid.Column="1" Content="..." Command="{Binding SelectFolderCommand}" Width="30" Height="25"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Expander>
 
                                 <!-- Generate Button -->
                                 <Button Content="Generate Image" Command="{Binding GenerateCommand}" Height="40" FontSize="16" FontWeight="Bold"/>
