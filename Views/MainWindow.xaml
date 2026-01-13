@@ -15,6 +15,9 @@
     <Window.Resources>
         <helpers:CountToBoolConverter x:Key="CountToBoolConverter" />
         <helpers:InverseBoolConverter x:Key="InverseBoolConverter" />
+        <helpers:ConnectionColorConverter x:Key="ConnectionColorConverter" />
+        <helpers:NodeTypeToColorConverter x:Key="NodeTypeToColorConverter" />
+        <helpers:NodeTypeToVisibilityConverter x:Key="NodeTypeToVisibilityConverter" />
     </Window.Resources>
 
     <Window.DataContext>
@@ -194,7 +197,14 @@
                 </Grid>
             </TabItem>
 
-            <!-- Tab 2: EXIF Viewer -->
+            <!-- Tab 2: Node Graph -->
+            <TabItem Header="Node Graph">
+                <Grid DataContext="{Binding NodeGraphViewModel}">
+                    <controls:NodeGraphControl />
+                </Grid>
+            </TabItem>
+
+            <!-- Tab 3: EXIF Viewer -->
             <TabItem Header="EXIF Viewer">
                 <Grid Margin="0,10,0,0" AllowDrop="True" Drop="ExifViewer_Drop">
                     <Grid.ColumnDefinitions>

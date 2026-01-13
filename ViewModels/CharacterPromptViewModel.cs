@@ -2,7 +2,6 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
-using ImageGen.Helpers;
 using ImageGen.Models;
 using ImageGen.Services;
 
@@ -10,8 +9,6 @@ namespace ImageGen.ViewModels;
 
 public class CharacterPromptViewModel : INotifyPropertyChanged
 {
-    private readonly CharacterPresetService _presetService;
-    
     private string _prompt = string.Empty;
     private string _negativePrompt = string.Empty;
     private double _x = 0.5;
@@ -19,17 +16,18 @@ public class CharacterPromptViewModel : INotifyPropertyChanged
     private CharacterPreset? _selectedPreset;
     private string _newPresetName = string.Empty;
     private bool _isSavingPreset;
+    
+    public ICommand RefreshPresetsCommand { get; }
 
-    public CharacterPromptViewModel(CharacterPresetService presetService)
+    public CharacterPromptViewModel()
     {
-        _presetService = presetService;
         LoadPresets();
         
         UpdatePresetCommand = new RelayCommand(ExecuteUpdatePreset);
         SavePresetCommand = new RelayCommand(ExecuteSavePreset);
         DeletePresetCommand = new RelayCommand(ExecuteDeletePreset);
         ToggleSaveModeCommand = new RelayCommand(ExecuteToggleSaveMode);
-        
+        RefreshPresetsCommand = new RelayCommand(_ => LoadPresets());
     }
 
     public ObservableCollection<CharacterPreset> Presets { get; } = new();
@@ -131,7 +129,7 @@ public class CharacterPromptViewModel : INotifyPropertyChanged
     private void LoadPresets()
     {
         Presets.Clear();
-        foreach (var preset in _presetService.GetPresets())
+        foreach (var preset in new CharacterPresetService().GetPresets())
         {
             Presets.Add(preset);
         }
@@ -141,10 +139,6 @@ public class CharacterPromptViewModel : INotifyPropertyChanged
     {
         Prompt = preset.Prompt;
         NegativePrompt = preset.NegativePrompt;
-        // 좌표는 프리셋에 저장되어 있어도, 현재 배치 상황에 따라 다를 수 있으므로
-        // 사용자가 원할 때만 적용하는 것이 좋을 수도 있지만, 일단은 같이 불러옵니다.
-        // X = preset.X;
-        // Y = preset.Y;
     }
 
     private void ExecuteToggleSaveMode(object? parameter)
@@ -169,7 +163,7 @@ public class CharacterPromptViewModel : INotifyPropertyChanged
             Y = Y
         };
 
-        _presetService.SavePreset(preset);
+        new CharacterPresetService().SavePreset(preset);
         LoadPresets();
         
         // 방금 저장한 프리셋 선택
@@ -191,7 +185,7 @@ public class CharacterPromptViewModel : INotifyPropertyChanged
             Y = Y
         };
 
-        _presetService.SavePreset(preset);
+        new CharacterPresetService().SavePreset(preset);
         LoadPresets();
         
         // 방금 저장한 프리셋 선택
@@ -203,7 +197,7 @@ public class CharacterPromptViewModel : INotifyPropertyChanged
     {
         if (SelectedPreset == null) return;
 
-        _presetService.DeletePreset(SelectedPreset.Name);
+        new CharacterPresetService().DeletePreset(SelectedPreset.Name);
         LoadPresets();
         SelectedPreset = null;
     }

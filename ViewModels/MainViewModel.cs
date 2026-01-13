@@ -22,7 +22,6 @@ public class MainViewModel : INotifyPropertyChanged
     private readonly INovelAiService _novelAiService;
     private readonly IImageService _imageService;
     private readonly SettingsService _settingsService;
-    private readonly CharacterPresetService _characterPresetService;
     
     private string _prompt = string.Empty;
     private string _apiToken = string.Empty;
@@ -58,12 +57,17 @@ public class MainViewModel : INotifyPropertyChanged
         "k_dpmpp_2s_ancestral"
     };
 
+    // Node Graph ViewModel
+    public NodeGraphViewModel NodeGraphViewModel { get; }
+
     public MainViewModel()
     {
         _novelAiService = new NovelAiApiService();
         _imageService = new ImageService();
         _settingsService = new SettingsService();
-        _characterPresetService = new CharacterPresetService();
+        
+        // Initialize NodeGraphViewModel
+        NodeGraphViewModel = new NodeGraphViewModel(this, _novelAiService, _imageService);
         
         // 설정 로드
         var settings = _settingsService.LoadSettings();
@@ -85,7 +89,7 @@ public class MainViewModel : INotifyPropertyChanged
         {
             foreach (var charSettings in settings.CharacterPrompts)
             {
-                var charViewModel = new CharacterPromptViewModel(_characterPresetService)
+                var charViewModel = new CharacterPromptViewModel
                 {
                     Prompt = charSettings.Prompt,
                     NegativePrompt = charSettings.NegativePrompt,
@@ -336,16 +340,16 @@ public class MainViewModel : INotifyPropertyChanged
 
     private void ExecuteSelectFolder(object? parameter)
     {
-        using (var dialog = new System.Windows.Forms.FolderBrowserDialog())
+        using (var dialog = new FolderBrowserDialog())
         {
             dialog.Description = "Select a folder to save generated images";
             dialog.UseDescriptionForTitle = true;
             dialog.SelectedPath = SaveDirectory;
             dialog.ShowNewFolderButton = true;
 
-            System.Windows.Forms.DialogResult result = dialog.ShowDialog();
+            DialogResult result = dialog.ShowDialog();
 
-            if (result == System.Windows.Forms.DialogResult.OK && !string.IsNullOrWhiteSpace(dialog.SelectedPath))
+            if (result == DialogResult.OK && !string.IsNullOrWhiteSpace(dialog.SelectedPath))
             {
                 SaveDirectory = dialog.SelectedPath;
             }
@@ -378,7 +382,7 @@ public class MainViewModel : INotifyPropertyChanged
 
     private void ExecuteAddCharacter(object? parameter)
     {
-        CharacterPrompts.Add(new CharacterPromptViewModel(_characterPresetService));
+        CharacterPrompts.Add(new CharacterPromptViewModel());
     }
 
     private void ExecuteRemoveCharacter(object? parameter)
