@@ -102,7 +102,7 @@ public class NovelAiApiService : INovelAiService
             var result = await response.Content.ReadFromJsonAsync<TagSuggestionResponse>();
             return result?.Tags ?? new List<TagSuggestion>();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return new List<TagSuggestion>();
         }

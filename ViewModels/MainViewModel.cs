@@ -42,7 +42,7 @@ public class MainViewModel : INotifyPropertyChanged
     private CancellationTokenSource? _debounceCts;
     private ObservableCollection<TagSuggestion> _tagSuggestions = new();
     private TagSuggestion? _selectedSuggestion;
-    private bool _isUpdatingPrompt;
+    // private bool _isUpdatingPrompt;
 
     // Seed 관련
     private bool _isRandomSeed = true;
@@ -653,7 +653,7 @@ public class MainViewModel : INotifyPropertyChanged
                     }
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // Logger.LogError("Tag suggestion failed", ex);
             }

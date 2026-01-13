@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:ImageGen.Views.Controls"
              xmlns:helpers="clr-namespace:ImageGen.Helpers"
              mc:Ignorable="d" 
-             d:DesignHeight="200" d:DesignWidth="400">
+             d:DesignHeight="240" d:DesignWidth="400">
     <UserControl.Resources>
         <helpers:NullToBoolConverter x:Key="NullToBoolConverter"/>
     </UserControl.Resources>
@@ -134,14 +134,17 @@
                 </TabItem>
             </TabControl>
             
-            <StackPanel Grid.Row="2" Orientation="Horizontal">
-                <TextBlock Text="Center X:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                <TextBox Text="{Binding X, StringFormat=N2}" Width="40" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                <Slider Value="{Binding X}" Minimum="0.0" Maximum="1.0" Width="80" VerticalAlignment="Center" Margin="0,0,20,0"/>
-                
-                <TextBlock Text="Center Y:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                <TextBox Text="{Binding Y, StringFormat=N2}" Width="40" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                <Slider Value="{Binding Y}" Minimum="0.0" Maximum="1.0" Width="80" VerticalAlignment="Center"/>
+            <StackPanel Grid.Row="2" Orientation="Vertical" HorizontalAlignment="Left">
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                    <TextBlock Text="Center X:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                    <TextBox Text="{Binding X, StringFormat=N2}" Width="40" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <Slider Value="{Binding X}" Minimum="0.0" Maximum="1.0" Width="80" VerticalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Center Y:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                    <TextBox Text="{Binding Y, StringFormat=N2}" Width="40" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <Slider Value="{Binding Y}" Minimum="0.0" Maximum="1.0" Width="80" VerticalAlignment="Center"/>
+                </StackPanel>
             </StackPanel>
         </Grid>
     </Border>
