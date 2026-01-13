@@ -55,11 +55,11 @@
                         </Grid.RowDefinitions>
 
                         <!-- Top: Prompts -->
-                        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
-                            <StackPanel>
-                                <TextBlock Text="Prompt" FontWeight="Bold" Margin="0,0,0,5"/>
+                        <ui:DynamicScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+                            <StackPanel Margin="0,0,12,0">
+                                <ui:TextBlock Text="Prompt" FontWeight="Bold" Margin="0,0,0,5"/>
                                 
-                                <TabControl Height="240" Margin="0,0,0,5">
+                                <TabControl Height="240" Margin="0,0, 0, 5">
                                     <TabItem Header="Positive">
                                         <ui:TextBox x:Name="PromptBox" 
                                                  Text="{Binding Prompt, UpdateSourceTrigger=PropertyChanged}" 
@@ -93,8 +93,8 @@
 
                                 <!-- Character Prompts -->
                                 <Grid Margin="0,5,0,5">
-                                    <TextBlock Text="Character Prompts" FontWeight="Bold" VerticalAlignment="Center"/>
-                                    <Button Content="➕ Add Character" Command="{Binding AddCharacterCommand}" HorizontalAlignment="Right" Padding="5,2"/>
+                                    <ui:TextBlock Text="Character Prompts" FontWeight="Bold" VerticalAlignment="Center"/>
+                                    <ui:Button Content="➕ Add Character" Command="{Binding AddCharacterCommand}" HorizontalAlignment="Right" Padding="5,2"/>
                                 </Grid>
                                 
                                 <ItemsControl ItemsSource="{Binding CharacterPrompts}">
@@ -105,73 +105,73 @@
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
                             </StackPanel>
-                        </ScrollViewer>
+                        </ui:DynamicScrollViewer>
                         
                         <GridSplitter Grid.Row="1" Height="5" Background="#ff002020" HorizontalAlignment="Stretch" Margin="0,0,0,10"/>
 
                         <!-- Bottom: Parameters -->
                         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
                             <StackPanel>
-                                <ui:CardExpander Header="Parameters" IsExpanded="True" FontWeight="Bold" Margin="5">
+                                <ui:CardExpander Header="Parameters" IsExpanded="False" FontWeight="Bold" Margin="5">
                                     <StackPanel Margin="0,5,0,0">
                                         <!-- Width -->
                                         <DockPanel Margin="0,0,0,5">
-                                            <TextBlock FontWeight="Normal" Text="Width:" Width="50"/>
-                                            <TextBox FontWeight="Normal" Text="{Binding Request.parameters.width}" Width="50" DockPanel.Dock="Right"/>
+                                            <ui:TextBlock FontWeight="Normal" Text="Width:" Width="50"/>
+                                            <ui:TextBox BorderThickness="0" Padding="0" TextAlignment="Center" FontWeight="Normal" Text="{Binding Request.parameters.width}" Width="50" DockPanel.Dock="Right"/>
                                             <Slider Minimum="64" Maximum="2048" Value="{Binding Request.parameters.width}" TickFrequency="64" IsSnapToTickEnabled="True"/>
                                         </DockPanel>
 
                                         <!-- Height -->
                                         <DockPanel Margin="0,0,0,5">
-                                            <TextBlock FontWeight="Normal" Text="Height:" Width="50"/>
-                                            <TextBox FontWeight="Normal" Text="{Binding Request.parameters.height}" Width="50" DockPanel.Dock="Right"/>
+                                            <ui:TextBlock FontWeight="Normal" Text="Height:" Width="50"/>
+                                            <ui:TextBox BorderThickness="0" Padding="0" TextAlignment="Center" FontWeight="Normal" Text="{Binding Request.parameters.height}" Width="50" DockPanel.Dock="Right"/>
                                             <Slider Minimum="64" Maximum="2048" Value="{Binding Request.parameters.height}" TickFrequency="64" IsSnapToTickEnabled="True"/>
                                         </DockPanel>
 
                                         <!-- Steps -->
                                         <DockPanel Margin="0,0,0,5">
-                                            <TextBlock FontWeight="Normal" Text="Steps:" Width="50"/>
-                                            <TextBox FontWeight="Normal" Text="{Binding Request.parameters.steps}" Width="50" DockPanel.Dock="Right"/>
+                                            <ui:TextBlock FontWeight="Normal" Text="Steps:" Width="50"/>
+                                            <ui:TextBox BorderThickness="0" Padding="0" TextAlignment="Center" FontWeight="Normal" Text="{Binding Request.parameters.steps}" Width="50" DockPanel.Dock="Right"/>
                                             <Slider Minimum="1" Maximum="50" Value="{Binding Request.parameters.steps}"/>
                                         </DockPanel>
 
                                         <!-- Scale -->
                                         <DockPanel Margin="0,0,0,5">
-                                            <TextBlock FontWeight="Normal" Text="Scale:" Width="50"/>
-                                            <TextBox FontWeight="Normal" Text="{Binding Request.parameters.scale}" Width="50" DockPanel.Dock="Right"/>
+                                            <ui:TextBlock FontWeight="Normal" Text="Scale:" Width="50"/>
+                                            <ui:TextBox BorderThickness="0" Padding="0" TextAlignment="Center" FontWeight="Normal" Text="{Binding Request.parameters.scale}" Width="50" DockPanel.Dock="Right"/>
                                             <Slider Minimum="1.0" Maximum="20.0" Value="{Binding Request.parameters.scale}"/>
                                         </DockPanel>
 
                                         <!-- CfgRescale -->
                                         <DockPanel Margin="0,0,0,5">
-                                            <TextBlock FontWeight="Normal" Text="Rescale:" Width="50"/>
-                                            <TextBox FontWeight="Normal" Text="{Binding CfgRescale, StringFormat=N2}" Width="50" DockPanel.Dock="Right"/>
+                                            <ui:TextBlock FontWeight="Normal" Text="Rescale:" Width="50"/>
+                                            <ui:TextBox BorderThickness="0" Padding="0" TextAlignment="Center" FontWeight="Normal" Text="{Binding CfgRescale, StringFormat=N2}" Width="50" DockPanel.Dock="Right"/>
                                             <Slider Minimum="0.0" Maximum="1.0" Value="{Binding CfgRescale}" TickFrequency="0.05" IsSnapToTickEnabled="True"/>
                                         </DockPanel>
 
                                         <!-- Sampler -->
                                         <DockPanel Margin="0,0,0,5">
-                                            <TextBlock FontWeight="Normal" Text="Sampler:" Width="50" VerticalAlignment="Center"/>
+                                            <ui:TextBlock FontWeight="Normal" Text="Sampler:" Width="50" VerticalAlignment="Center"/>
                                             <ComboBox FontWeight="Normal" ItemsSource="{Binding Samplers}" SelectedItem="{Binding SelectedSampler}" DockPanel.Dock="Right"/>
                                         </DockPanel>
 
                                         <!-- Seed -->
-                                        <TextBlock FontWeight="Normal" Text="Seed:" Margin="0,5,0,0"/>
+                                        <ui:TextBlock FontWeight="Normal" Text="Seed:" Margin="0,5,0,0"/>
                                         <DockPanel Margin="0,0,0,15">
                                             <CheckBox FontWeight="Normal" Content="Random" IsChecked="{Binding IsRandomSeed}" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                            <Button FontWeight="Normal" Content="🎲" Command="{Binding RandomizeSeedCommand}" Width="30" Margin="0,0,5,0" ToolTip="Randomize Seed"/>
-                                            <TextBox FontWeight="Normal" Text="{Binding Seed, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsRandomSeed, Converter={StaticResource InverseBoolConverter}}"/>
+                                            <ui:Button BorderThickness="0" Padding="4" FontWeight="Normal" Content="🎲" Command="{Binding RandomizeSeedCommand}" Width="30" Height="30" Margin="0,0,5,0" ToolTip="Randomize Seed"/>
+                                            <ui:TextBox BorderThickness="0" Padding="4" FontWeight="Normal" Text="{Binding Seed, UpdateSourceTrigger=PropertyChanged}" Height="30" IsEnabled="{Binding IsRandomSeed, Converter={StaticResource InverseBoolConverter}}"/>
                                         </DockPanel>
 
                                         <!-- Save Directory -->
-                                        <TextBlock Text="Save Directory" FontWeight="Normal" Margin="0,0,0,5"/>
+                                        <ui:TextBlock Text="Save Directory" FontWeight="Normal" Margin="0,0,0,5"/>
                                         <Grid Margin="0,0,0,15">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBox FontWeight="Normal" Text="{Binding SaveDirectory}" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                                            <Button Grid.Column="1" Content="..." Command="{Binding SelectFolderCommand}" Width="30" Height="25"/>
+                                            <ui:TextBox FontWeight="Normal" Text="{Binding SaveDirectory}" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                            <Button Grid.Column="1" Content="..." Command="{Binding SelectFolderCommand}" Width="30" Height="25" BorderThickness="0" Padding="0"/>
                                         </Grid>
                                     </StackPanel>
                                 </ui:CardExpander>
@@ -205,7 +205,7 @@
                     <Border Grid.Column="0" BorderBrush="Gray" BorderThickness="1" Margin="0,0,10,0">
                         <Grid>
                             <Image Source="{Binding ExifImage}" Stretch="Uniform"/>
-                            <TextBlock Text="Drag &amp; Drop Image Here" 
+                            <ui:TextBlock Text="Drag &amp; Drop Image Here" 
                                        HorizontalAlignment="Center" VerticalAlignment="Center" 
                                        Foreground="Gray" FontSize="20"
                                        Visibility="{Binding ExifImage, Converter={StaticResource InverseBoolConverter}, FallbackValue=Visible}"/>
@@ -223,7 +223,7 @@
                         
                         <Button Content="Open Image..." Command="{Binding LoadExifImageCommand}" Height="30" Margin="0,0,0,10"/>
                         
-                        <TextBox Grid.Row="1" Text="{Binding ExifData}" 
+                        <ui:TextBox Grid.Row="1" Text="{Binding ExifData}" 
                                  TextWrapping="Wrap" AcceptsReturn="True" 
                                  VerticalScrollBarVisibility="Auto" IsReadOnly="True"/>
                     </Grid>
@@ -234,7 +234,7 @@
         <!-- 3. Status Bar -->
         <StatusBar Grid.Row="2" Margin="5,10,0,0">
             <StatusBarItem>
-                <TextBlock Text="{Binding StatusMessage}"/>
+                <ui:TextBlock Text="{Binding StatusMessage}"/>
             </StatusBarItem>
         </StatusBar>
     </Grid>
