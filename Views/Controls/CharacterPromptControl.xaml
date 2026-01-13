@@ -6,12 +6,14 @@
              xmlns:local="clr-namespace:ImageGen.Views.Controls"
              xmlns:helpers="clr-namespace:ImageGen.Helpers"
              mc:Ignorable="d" 
-             d:DesignHeight="240" d:DesignWidth="400">
+             d:DesignHeight="240" d:DesignWidth="400"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             Background="#ff004444">
     <UserControl.Resources>
         <helpers:NullToBoolConverter x:Key="NullToBoolConverter"/>
     </UserControl.Resources>
     
-    <Border BorderBrush="Gray" BorderThickness="1" Margin="0,0,0,5" Padding="5" Background="#FAFAFA">
+        <Border BorderThickness="1" Margin="0,0,0,5" Padding="5">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -20,7 +22,7 @@
             </Grid.RowDefinitions>
             
             <!-- Header / Toolbar -->
-            <Grid Grid.Row="0" Margin="0,0,0,5">
+            <Grid Grid.Row="0" Margin="0,0,0,5" Height="28">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
@@ -31,7 +33,7 @@
                 
                 <!-- Preset Selector -->
                 <ComboBox Grid.Column="0" ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}" 
-                          DisplayMemberPath="Name" Margin="0,0,5,0" Height="22" VerticalAlignment="Center">
+                          DisplayMemberPath="Name" Margin="0,0,5,0" VerticalAlignment="Center">
                     <ComboBox.Style>
                         <Style TargetType="ComboBox">
                             <Style.Triggers>
@@ -41,11 +43,17 @@
                             </Style.Triggers>
                         </Style>
                     </ComboBox.Style>
+                    
+                    <ComboBox.ItemContainerStyle>
+                        <Style TargetType="{x:Type ComboBoxItem}">
+                            <Setter Property="Foreground" Value="Black" />
+                        </Style>
+                    </ComboBox.ItemContainerStyle>
                 </ComboBox>
                 
                 <!-- Save Name Input (Visible only when saving) -->
-                <TextBox Grid.Column="0" Text="{Binding NewPresetName, UpdateSourceTrigger=PropertyChanged}" 
-                         Margin="0,0,5,0" Height="22" VerticalAlignment="Center">
+                <ui:TextBox Grid.Column="0" Text="{Binding NewPresetName, UpdateSourceTrigger=PropertyChanged}" 
+                         Margin="0,0,5,0" Height="22" Padding="2" BorderThickness="0" VerticalAlignment="Center">
                     <TextBox.Style>
                         <Style TargetType="TextBox">
                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -56,7 +64,7 @@
                             </Style.Triggers>
                         </Style>
                     </TextBox.Style>
-                </TextBox>
+                </ui:TextBox>
 
                 <Button Grid.Column="1" Width="25" Height="22" Margin="0,0,2,0" ToolTip="Update Preset" 
                         Content="⏫" Command="{Binding UpdatePresetCommand}" 
@@ -78,7 +86,7 @@
                 </Button>
                 
                 <!-- Save/Confirm Button -->
-                <Button Grid.Column="2" Width="25" Height="22" Margin="0,0,2,0">
+                <ui:Button Grid.Column="2" Width="25" Height="22" Margin="0,0,2,0">
                      <Button.Style>
                         <Style TargetType="Button">
                             <!-- 기본 상태: 저장 모드 진입 -->
@@ -96,10 +104,10 @@
                             </Style.Triggers>
                         </Style>
                      </Button.Style>
-                </Button>
+                </ui:Button>
 
                 <!-- Delete Preset Button (Visible only when preset selected and not saving) -->
-                <Button Grid.Column="3" Command="{Binding DeletePresetCommand}" Content="🗑️" Width="25" Height="22" Margin="0,0,5,0" ToolTip="Delete Preset">
+                <ui:Button Grid.Column="3" Command="{Binding DeletePresetCommand}" Content="🗑️" Width="25" Height="22" Margin="0,0,5,0" ToolTip="Delete Preset">
                     <Button.Style>
                         <Style TargetType="Button">
                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -114,11 +122,11 @@
                             </Style.Triggers>
                         </Style>
                     </Button.Style>
-                </Button>
+                </ui:Button>
 
                 <!-- Remove Character Button -->
-                <Button Grid.Column="4" Content="❌" Command="{Binding DataContext.RemoveCharacterCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" 
-                        CommandParameter="{Binding}" Width="25" Height="22" Background="Transparent" BorderThickness="0" Foreground="Red" ToolTip="Remove Character"/>
+                <ui:Button Grid.Column="4" Content="❌" Command="{Binding DataContext.RemoveCharacterCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" 
+                        CommandParameter="{Binding}" Width="25" Height="22" BorderThickness="0" Padding="1" Margin="5,0, 0,0" Foreground="Red" ToolTip="Remove Character"/>
             </Grid>
             
             <TabControl Grid.Row="1" Height="120" Margin="0,0,0,5">

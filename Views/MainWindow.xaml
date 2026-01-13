@@ -8,7 +8,9 @@
         xmlns:controls="clr-namespace:ImageGen.Views.Controls"
         mc:Ignorable="d"
         Title="NovelAI Image Generator" Height="900" Width="1600"
-        WindowStartupLocation="Manual" Left="100" Top="50">
+        WindowStartupLocation="Manual" Left="100" Top="50"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        Background="#ff002222">
     
     <Window.Resources>
         <helpers:CountToBoolConverter x:Key="CountToBoolConverter"/>
@@ -18,8 +20,8 @@
     <Window.DataContext>
         <vm:MainViewModel/>
     </Window.DataContext>
-
-    <Grid Margin="10">
+    
+    <Grid Margin="10" Background="#ff002222">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/> <!-- Top Bar (Token) -->
             <RowDefinition Height="*"/>    <!-- Main Content -->
@@ -28,9 +30,9 @@
 
         <!-- 1. Top Bar: API Token -->
         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
-            <TextBlock Text="API Token:" VerticalAlignment="Center" Margin="0,0,10,0"/>
-            <TextBox Text="{Binding ApiToken, UpdateSourceTrigger=PropertyChanged}" Width="300" VerticalAlignment="Center"/>
-            <TextBlock Text="(Required)" Foreground="Gray" VerticalAlignment="Center" Margin="10,0,0,0"/>
+            <ui:TextBlock Text="API Token:" Foreground="LightGray" VerticalAlignment="Center" Margin="0,0,10,0"/>
+            <ui:TextBox Text="{Binding ApiToken, UpdateSourceTrigger=PropertyChanged}" Width="300" VerticalAlignment="Center"/>
+            <ui:TextBlock Text="(Required)" Foreground="LightGray" VerticalAlignment="Center" Margin="10,0,0,0"/>
         </StackPanel>
 
         <!-- 2. Main Content (Tabs) -->
@@ -59,16 +61,18 @@
                                 
                                 <TabControl Height="240" Margin="0,0,0,5">
                                     <TabItem Header="Positive">
-                                        <TextBox x:Name="PromptBox" 
+                                        <ui:TextBox x:Name="PromptBox" 
                                                  Text="{Binding Prompt, UpdateSourceTrigger=PropertyChanged}" 
                                                  TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
                                                  BorderThickness="0" Padding="2"
                                                  TextChanged="PromptBox_OnTextChanged"/>
                                     </TabItem>
                                     <TabItem Header="Negative">
-                                        <TextBox Text="{Binding NegativePrompt, UpdateSourceTrigger=PropertyChanged}" 
-                                                 TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
-                                                 BorderThickness="0" Padding="2"/>
+                                        <ui:TextBox 
+                                                Text="{Binding NegativePrompt, UpdateSourceTrigger=PropertyChanged}" 
+                                                TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
+                                                BorderThickness="0" Padding="2"
+                                                TextChanged="PromptBox_OnTextChanged"/>
                                     </TabItem>
                                 </TabControl>
                                 
@@ -103,12 +107,12 @@
                             </StackPanel>
                         </ScrollViewer>
                         
-                        <GridSplitter Grid.Row="1" Height="5" HorizontalAlignment="Stretch" Background="LightGray" Margin="0,0,0,10"/>
+                        <GridSplitter Grid.Row="1" Height="5" Background="#ff002020" HorizontalAlignment="Stretch" Margin="0,0,0,10"/>
 
                         <!-- Bottom: Parameters -->
                         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
                             <StackPanel>
-                                <Expander Header="Parameters" IsExpanded="True" FontWeight="Bold" Margin="0,0,0,5">
+                                <ui:CardExpander Header="Parameters" IsExpanded="True" FontWeight="Bold" Margin="5">
                                     <StackPanel Margin="0,5,0,0">
                                         <!-- Width -->
                                         <DockPanel Margin="0,0,0,5">
@@ -170,19 +174,19 @@
                                             <Button Grid.Column="1" Content="..." Command="{Binding SelectFolderCommand}" Width="30" Height="25"/>
                                         </Grid>
                                     </StackPanel>
-                                </Expander>
+                                </ui:CardExpander>
 
                                 <!-- Generate Button -->
-                                <Button Content="Generate Image" Command="{Binding GenerateCommand}" Height="40" FontSize="16" FontWeight="Bold"/>
+                                <ui:Button Content="Generate Image" HorizontalAlignment="Stretch" Margin="5" Command="{Binding GenerateCommand}" Height="40" FontSize="16" FontWeight="Bold"/>
                             </StackPanel>
                         </ScrollViewer>
                     </Grid>
 
                     <!-- Splitter -->
-                    <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center" Background="LightGray"/>
+                    <GridSplitter Grid.Column="1" Background="#ff002020" Width="5" HorizontalAlignment="Center"/>
 
                     <!-- Right Panel: Image Viewer -->
-                    <Border Grid.Column="2" BorderBrush="Gray" BorderThickness="1" Background="#F0F0F0">
+                    <Border Grid.Column="2" BorderBrush="Gray" BorderThickness="1">
                         <Image Source="{Binding GeneratedImage}" Stretch="Uniform"/>
                     </Border>
                 </Grid>
@@ -198,7 +202,7 @@
                     </Grid.ColumnDefinitions>
 
                     <!-- Image Display -->
-                    <Border Grid.Column="0" BorderBrush="Gray" BorderThickness="1" Background="#F0F0F0" Margin="0,0,10,0">
+                    <Border Grid.Column="0" BorderBrush="Gray" BorderThickness="1" Margin="0,0,10,0">
                         <Grid>
                             <Image Source="{Binding ExifImage}" Stretch="Uniform"/>
                             <TextBlock Text="Drag &amp; Drop Image Here" 
@@ -208,7 +212,7 @@
                         </Grid>
                     </Border>
                     
-                    <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center" Background="LightGray"/>
+                    <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center"/>
 
                     <!-- Metadata Display -->
                     <Grid Grid.Column="2">
@@ -228,7 +232,7 @@
         </TabControl>
 
         <!-- 3. Status Bar -->
-        <StatusBar Grid.Row="2" Margin="0,10,0,0">
+        <StatusBar Grid.Row="2" Margin="5,10,0,0">
             <StatusBarItem>
                 <TextBlock Text="{Binding StatusMessage}"/>
             </StatusBarItem>

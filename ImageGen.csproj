@@ -9,4 +9,8 @@
         <UseWindowsForms>true</UseWindowsForms>
     </PropertyGroup>
 
+    <ItemGroup>
+      <PackageReference Include="WPF-UI" Version="4.2.0" />
+    </ItemGroup>
+
 </Project>
