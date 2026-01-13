@@ -835,7 +835,7 @@ public class NodeGraphViewModel : INotifyPropertyChanged
                             Directory.CreateDirectory(_mainViewModel.SaveDirectory);
                         }
                             
-                        string fileName = $"chain_{stepIndex}_{DateTime.Now:yyyyMMdd_HHmmss}.png";
+                        string fileName = $"chain_{DateTime.Now:yyyyMMdd_HHmmss}.png";
                         await _imageService.SaveImageAsync(imageData, _mainViewModel.SaveDirectory, fileName);
                             
                         var bitmap = await Task.Run(() => _imageService.ConvertToBitmapImage(imageData));
