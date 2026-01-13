@@ -12,6 +12,7 @@ using ImageGen.Models;
 using ImageGen.Models.Api;
 using ImageGen.Services;
 using ImageGen.Services.Interfaces;
+using Application = System.Windows.Application;
 using MessageBox = System.Windows.MessageBox;
 
 namespace ImageGen.ViewModels;
@@ -553,26 +554,39 @@ public class MainViewModel : INotifyPropertyChanged
             SaveCurrentSettings();
 
             byte[]? imageData = null;
-            var counter = 0;
-             await foreach (var zipData in _novelAiService.GenerateImageStreamAsync(Request, ApiToken))
-             {
-                 
-                 imageData = zipData; // ZipHelper.ExtractFirstImage(zipData);
-                 /*if (imageData == null)
-                 {
-                     StatusMessage = "Error: Failed to extract image from ZIP.";
-                     Logger.LogError("Failed to extract image from ZIP response.");
-                     return;
-                 }*/
-                 if (++counter < 3) continue;
-                 counter = 0;
-                 
-                 GeneratedImage = _imageService.ConvertToBitmapImage(imageData);
-             }
-             if (imageData == null) return;
-             GeneratedImage = _imageService.ConvertToBitmapImage(imageData);
-            //var zipData = await _novelAiService.GenerateImageAsync(Request, ApiToken);
             
+            // 스트림 처리를 백그라운드 스레드로 이동하여 UI 스레드 블로킹 방지
+            await Task.Run(async () =>
+            {
+                var lastUpdate = DateTime.MinValue;
+                await foreach (var zipData in _novelAiService.GenerateImageStreamAsync(Request, ApiToken))
+                {
+                    imageData = zipData;
+
+                    // 시간 기반 스로틀링 (약 60ms 마다 갱신, 약 15fps)
+                    var now = DateTime.Now;
+                    if ((now - lastUpdate).TotalMilliseconds < 60) continue;
+                    lastUpdate = now;
+
+                    try
+                    {
+                        var bitmap = _imageService.ConvertToBitmapImage(imageData);
+
+                        Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            GeneratedImage = bitmap;
+                        });
+                    }
+                    catch
+                    {
+                        // ignored
+                    }
+                }
+            });
+
+             if (imageData == null) return;
+             GeneratedImage = await Task.Run(() => _imageService.ConvertToBitmapImage(imageData));
+             
             if (!Directory.Exists(SaveDirectory))
             {
                 try
