@@ -22,7 +22,7 @@ public class GenerationNode : INotifyPropertyChanged
     private string _title = string.Empty;
     private string _basePrompt = string.Empty;
     private string _negativePrompt = string.Empty;
-    private string _characterPrompt = string.Empty;
+    // private string _characterPrompt = string.Empty;
     private string _presetName = string.Empty;
     private double _charX = 0.5;
     private double _charY = 0.5;
@@ -93,12 +93,12 @@ public class GenerationNode : INotifyPropertyChanged
         set { _negativePrompt = value; OnPropertyChanged(); }
     }
 
-    // Used for Character Prompt in Character nodes
+    /*// Used for Character Prompt in Character nodes
     public string CharacterPrompt
     {
         get => _characterPrompt;
         set { _characterPrompt = value; OnPropertyChanged(); }
-    }
+    }*/
     
     // Used for storing the preset name in Character nodes
     public string PresetName

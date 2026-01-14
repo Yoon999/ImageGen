@@ -360,7 +360,7 @@ public class NodeGraphViewModel : INotifyPropertyChanged
                 Title = node.Title,
                 BasePrompt = node.BasePrompt,
                 NegativePrompt = node.NegativePrompt,
-                CharacterPrompt = node.CharacterPrompt,
+                // CharacterPrompt = node.CharacterPrompt,
                 PresetName = node.PresetName,
                 CharX = node.CharX,
                 CharY = node.CharY,
@@ -763,8 +763,6 @@ public class NodeGraphViewModel : INotifyPropertyChanged
                         }
                         else
                         {
-                            // Fallback to node's own prompt if no base node connected?
-                            // Or just empty?
                             request.parameters.V4Prompt.Caption.BaseCaption = currentNode.BasePrompt;
                         }
                         
@@ -775,6 +773,16 @@ public class NodeGraphViewModel : INotifyPropertyChanged
                             request.parameters.V4Prompt.Caption.CharCaptions.Add(new V4ExternalCharacterCaption
                             {
                                 CharCaption = charNode.BasePrompt, // Character node uses BasePrompt for positive
+                                Centers = new List<Coordinates>
+                                {
+                                    new Coordinates { x = charNode.CharX, y = charNode.CharY }
+                                }
+                            });
+                            
+                            request.parameters.V4NegativePrompt?.Caption.CharCaptions.Clear();
+                            request.parameters.V4NegativePrompt?.Caption.CharCaptions.Add(new V4ExternalCharacterCaption
+                            {
+                                CharCaption = charNode.NegativePrompt,
                                 Centers = new List<Coordinates>
                                 {
                                     new Coordinates { x = charNode.CharX, y = charNode.CharY }
