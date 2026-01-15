@@ -86,10 +86,10 @@
                             <!-- Base Node Content -->
                             <StackPanel Visibility="{Binding Type, Converter={StaticResource NodeTypeToVisibilityConverter}, ConverterParameter=BaseContent}">
                                 <ui:TextBlock Text="Positive Prompt" Foreground="Gray" FontSize="10"/>
-                                <ui:TextBox Text="{Binding BasePrompt}" Margin="0,0,0,5" MinHeight="40" MaxHeight="120" TextAlignment="Left" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"/>
+                                <ui:TextBox Text="{Binding BasePrompt}" Margin="0,0,0,5" MinHeight="40" MaxHeight="120" TextAlignment="Left" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" ClearButtonEnabled="False"/>
                                 
                                 <ui:TextBlock Text="Negative Prompt" Foreground="Gray" FontSize="10"/>
-                                <ui:TextBox Text="{Binding NegativePrompt}" Margin="0,0,0,5" MinHeight="40" MaxHeight="120" TextAlignment="Left" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"/>
+                                <ui:TextBox Text="{Binding NegativePrompt}" Margin="0,0,0,5" MinHeight="40" MaxHeight="120" TextAlignment="Left" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" ClearButtonEnabled="False"/>
                             </StackPanel>
 
                             <!-- Character Node Content -->
@@ -132,10 +132,10 @@
                                 </StackPanel>
 
                                 <ui:TextBlock Text="Positive Prompt" Foreground="Gray" FontSize="10"/>
-                                <ui:TextBox Text="{Binding BasePrompt}" Margin="0,0,0,5" MinHeight="40" MaxHeight="120" TextAlignment="Left" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"/>
+                                <ui:TextBox Text="{Binding BasePrompt}" Margin="0,0,0,5" MinHeight="40" MaxHeight="120" TextAlignment="Left" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" ClearButtonEnabled="False"/>
                                 
                                 <ui:TextBlock Text="Negative Prompt" Foreground="Gray" FontSize="10"/>
-                                <ui:TextBox Text="{Binding NegativePrompt}" Margin="0,0,0,5" MinHeight="40" MaxHeight="120" TextAlignment="Left" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"/>
+                                <ui:TextBox Text="{Binding NegativePrompt}" Margin="0,0,0,5" MinHeight="40" MaxHeight="120" TextAlignment="Left" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" ClearButtonEnabled="False"/>
                                 
                                 <Grid Margin="0,5,0,0">
                                     <Grid.ColumnDefinitions>

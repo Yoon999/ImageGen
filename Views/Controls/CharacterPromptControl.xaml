@@ -1,159 +1,106 @@
 <UserControl x:Class="ImageGen.Views.Controls.CharacterPromptControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:ImageGen.Views.Controls"
              xmlns:helpers="clr-namespace:ImageGen.Helpers"
-             mc:Ignorable="d" 
+             mc:Ignorable="d"
              d:DesignHeight="240" d:DesignWidth="400"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              Background="#ff004444">
     <UserControl.Resources>
-        <helpers:NullToBoolConverter x:Key="NullToBoolConverter"/>
+        <helpers:NullToBoolConverter x:Key="NullToBoolConverter" />
     </UserControl.Resources>
-    
-        <Border BorderThickness="0" Margin="0,0,0,5" Padding="5">
+
+    <Border BorderThickness="0" Margin="0,0,0,5" Padding="5">
         <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
-            
+
             <!-- Header / Toolbar -->
-            <Grid Grid.Row="0" Margin="0,0,0,5" Height="28">
+            <Grid Grid.Row="0" Margin="0,0,0,5">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                
-                <!-- Preset Selector -->
-                <ComboBox Grid.Column="0" ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}" 
-                          DisplayMemberPath="Name" Margin="0,0,5,0" VerticalAlignment="Center">
-                    <ComboBox.Style>
-                        <Style TargetType="ComboBox">
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsSavingPreset}" Value="True">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </ComboBox.Style>
-                    
-                    <ComboBox.ItemContainerStyle>
-                        <Style TargetType="{x:Type ComboBoxItem}">
-                            <Setter Property="Foreground" Value="Black" />
-                        </Style>
-                    </ComboBox.ItemContainerStyle>
-                </ComboBox>
-                
-                <!-- Save Name Input (Visible only when saving) -->
-                <ui:TextBox Grid.Column="0" Text="{Binding NewPresetName, UpdateSourceTrigger=PropertyChanged}" 
-                         Margin="0,0,5,0" Height="22" Padding="2" VerticalAlignment="Center">
-                    <TextBox.Style>
-                        <Style TargetType="TextBox">
-                            <Setter Property="Visibility" Value="Collapsed"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsSavingPreset}" Value="True">
-                                    <Setter Property="Visibility" Value="Visible"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBox.Style>
-                </ui:TextBox>
 
-                <Button Grid.Column="1" Width="25" Height="22" Margin="0,0,2,0" ToolTip="Update Preset" 
-                        Content="⏫" Command="{Binding UpdatePresetCommand}" 
-                        CommandParameter="{Binding}">
-                    <Button.Style>
-                        <Style TargetType="Button">
-                            <Setter Property="Visibility" Value="Collapsed"/>
-                            <Style.Triggers>
-                                <MultiDataTrigger>
-                                    <MultiDataTrigger.Conditions>
-                                        <Condition Binding="{Binding SelectedPreset, Converter={StaticResource NullToBoolConverter}}" Value="True"/>
-                                        <Condition Binding="{Binding IsSavingPreset}" Value="False"/>
-                                    </MultiDataTrigger.Conditions>
-                                    <Setter Property="Visibility" Value="Visible"/>
-                                </MultiDataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Button.Style>
-                </Button>
-                
-                <!-- Save/Confirm Button -->
-                <ui:Button Grid.Column="2" Width="25" Height="22" Margin="0,0,2,0">
-                     <Button.Style>
-                        <Style TargetType="Button">
-                            <!-- 기본 상태: 저장 모드 진입 -->
-                            <Setter Property="Command" Value="{Binding ToggleSaveModeCommand}"/>
-                            <Setter Property="Content" Value="💾"/>
-                            <Setter Property="ToolTip" Value="Save Preset"/>
-                            
-                            <Style.Triggers>
-                                <!-- 저장 모드 활성화 시: 저장 실행 -->
-                                <DataTrigger Binding="{Binding IsSavingPreset}" Value="True">
-                                    <Setter Property="Command" Value="{Binding SavePresetCommand}"/>
-                                    <Setter Property="Content" Value="✅"/>
-                                    <Setter Property="ToolTip" Value="Confirm Save"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                     </Button.Style>
-                </ui:Button>
+                <StackPanel Grid.Row="0">
+                    <!-- Row 1: Select, Load, Update, Delete -->
+                    <Grid Margin="0,5,0,5">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ComboBox Grid.Column="0" ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}" DisplayMemberPath="Name" 
+                                  FontSize="10" Padding="0" Margin="0,0,5,0" Height="22" HorizontalAlignment="Stretch" VerticalAlignment="Center">
+                            <ComboBox.ItemContainerStyle>
+                                <Style TargetType="{x:Type ComboBoxItem}">
 
-                <!-- Delete Preset Button (Visible only when preset selected and not saving) -->
-                <ui:Button Grid.Column="3" Command="{Binding DeletePresetCommand}" Content="🗑️" Width="25" Height="22" Margin="0,0,5,0" ToolTip="Delete Preset">
-                    <Button.Style>
-                        <Style TargetType="Button">
-                            <Setter Property="Visibility" Value="Collapsed"/>
-                            <Style.Triggers>
-                                <MultiDataTrigger>
-                                    <MultiDataTrigger.Conditions>
-                                        <Condition Binding="{Binding SelectedPreset, Converter={StaticResource NullToBoolConverter}}" Value="True"/>
-                                        <Condition Binding="{Binding IsSavingPreset}" Value="False"/>
-                                    </MultiDataTrigger.Conditions>
-                                    <Setter Property="Visibility" Value="Visible"/>
-                                </MultiDataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Button.Style>
-                </ui:Button>
+                                </Style>
+                            </ComboBox.ItemContainerStyle>
+                        </ComboBox>
+
+                        <ui:Button Grid.Column="1" Content="Load" Command="{Binding LoadPresetCommand}" HorizontalAlignment="Right"
+                                   FontSize="10" Padding="0" Margin="0,0,5,0" Width="80" Height="22" />
+
+                        <ui:Button Grid.Column="2" Content="Update" Command="{Binding UpdatePresetCommand}" HorizontalAlignment="Right"
+                                   FontSize="10" Padding="0" Margin="0,0,5,0" Width="64" Height="22" />
+
+                        <ui:Button Grid.Column="3" Content="🗑️" Command="{Binding DeletePresetCommand}" HorizontalAlignment="Right"
+                                   FontSize="10" Padding="0" Margin="0,0,5,0" Width="32" Height="22" ToolTip="Delete Preset" />
+                    </Grid>
+
+                    <!-- Row 2: Name Input, Save New -->
+                    <Grid Margin="0,5,0,5">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ui:TextBox Grid.Column="0" Text="{Binding NewPresetName, UpdateSourceTrigger=PropertyChanged}"
+                                    FontSize="16" Padding="0" Margin="0,0,5,0" Height="22" HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                                    ToolTip="New Preset Name" />
+                        
+                        <ui:Button Grid.Column="1" Content="Save New" Command="{Binding SavePresetCommand}" HorizontalAlignment="Right"
+                                   FontSize="10" Padding="5,0" Margin="0,0,5,0" Width="80" Height="22" />
+                    </Grid>
+                </StackPanel>
 
                 <!-- Remove Character Button -->
-                <ui:Button Grid.Column="4" Content="❌" Command="{Binding DataContext.RemoveCharacterCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" 
-                        CommandParameter="{Binding}" Width="25" Height="22" Padding="1" Margin="5,0, 0,0" Foreground="Red" ToolTip="Remove Character"/>
+                <ui:Button Grid.Column="1" Content="❌" Command="{Binding DataContext.RemoveCharacterCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                           CommandParameter="{Binding}" Width="25" Height="22" Padding="1" Margin="5,0,0,0" VerticalAlignment="Top" Foreground="Red" ToolTip="Remove Character" />
             </Grid>
-            
+
             <TabControl Grid.Row="1" Height="120" Margin="0,0,0,5">
                 <TabItem Header="Positive">
-                    <ui:TextBox Text="{Binding Prompt, UpdateSourceTrigger=PropertyChanged}" 
-                             TextAlignment="Left" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
-                             Padding="2"
-                             ClearButtonEnabled="False"/>
+                    <ui:TextBox Text="{Binding Prompt, UpdateSourceTrigger=PropertyChanged}"
+                                TextAlignment="Left" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
+                                Padding="2"
+                                ClearButtonEnabled="False" />
                 </TabItem>
                 <TabItem Header="Negative">
-                    <ui:TextBox Text="{Binding NegativePrompt, UpdateSourceTrigger=PropertyChanged}" 
-                             TextAlignment="Left" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
-                             Padding="2"
-                             ClearButtonEnabled="False"/>
+                    <ui:TextBox Text="{Binding NegativePrompt, UpdateSourceTrigger=PropertyChanged}"
+                                TextAlignment="Left" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
+                                Padding="2"
+                                ClearButtonEnabled="False" />
                 </TabItem>
             </TabControl>
-            
+
             <StackPanel Grid.Row="2" Orientation="Vertical" HorizontalAlignment="Left">
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                    <TextBlock Text="Center X:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                    <TextBox Text="{Binding X, StringFormat=N2}" Width="40" VerticalAlignment="Center" Margin="0,0,10,0" BorderThickness="0"/>
-                    <Slider Value="{Binding X}" Minimum="0.0" Maximum="1.0" Width="80" VerticalAlignment="Center"/>
+                    <ui:TextBlock Text="Center X:" VerticalAlignment="Center" Margin="0,0,5,0" />
+                    <ui:TextBox Text="{Binding X, StringFormat=N2}" Width="60" VerticalAlignment="Center" Margin="0,0,10,0" BorderThickness="0" />
+                    <Slider Value="{Binding X}" Minimum="0.0" Maximum="1.0" Width="80" VerticalAlignment="Center" />
                 </StackPanel>
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Center Y:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                    <TextBox Text="{Binding Y, StringFormat=N2}" Width="40" VerticalAlignment="Center" Margin="0,0,10,0" BorderThickness="0"/>
-                    <Slider Value="{Binding Y}" Minimum="0.0" Maximum="1.0" Width="80" VerticalAlignment="Center"/>
+                    <ui:TextBlock Text="Center Y:" VerticalAlignment="Center" Margin="0,0,5,0" />
+                    <ui:TextBox Text="{Binding Y, StringFormat=N2}" Width="60" VerticalAlignment="Center" Margin="0,0,10,0" BorderThickness="0" />
+                    <Slider Value="{Binding Y}" Minimum="0.0" Maximum="1.0" Width="80" VerticalAlignment="Center" />
                 </StackPanel>
             </StackPanel>
         </Grid>

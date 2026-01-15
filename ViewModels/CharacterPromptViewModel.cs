@@ -15,7 +15,6 @@ public class CharacterPromptViewModel : INotifyPropertyChanged
     private double _y = 0.5;
     private CharacterPreset? _selectedPreset;
     private string _newPresetName = string.Empty;
-    private bool _isSavingPreset;
     
     public ICommand RefreshPresetsCommand { get; }
 
@@ -23,10 +22,10 @@ public class CharacterPromptViewModel : INotifyPropertyChanged
     {
         LoadPresets();
         
+        LoadPresetCommand = new RelayCommand(ExecuteLoadPreset);
         UpdatePresetCommand = new RelayCommand(ExecuteUpdatePreset);
         SavePresetCommand = new RelayCommand(ExecuteSavePreset);
         DeletePresetCommand = new RelayCommand(ExecuteDeletePreset);
-        ToggleSaveModeCommand = new RelayCommand(ExecuteToggleSaveMode);
         RefreshPresetsCommand = new RelayCommand(_ => LoadPresets());
     }
 
@@ -41,10 +40,6 @@ public class CharacterPromptViewModel : INotifyPropertyChanged
             {
                 _selectedPreset = value;
                 OnPropertyChanged();
-                if (_selectedPreset != null)
-                {
-                    ApplyPreset(_selectedPreset);
-                }
             }
         }
     }
@@ -55,16 +50,6 @@ public class CharacterPromptViewModel : INotifyPropertyChanged
         set
         {
             _newPresetName = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public bool IsSavingPreset
-    {
-        get => _isSavingPreset;
-        set
-        {
-            _isSavingPreset = value;
             OnPropertyChanged();
         }
     }
@@ -121,10 +106,10 @@ public class CharacterPromptViewModel : INotifyPropertyChanged
         }
     }
 
+    public ICommand LoadPresetCommand { get; }
     public ICommand UpdatePresetCommand { get; }
     public ICommand SavePresetCommand { get; }
     public ICommand DeletePresetCommand { get; }
-    public ICommand ToggleSaveModeCommand { get; }
 
     private void LoadPresets()
     {
@@ -141,13 +126,11 @@ public class CharacterPromptViewModel : INotifyPropertyChanged
         NegativePrompt = preset.NegativePrompt;
     }
 
-    private void ExecuteToggleSaveMode(object? parameter)
+    private void ExecuteLoadPreset(object? parameter)
     {
-        Console.WriteLine("ExecuteToggleSaveMode called");
-        IsSavingPreset = !IsSavingPreset;
-        if (IsSavingPreset)
+        if (SelectedPreset != null)
         {
-            NewPresetName = string.Empty;
+            ApplyPreset(SelectedPreset);
         }
     }
 
@@ -168,12 +151,10 @@ public class CharacterPromptViewModel : INotifyPropertyChanged
         
         // 방금 저장한 프리셋 선택
         SelectedPreset = Presets.FirstOrDefault(p => p.Name == preset.Name);
-        IsSavingPreset = false;
     }
     
     private void ExecuteSavePreset(object? parameter)
     {
-        Console.WriteLine("ExecuteSavePreset called");
         if (string.IsNullOrWhiteSpace(NewPresetName)) return;
 
         var preset = new CharacterPreset
@@ -190,7 +171,6 @@ public class CharacterPromptViewModel : INotifyPropertyChanged
         
         // 방금 저장한 프리셋 선택
         SelectedPreset = Presets.FirstOrDefault(p => p.Name == NewPresetName);
-        IsSavingPreset = false;
     }
 
     private void ExecuteDeletePreset(object? parameter)
