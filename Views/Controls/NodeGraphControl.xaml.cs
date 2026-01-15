@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using ImageGen.Models;
 using ImageGen.ViewModels;
+using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 using MouseEventArgs = System.Windows.Input.MouseEventArgs;
 using Point = System.Windows.Point;
 using UserControl = System.Windows.Controls.UserControl;
@@ -19,6 +20,62 @@ public partial class NodeGraphControl : UserControl
     {
         InitializeComponent();
         IsVisibleChanged += NodeGraphControl_IsVisibleChanged;
+        DataContextChanged += NodeGraphControl_DataContextChanged;
+    }
+
+    private void NodeGraphControl_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (e.NewValue is NodeGraphViewModel vm)
+        {
+            vm.RequestBringIntoView += Vm_RequestBringIntoView;
+        }
+        if (e.OldValue is NodeGraphViewModel oldVm)
+        {
+            oldVm.RequestBringIntoView -= Vm_RequestBringIntoView;
+        }
+    }
+
+    private void Vm_RequestBringIntoView(object? sender, NodeType type)
+    {
+        if (DataContext is NodeGraphViewModel vm)
+        {
+            var targetNode = vm.Nodes.FirstOrDefault(n => n.Type == type);
+            if (targetNode != null)
+            {
+                // Find the ScrollViewer
+                var scrollViewer = FindVisualChild<ScrollViewer>(this);
+                if (scrollViewer != null)
+                {
+                    // Center the node
+                    double x = targetNode.UiX * vm.ZoomScale;
+                    double y = targetNode.UiY * vm.ZoomScale;
+                    
+                    double viewportWidth = scrollViewer.ViewportWidth;
+                    double viewportHeight = scrollViewer.ViewportHeight;
+                    
+                    scrollViewer.ScrollToHorizontalOffset(x - viewportWidth / 2 + (targetNode.Width * vm.ZoomScale / 2));
+                    scrollViewer.ScrollToVerticalOffset(y - viewportHeight / 2 + (targetNode.Height * vm.ZoomScale / 2));
+                }
+            }
+        }
+    }
+    
+    private static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+    {
+        for (int i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
+            if (child is T t)
+            {
+                return t;
+            }
+            var result = FindVisualChild<T>(child);
+            if (result != null)
+            {
+                return result;
+            }
+        }
+        return null;
     }
 
     private void NodeGraphControl_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -29,6 +86,8 @@ public partial class NodeGraphControl : UserControl
             {
                 vm.RefreshPresetsCommand.Execute(null);
             }
+            // Focus to enable key bindings
+            this.Focus();
         }
     }
 
@@ -36,6 +95,7 @@ public partial class NodeGraphControl : UserControl
     {
         // Clear focus from any text box when clicking on the canvas background
         Keyboard.ClearFocus();
+        this.Focus(); // Ensure UserControl has focus for key bindings
 
         // Cancel connection if clicking on empty canvas
         if (DataContext is NodeGraphViewModel vm && vm.IsConnecting)
@@ -50,6 +110,7 @@ public partial class NodeGraphControl : UserControl
         {
             // Clear focus when clicking on a node (e.g. to drag), unless clicking a TextBox which handles the event itself.
             Keyboard.ClearFocus();
+            this.Focus();
 
             // If we are in connecting mode, this click might be to complete the connection
             if (DataContext is NodeGraphViewModel vm && vm.IsConnecting)
@@ -80,25 +141,31 @@ public partial class NodeGraphControl : UserControl
 
     private void Canvas_MouseMove(object sender, MouseEventArgs e)
     {
-        var currentPosition = e.GetPosition(this);
+        var currentControlPosition = e.GetPosition(this);
 
         if (DataContext is NodeGraphViewModel vm)
         {
             // Update temporary connection line if connecting
             if (vm.IsConnecting)
             {
-                vm.UpdateTempConnection(currentPosition.X, currentPosition.Y);
+                // Use position relative to the canvas (logical coordinates) to account for zoom/pan
+                if (sender is IInputElement canvas)
+                {
+                    var logicalPosition = e.GetPosition(canvas);
+                    vm.UpdateTempConnection(logicalPosition.X, logicalPosition.Y);
+                }
             }
             
             // Move node if dragging
             if (_isDraggingNode && _draggedNode != null)
             {
-                var offset = currentPosition - _clickPosition;
+                var offset = currentControlPosition - _clickPosition;
                 
-                _draggedNode.UiX += offset.X;
-                _draggedNode.UiY += offset.Y;
+                // Adjust movement by zoom scale to keep dragging consistent
+                _draggedNode.UiX += offset.X / vm.ZoomScale;
+                _draggedNode.UiY += offset.Y / vm.ZoomScale;
                 
-                _clickPosition = currentPosition;
+                _clickPosition = currentControlPosition;
             }
         }
     }
@@ -149,6 +216,38 @@ public partial class NodeGraphControl : UserControl
                     vm.ClearConnectionsCommand.Execute(node);
                     e.Handled = true;
                 }
+            }
+        }
+    }
+
+    private void UserControl_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        // Check for Ctrl + Shift + MouseWheel
+        if ((Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Shift)) == (ModifierKeys.Control | ModifierKeys.Shift))
+        {
+            if (DataContext is NodeGraphViewModel vm)
+            {
+                if (e.Delta > 0)
+                {
+                    vm.ZoomInCommand.Execute(null);
+                }
+                else
+                {
+                    vm.ZoomOutCommand.Execute(null);
+                }
+                e.Handled = true;
+            }
+        }
+    }
+
+    private void UserControl_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Home && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+        {
+            if (DataContext is NodeGraphViewModel vm)
+            {
+                vm.GoToBeginNodeCommand.Execute(null);
+                e.Handled = true;
             }
         }
     }

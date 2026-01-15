@@ -8,7 +8,10 @@
              xmlns:helpers="clr-namespace:ImageGen.Helpers"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
+             d:DesignHeight="450" d:DesignWidth="800"
+             PreviewMouseWheel="UserControl_PreviewMouseWheel"
+             PreviewKeyDown="UserControl_PreviewKeyDown"
+             Focusable="True">
     
     <UserControl.Resources>
         <helpers:ConnectionColorConverter x:Key="ConnectionColorConverter" />
@@ -209,55 +212,70 @@
             <Button Content="Add Character" Command="{Binding AddCharacterNodeCommand}" Margin="0,0,15,0"/>
 
             <Button Content="Run All" Command="{Binding GenerateChainCommand}" Margin="0,0,10,0" Background="#225522"/>
+            
+            <!-- Zoom Controls -->
+            <Button Content="-" Command="{Binding ZoomOutCommand}" Width="25" Margin="0,0,5,0"/>
+            <TextBlock Text="{Binding ZoomScale, StringFormat=P0}" VerticalAlignment="Center" Width="40" TextAlignment="Center"/>
+            <Button Content="+" Command="{Binding ZoomInCommand}" Width="25" Margin="5,0,10,0"/>
+            <Button Content="Reset" Command="{Binding ResetZoomCommand}" Margin="0,0,10,0"/>
+            
             <TextBlock Text="Right click on canvas to add node, drag nodes to move." VerticalAlignment="Center" Foreground="Gray"/>
         </StackPanel>
 
-        <Grid Grid.Row="1">
-            <!-- Connections Layer -->
-            <ItemsControl ItemsSource="{Binding Connections}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <Canvas IsHitTestVisible="False"/>
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <Line X1="{Binding X1}" Y1="{Binding Y1}"
-                              X2="{Binding X2}" Y2="{Binding Y2}"
-                              Stroke="White" StrokeThickness="2"/>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-            
-            <!-- Temporary Connection Line (Dragging) -->
-            <Canvas IsHitTestVisible="False" Visibility="{Binding IsConnecting, Converter={StaticResource BoolToVisibilityConverter}}">
-                <Line X1="{Binding TempX1}" Y1="{Binding TempY1}"
-                      X2="{Binding TempX2}" Y2="{Binding TempY2}"
-                      Stroke="Yellow" StrokeThickness="2" StrokeDashArray="4 2"/>
-            </Canvas>
+        <Grid Grid.Row="1" ClipToBounds="True">
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" PanningMode="Both">
+                <Grid Width="5000" Height="5000">
+                    <Grid.LayoutTransform>
+                        <ScaleTransform ScaleX="{Binding ZoomScale}" ScaleY="{Binding ZoomScale}"/>
+                    </Grid.LayoutTransform>
+                    
+                    <!-- Connections Layer -->
+                    <ItemsControl ItemsSource="{Binding Connections}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <Canvas IsHitTestVisible="False"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Line X1="{Binding X1}" Y1="{Binding Y1}"
+                                      X2="{Binding X2}" Y2="{Binding Y2}"
+                                      Stroke="White" StrokeThickness="2"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    
+                    <!-- Temporary Connection Line (Dragging) -->
+                    <Canvas IsHitTestVisible="False" Visibility="{Binding IsConnecting, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <Line X1="{Binding TempX1}" Y1="{Binding TempY1}"
+                              X2="{Binding TempX2}" Y2="{Binding TempY2}"
+                              Stroke="Yellow" StrokeThickness="2" StrokeDashArray="4 2"/>
+                    </Canvas>
 
-            <!-- Nodes Layer -->
-            <ItemsControl ItemsSource="{Binding Nodes}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <Canvas Background="Transparent" MouseLeftButtonDown="Canvas_MouseLeftButtonDown" 
-                                MouseLeftButtonUp="Canvas_MouseLeftButtonUp" MouseMove="Canvas_MouseMove"/>
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemContainerStyle>
-                    <Style TargetType="ContentPresenter">
-                        <Setter Property="Canvas.Left" Value="{Binding UiX, Mode=TwoWay}"/>
-                        <Setter Property="Canvas.Top" Value="{Binding UiY, Mode=TwoWay}"/>
-                    </Style>
-                </ItemsControl.ItemContainerStyle>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <ContentControl Content="{Binding}" ContentTemplate="{StaticResource NodeTemplate}"
-                                        MouseLeftButtonDown="Node_MouseLeftButtonDown"
-                                        MouseLeftButtonUp="Node_MouseLeftButtonUp"/>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+                    <!-- Nodes Layer -->
+                    <ItemsControl ItemsSource="{Binding Nodes}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <Canvas Background="Transparent" MouseLeftButtonDown="Canvas_MouseLeftButtonDown" 
+                                        MouseLeftButtonUp="Canvas_MouseLeftButtonUp" MouseMove="Canvas_MouseMove"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemContainerStyle>
+                            <Style TargetType="ContentPresenter">
+                                <Setter Property="Canvas.Left" Value="{Binding UiX, Mode=TwoWay}"/>
+                                <Setter Property="Canvas.Top" Value="{Binding UiY, Mode=TwoWay}"/>
+                            </Style>
+                        </ItemsControl.ItemContainerStyle>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource NodeTemplate}"
+                                                MouseLeftButtonDown="Node_MouseLeftButtonDown"
+                                                MouseLeftButtonUp="Node_MouseLeftButtonUp"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Grid>
+            </ScrollViewer>
         </Grid>
     </Grid>
 </UserControl>

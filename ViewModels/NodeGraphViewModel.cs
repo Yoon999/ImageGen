@@ -32,6 +32,9 @@ public class NodeGraphViewModel : INotifyPropertyChanged
     private double _tempY1;
     private double _tempX2;
     private double _tempY2;
+    
+    // Zoom
+    private double _zoomScale = 1.0;
 
     public ObservableCollection<GenerationNode> Nodes { get; } = new();
     public ObservableCollection<ConnectionViewModel> Connections { get; } = new();
@@ -58,6 +61,10 @@ public class NodeGraphViewModel : INotifyPropertyChanged
     public ICommand LoadGraphCommand { get; }
     public ICommand RefreshPresetsCommand { get; }
     public ICommand ToggleCollapseCommand { get; }
+    public ICommand ZoomInCommand { get; }
+    public ICommand ZoomOutCommand { get; }
+    public ICommand ResetZoomCommand { get; }
+    public ICommand GoToBeginNodeCommand { get; }
 
     public NodeGraphViewModel(MainViewModel mainViewModel, INovelAiService novelAiService, IImageService imageService)
     {
@@ -86,6 +93,10 @@ public class NodeGraphViewModel : INotifyPropertyChanged
         LoadGraphCommand = new RelayCommand(ExecuteLoadGraph);
         RefreshPresetsCommand = new RelayCommand(_ => LoadPresets());
         ToggleCollapseCommand = new RelayCommand(ExecuteToggleCollapse);
+        ZoomInCommand = new RelayCommand(_ => ZoomScale = Math.Min(3.0, ZoomScale + 0.1));
+        ZoomOutCommand = new RelayCommand(_ => ZoomScale = Math.Max(0.2, ZoomScale - 0.1));
+        ResetZoomCommand = new RelayCommand(_ => ZoomScale = 1.0);
+        GoToBeginNodeCommand = new RelayCommand(ExecuteGoToBeginNode);
         
         // Listen for node changes to update connections BEFORE adding initial nodes
         Nodes.CollectionChanged += Nodes_CollectionChanged;
@@ -212,6 +223,16 @@ public class NodeGraphViewModel : INotifyPropertyChanged
     {
         get => _tempY2;
         set { _tempY2 = value; OnPropertyChanged(); }
+    }
+    
+    public double ZoomScale
+    {
+        get => _zoomScale;
+        set
+        {
+            _zoomScale = value;
+            OnPropertyChanged();
+        }
     }
 
     public void UpdateTempConnection(double x, double y)
@@ -869,6 +890,21 @@ public class NodeGraphViewModel : INotifyPropertyChanged
             IsGeneratingChain = false;
         }
     }
+    
+    private void ExecuteGoToBeginNode(object? parameter)
+    {
+        // This command will be handled in the View (Code-behind) because it involves ScrollViewer manipulation
+        // But we can trigger an event or use a service if we want strict MVVM.
+        // For simplicity, we can let the View subscribe to this command or handle the key binding directly in View.
+        // However, since the user asked for "Ctrl+Home", we can handle the logic here if we had access to ScrollViewer offset.
+        
+        // Actually, the best way to handle "Go to Node" in MVVM without direct View reference is to have an event or a messenger.
+        // But since we are in a simple project, we can just expose an event here that the View subscribes to.
+        
+        RequestBringIntoView?.Invoke(this, NodeType.Begin);
+    }
+
+    public event EventHandler<NodeType>? RequestBringIntoView;
 
     private GenerationRequest CloneRequest(GenerationRequest original)
     {
