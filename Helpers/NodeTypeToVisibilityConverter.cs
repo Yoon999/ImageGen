@@ -20,6 +20,7 @@ public class NodeTypeToVisibilityConverter : IValueConverter
                 // Begin node doesn't have input flow
                 // Normal and End nodes have input flow
                 // BaseConcat has input flow (from Base nodes)
+                // Graph nodes have input flow
                 return (type == NodeType.Begin || type == NodeType.Base || type == NodeType.Character) ? Visibility.Hidden : Visibility.Visible;
             }
             
@@ -65,6 +66,12 @@ public class NodeTypeToVisibilityConverter : IValueConverter
             if (param == "BaseConcatContent")
             {
                 return type == NodeType.BaseConcat ? Visibility.Visible : Visibility.Collapsed;
+            }
+            
+            // Graph Content
+            if (param == "GraphContent")
+            {
+                return type == NodeType.Graph ? Visibility.Visible : Visibility.Collapsed;
             }
 
             // Delete Button: Hidden for Begin and End nodes

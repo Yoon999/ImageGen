@@ -161,6 +161,21 @@
                                 <ui:TextBlock Text="Concatenates inputs from Base nodes" Foreground="Gray" FontSize="10" FontStyle="Italic" HorizontalAlignment="Center"/>
                                 <ui:TextBlock Text="Output acts as a Base node" Foreground="Gray" FontSize="10" FontStyle="Italic" HorizontalAlignment="Center" Margin="0,0,0,5"/>
                             </StackPanel>
+                            
+                            <!-- Graph Node Content -->
+                            <StackPanel Visibility="{Binding Type, Converter={StaticResource NodeTypeToVisibilityConverter}, ConverterParameter=GraphContent}">
+                                <ui:TextBlock Text="Graph File Path" Foreground="Gray" FontSize="10"/>
+                                <Grid Margin="0,0,0,5">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ui:TextBox Text="{Binding BasePrompt}" IsReadOnly="True" ToolTip="{Binding BasePrompt}"/>
+                                    <ui:Button Grid.Column="1" Content="..." Command="{Binding DataContext.SelectGraphFileCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" 
+                                            CommandParameter="{Binding}" Margin="5,0,0,0" Width="25"/>
+                                </Grid>
+                                <ui:TextBlock Text="Executes the selected graph" Foreground="Gray" FontSize="10" FontStyle="Italic" HorizontalAlignment="Center"/>
+                            </StackPanel>
 
                             <!-- Action Buttons -->
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,5,0,0">
@@ -209,7 +224,8 @@
             <Button Content="Add Node" Command="{Binding AddNodeCommand}" Margin="0,0,5,0"/>
             <Button Content="Add Base" Command="{Binding AddBaseNodeCommand}" Margin="0,0,5,0"/>
             <Button Content="Add Concat" Command="{Binding AddBaseConcatNodeCommand}" Margin="0,0,5,0"/>
-            <Button Content="Add Character" Command="{Binding AddCharacterNodeCommand}" Margin="0,0,15,0"/>
+            <Button Content="Add Character" Command="{Binding AddCharacterNodeCommand}" Margin="0,0,5,0"/>
+            <Button Content="Add Graph" Command="{Binding AddGraphNodeCommand}" Margin="0,0,15,0"/>
 
             <Button Content="Run All" Command="{Binding GenerateChainCommand}" Margin="0,0,10,0" Background="#225522"/>
             

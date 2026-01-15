@@ -13,7 +13,8 @@ public enum NodeType
     End,
     Base,
     Character,
-    BaseConcat
+    BaseConcat,
+    Graph
 }
 
 public class GenerationNode : INotifyPropertyChanged
@@ -81,6 +82,7 @@ public class GenerationNode : INotifyPropertyChanged
     }
 
     // Used as Positive Prompt for Base/Character nodes, and legacy prompt for Normal nodes if needed
+    // For Graph nodes, this stores the file path
     public string BasePrompt
     {
         get => _basePrompt;
