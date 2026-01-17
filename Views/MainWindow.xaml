@@ -25,6 +25,10 @@
         <vm:MainViewModel />
     </Window.DataContext>
 
+    <Window.InputBindings>
+        <KeyBinding Key="Enter" Modifiers="Shift" Command="{Binding GenerateCommand}" />
+    </Window.InputBindings>
+
     <Grid Margin="10" Background="#ff002222">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" /> <!-- Top Bar (Token) -->
