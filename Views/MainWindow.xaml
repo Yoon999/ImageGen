@@ -74,7 +74,8 @@
                                                     TextAlignment="Left" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
                                                     BorderThickness="0" Padding="2"
                                                     ClearButtonEnabled="False"
-                                                    TextChanged="PromptBox_OnTextChanged" />
+                                                    TextChanged="PromptBox_OnTextChanged"
+                                                    GotFocus="PromptBox_GotFocus" />
                                     </TabItem>
                                     <TabItem Header="Negative">
                                         <ui:TextBox
@@ -82,7 +83,8 @@
                                             TextAlignment="Left" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
                                             BorderThickness="0" Padding="2"
                                             ClearButtonEnabled="False"
-                                            TextChanged="PromptBox_OnTextChanged" />
+                                            TextChanged="PromptBox_OnTextChanged"
+                                            GotFocus="PromptBox_GotFocus" />
                                     </TabItem>
                                 </TabControl>
 
@@ -96,7 +98,7 @@
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
                                             <Button Content="{Binding Tag}" Margin="0,0,5,5" Padding="5,2"
-                                                    Click="TagSuggestionButton_Click" Tag="{Binding}" />
+                                                    Click="TagSuggestionButton_Click" Tag="{Binding}" Focusable="False" />
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>

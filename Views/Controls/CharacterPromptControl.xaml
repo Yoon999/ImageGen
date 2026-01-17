@@ -81,13 +81,17 @@
                     <ui:TextBox Text="{Binding Prompt, UpdateSourceTrigger=PropertyChanged}"
                                 TextAlignment="Left" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
                                 Padding="2"
-                                ClearButtonEnabled="False" />
+                                ClearButtonEnabled="False"
+                                TextChanged="PromptBox_OnTextChanged"
+                                GotFocus="PromptBox_GotFocus" />
                 </TabItem>
                 <TabItem Header="Negative">
                     <ui:TextBox Text="{Binding NegativePrompt, UpdateSourceTrigger=PropertyChanged}"
                                 TextAlignment="Left" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
                                 Padding="2"
-                                ClearButtonEnabled="False" />
+                                ClearButtonEnabled="False"
+                                TextChanged="PromptBox_OnTextChanged"
+                                GotFocus="PromptBox_GotFocus" />
                 </TabItem>
             </TabControl>
 
