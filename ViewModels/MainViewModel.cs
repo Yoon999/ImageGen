@@ -13,6 +13,7 @@ using ImageGen.Models.Api;
 using ImageGen.Services;
 using ImageGen.Services.Interfaces;
 using Application = System.Windows.Application;
+using Clipboard = System.Windows.Clipboard;
 using MessageBox = System.Windows.MessageBox;
 
 namespace ImageGen.ViewModels;
@@ -123,6 +124,7 @@ public class MainViewModel : INotifyPropertyChanged
         LoadExifImageCommand = new RelayCommand(ExecuteLoadExifImage);
         AddCharacterCommand = new RelayCommand(ExecuteAddCharacter);
         RemoveCharacterCommand = new RelayCommand(ExecuteRemoveCharacter);
+        CopyImageCommand = new RelayCommand(ExecuteCopyImage, CanExecuteCopyImage);
     }
 
     private void CharacterPrompts_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -239,6 +241,7 @@ public class MainViewModel : INotifyPropertyChanged
         {
             _generatedImage = value;
             OnPropertyChanged();
+            CommandManager.InvalidateRequerySuggested();
         }
     }
 
@@ -332,6 +335,7 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand LoadExifImageCommand { get; }
     public ICommand AddCharacterCommand { get; }
     public ICommand RemoveCharacterCommand { get; }
+    public ICommand CopyImageCommand { get; }
 
     private bool CanExecuteGenerate(object? parameter)
     {
@@ -390,6 +394,27 @@ public class MainViewModel : INotifyPropertyChanged
         if (parameter is CharacterPromptViewModel character)
         {
             CharacterPrompts.Remove(character);
+        }
+    }
+
+    private bool CanExecuteCopyImage(object? parameter)
+    {
+        return GeneratedImage != null;
+    }
+
+    private void ExecuteCopyImage(object? parameter)
+    {
+        if (GeneratedImage != null)
+        {
+            try
+            {
+                Clipboard.SetImage(GeneratedImage);
+                StatusMessage = "Image copied to clipboard";
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Failed to copy image: {ex.Message}";
+            }
         }
     }
 

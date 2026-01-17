@@ -22,7 +22,6 @@ public class NodeGraphViewModel : INotifyPropertyChanged
     private readonly INovelAiService _novelAiService;
     private readonly IImageService _imageService;
     
-    private GenerationNode? _selectedNode;
     private bool _isConnecting;
     private GenerationNode? _connectingSource;
     private bool _isGeneratingChain;
