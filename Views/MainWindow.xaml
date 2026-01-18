@@ -25,9 +25,6 @@
         <vm:MainViewModel />
     </Window.DataContext>
 
-    <Window.InputBindings>
-        <KeyBinding Key="Enter" Modifiers="Shift" Command="{Binding GenerateCommand}" />
-    </Window.InputBindings>
 
     <Grid Margin="10" Background="#ff002222">
         <Grid.RowDefinitions>
@@ -75,7 +72,8 @@
                                                     BorderThickness="0" Padding="2"
                                                     ClearButtonEnabled="False"
                                                     TextChanged="PromptBox_OnTextChanged"
-                                                    GotFocus="PromptBox_GotFocus" />
+                                                    GotFocus="PromptBox_GotFocus"
+                                                    PreviewKeyDown="PromptBox_PreviewKeyDown" />
                                     </TabItem>
                                     <TabItem Header="Negative">
                                         <ui:TextBox
@@ -84,7 +82,8 @@
                                             BorderThickness="0" Padding="2"
                                             ClearButtonEnabled="False"
                                             TextChanged="PromptBox_OnTextChanged"
-                                            GotFocus="PromptBox_GotFocus" />
+                                            GotFocus="PromptBox_GotFocus"
+                                            PreviewKeyDown="PromptBox_PreviewKeyDown" />
                                     </TabItem>
                                 </TabControl>
 

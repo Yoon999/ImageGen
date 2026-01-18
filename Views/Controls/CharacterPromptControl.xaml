@@ -12,7 +12,7 @@
     <UserControl.Resources>
         <helpers:NullToBoolConverter x:Key="NullToBoolConverter" />
     </UserControl.Resources>
-
+    
     <Border BorderThickness="0" Margin="0,0,0,5" Padding="5">
         <Grid>
             <Grid.RowDefinitions>
@@ -83,7 +83,8 @@
                                 Padding="2"
                                 ClearButtonEnabled="False"
                                 TextChanged="PromptBox_OnTextChanged"
-                                GotFocus="PromptBox_GotFocus" />
+                                GotFocus="PromptBox_GotFocus"
+                                PreviewKeyDown="PromptBox_PreviewKeyDown" />
                 </TabItem>
                 <TabItem Header="Negative">
                     <ui:TextBox Text="{Binding NegativePrompt, UpdateSourceTrigger=PropertyChanged}"
@@ -91,7 +92,8 @@
                                 Padding="2"
                                 ClearButtonEnabled="False"
                                 TextChanged="PromptBox_OnTextChanged"
-                                GotFocus="PromptBox_GotFocus" />
+                                GotFocus="PromptBox_GotFocus"
+                                PreviewKeyDown="PromptBox_PreviewKeyDown" />
                 </TabItem>
             </TabControl>
 

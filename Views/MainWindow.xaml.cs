@@ -1,10 +1,12 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using ImageGen.Models.Api;
 using ImageGen.ViewModels;
 using Button = System.Windows.Controls.Button;
 using DataFormats = System.Windows.DataFormats;
 using DragEventArgs = System.Windows.DragEventArgs;
+using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 using TextBox = System.Windows.Controls.TextBox;
 
 namespace ImageGen.Views;
@@ -58,6 +60,18 @@ public partial class MainWindow : Window
         if (sender is TextBox textBox)
         {
             _lastFocusedTextBox = textBox;
+        }
+    }
+    
+    private void PromptBox_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && (Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift)
+        {
+            if (ViewModel != null && ViewModel.GenerateCommand.CanExecute(null))
+            {
+                ViewModel.GenerateCommand.Execute(null);
+                e.Handled = true;
+            }
         }
     }
     
