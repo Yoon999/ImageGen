@@ -101,14 +101,28 @@ public partial class MainWindow : Window
         if (caretIndex > text.Length) caretIndex = text.Length;
         if (caretIndex < 0) caretIndex = 0;
 
-        int start = text.LastIndexOfAny(new[] { ',', '\n' }, Math.Max(0, caretIndex - 1));
-        if (start == -1)
+        // 구분자 위치 찾기
+        int delimiterIndex = -1;
+        if (text.Length > 0)
+        {
+            delimiterIndex = text.LastIndexOfAny(new[] { ',', '\n' }, Math.Min(Math.Max(0, caretIndex - 1), text.Length - 1));
+        }
+
+        int start;
+        string prefix = "";
+
+        if (delimiterIndex == -1)
         {
             start = 0;
         }
         else
         {
-            start++;
+            start = delimiterIndex + 1;
+            // 구분자가 쉼표인 경우에만 공백 추가
+            if (text[delimiterIndex] == ',')
+            {
+                prefix = " ";
+            }
         }
 
         int end = text.IndexOfAny(new[] { ',', '\n' }, caretIndex);
@@ -118,8 +132,8 @@ public partial class MainWindow : Window
         }
 
         // 기존 단어 교체
-        string newText = text.Substring(0, start) + " " + selectedTag.Tag + ", " + text.Substring(end);
-        int newCaretIndex = start + selectedTag.Tag.Length + 2;
+        string newText = text.Substring(0, start) + prefix + selectedTag.Tag + ", " + text.Substring(end);
+        int newCaretIndex = start + prefix.Length + selectedTag.Tag.Length + 2;
         
         if (textBox.Name == "PromptBox") // Positive Prompt
         {
