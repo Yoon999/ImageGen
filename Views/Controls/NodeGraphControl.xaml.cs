@@ -2,7 +2,9 @@
 using System.Windows.Controls;
 using System.Windows.Input;
 using ImageGen.Models;
+using ImageGen.Models.Api;
 using ImageGen.ViewModels;
+using Button = System.Windows.Controls.Button;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 using MouseEventArgs = System.Windows.Input.MouseEventArgs;
 using Point = System.Windows.Point;
@@ -18,6 +20,7 @@ public partial class NodeGraphControl : UserControl
     private Point _clickPosition;
     private Point _selectionStart;
     private GenerationNode? _draggedNode;
+    private TextBox? _lastFocusedTextBox;
 
     public NodeGraphControl()
     {
@@ -336,6 +339,12 @@ public partial class NodeGraphControl : UserControl
 
     private void UserControl_PreviewKeyDown(object sender, KeyEventArgs e)
     {
+        // If a TextBox is focused, do not handle key events here to allow typing
+        if (Keyboard.FocusedElement is TextBox)
+        {
+            return;
+        }
+
         if (DataContext is NodeGraphViewModel vm)
         {
             // Ctrl + Home -> Go to Begin Node
@@ -362,12 +371,8 @@ public partial class NodeGraphControl : UserControl
             // Delete -> Delete Selected Nodes
             if (e.Key == Key.Delete)
             {
-                // Check if any text box is focused to avoid deleting nodes while typing
-                if (!(Keyboard.FocusedElement is TextBox))
-                {
-                    vm.DeleteNodeCommand.Execute(null); // Execute without parameter to delete selected
-                    e.Handled = true;
-                }
+                vm.DeleteNodeCommand.Execute(null); // Execute without parameter to delete selected
+                e.Handled = true;
             }
 
             // Ctrl + B -> Toggle Bypass
@@ -376,6 +381,113 @@ public partial class NodeGraphControl : UserControl
                 vm.ToggleBypassCommand.Execute(null);
                 e.Handled = true;
             }
+        }
+    }
+
+    private void PromptBox_OnTextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (DataContext is NodeGraphViewModel vm)
+        {
+            var textBox = sender as TextBox;
+            if (textBox == null) return;
+
+            string text = textBox.Text;
+            int caretIndex = textBox.CaretIndex;
+
+            if (caretIndex == 0)
+            {
+                vm.SearchTags(string.Empty);
+                return;
+            }
+
+            int start = text.LastIndexOfAny(new[] { ',', '\n' }, caretIndex - 1);
+            if (start == -1)
+            {
+                start = 0;
+            }
+            else
+            {
+                start++;
+            }
+
+            string currentWord = text.Substring(start, caretIndex - start).Trim();
+            
+            vm.SearchTags(currentWord);
+        }
+    }
+
+    private void PromptBox_GotFocus(object sender, RoutedEventArgs e)
+    {
+        if (sender is TextBox textBox)
+        {
+            _lastFocusedTextBox = textBox;
+        }
+    }
+
+    private void TagSuggestionButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button button && button.Tag is TagSuggestion suggestion)
+        {
+            ApplyTag(suggestion);
+        }
+    }
+
+    private void ApplyTag(TagSuggestion selectedTag)
+    {
+        if (DataContext is NodeGraphViewModel vm && _lastFocusedTextBox != null)
+        {
+            var textBox = _lastFocusedTextBox;
+            string text = textBox.Text;
+            int caretIndex = textBox.CaretIndex;
+
+            // 커서 위치가 텍스트 범위를 벗어나는 경우 보정
+            if (caretIndex > text.Length) caretIndex = text.Length;
+            if (caretIndex < 0) caretIndex = 0;
+
+            // 구분자 위치 찾기
+            int delimiterIndex = -1;
+            if (text.Length > 0)
+            {
+                delimiterIndex = text.LastIndexOfAny(new[] { ',', '\n' }, Math.Min(Math.Max(0, caretIndex - 1), text.Length - 1));
+            }
+
+            int start;
+            string prefix = "";
+
+            if (delimiterIndex == -1)
+            {
+                start = 0;
+            }
+            else
+            {
+                start = delimiterIndex + 1;
+                // 구분자가 쉼표인 경우에만 공백 추가
+                if (text[delimiterIndex] == ',')
+                {
+                    prefix = " ";
+                }
+            }
+
+            int end = text.IndexOfAny(new[] { ',', '\n' }, caretIndex);
+            if (end == -1)
+            {
+                end = text.Length;
+            }
+
+            // 기존 단어 교체
+            string newText = text.Substring(0, start) + prefix + selectedTag.Tag + ", " + text.Substring(end);
+            int newCaretIndex = start + prefix.Length + selectedTag.Tag.Length + 2;
+            
+            // TextBox의 Text 속성을 직접 변경하고, 바인딩을 업데이트
+            textBox.Text = newText;
+            var binding = textBox.GetBindingExpression(TextBox.TextProperty);
+            binding?.UpdateSource();
+
+            // 커서 위치 복원 및 포커스
+            textBox.CaretIndex = newCaretIndex;
+            textBox.Focus();
+            
+            vm.TagSuggestions.Clear();
         }
     }
 }

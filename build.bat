@@ -14,6 +14,41 @@ if %errorlevel% neq 0 goto :InstallDotNet
 dotnet --list-sdks | findstr /R "8\.[0-9]" >nul 2>&1
 if %errorlevel% neq 0 goto :InstallDotNet
 
+:: 2. Git Update
+where git >nul 2>&1
+if %errorlevel% neq 0 (
+    echo [WARNING] Git not found. Skipping update step.
+    goto :BuildStep
+)
+
+echo.
+echo --------------------------------------------------------
+echo Update Source Code?
+echo --------------------------------------------------------
+set /p "update_choice=Update (Y/N)? "
+if /i "%update_choice%"=="Y" (
+    echo.
+    echo [Step 0] Updating...
+    
+    :: Git URL (Fill this in if needed)
+    set GIT_URL=https://github.com/Yoon999/ImageGen.git
+
+    if "%GIT_URL%"=="" (
+        echo [INFO] GIT_URL is empty. Running 'git pull'...
+        git pull
+    ) else (
+        echo [INFO] Pulling from %GIT_URL%...
+        git pull %GIT_URL%
+    )
+
+    if %errorlevel% neq 0 (
+        echo.
+        echo [FAIL] Git pull failed.
+        set /p "cont_choice=Continue build anyway (Y/N)? "
+        if /i "%cont_choice%" neq "Y" exit /b 1
+    )
+)
+
 goto :BuildStep
 
 :InstallDotNet
@@ -77,3 +112,4 @@ echo dir: %~dp0Release_Output\ImageGen.exe
 echo ========================================================
 echo.
 pause
+exit /b 0

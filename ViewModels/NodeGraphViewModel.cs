@@ -42,10 +42,24 @@ public class NodeGraphViewModel : INotifyPropertyChanged
     private double _selectionWidth;
     private double _selectionHeight;
 
+    // Tag Suggestions
+    private CancellationTokenSource? _debounceCts;
+    private ObservableCollection<TagSuggestion> _tagSuggestions = new();
+
     public ObservableCollection<GenerationNode> Nodes { get; } = new();
     public ObservableCollection<ConnectionViewModel> Connections { get; } = new();
     public ObservableCollection<CharacterPreset> CharacterPresets { get; } = new();
     
+    public ObservableCollection<TagSuggestion> TagSuggestions
+    {
+        get => _tagSuggestions;
+        set
+        {
+            _tagSuggestions = value;
+            OnPropertyChanged();
+        }
+    }
+
     public ICommand AddNodeCommand { get; }
     public ICommand AddBaseNodeCommand { get; }
     public ICommand AddCharacterNodeCommand { get; }
@@ -1273,6 +1287,45 @@ public class NodeGraphViewModel : INotifyPropertyChanged
         }
     }
     
+    // View에서 호출할 메서드: 태그 검색
+    public void SearchTags(string query)
+    {
+        _debounceCts?.Cancel();
+        _debounceCts = new CancellationTokenSource();
+        var token = _debounceCts.Token;
+
+        Task.Delay(300, token).ContinueWith(async _ =>
+        {
+            if (token.IsCancellationRequested) return;
+            
+            if (string.IsNullOrWhiteSpace(query) || query.Length < 2) 
+            {
+                System.Windows.Application.Current.Dispatcher.Invoke(() => TagSuggestions.Clear());
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(_mainViewModel.ApiToken)) return;
+
+            try
+            {
+                var suggestions = await _novelAiService.SuggestTagsAsync(query, _mainViewModel.Request.model, _mainViewModel.ApiToken);
+                
+                System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                {
+                    TagSuggestions.Clear();
+                    foreach (var tag in suggestions)
+                    {
+                        TagSuggestions.Add(tag);
+                    }
+                });
+            }
+            catch (Exception)
+            {
+                // Logger.LogError("Tag suggestion failed", ex);
+            }
+        });
+    }
+
     private void ExecuteGoToBeginNode(object? parameter)
     {
         // This command will be handled in the View (Code-behind) because it involves ScrollViewer manipulation
