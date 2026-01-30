@@ -24,8 +24,11 @@
         <!-- Node Template -->
         <DataTemplate x:Key="NodeTemplate">
             <Border Background="{Binding Type, Converter={StaticResource NodeTypeToColorConverter}}" 
-                    BorderBrush="#555" BorderThickness="1" CornerRadius="5" MinWidth="100" MaxWidth="250"
-                    SizeChanged="Node_SizeChanged">
+                    BorderBrush="{Binding IsSelected, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=SelectionColor}" 
+                    BorderThickness="{Binding IsSelected, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=SelectionThickness}" 
+                    CornerRadius="5" MinWidth="100" MaxWidth="250"
+                    SizeChanged="Node_SizeChanged"
+                    Opacity="{Binding IsBypassed, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Opacity}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/> <!-- Input Port -->
@@ -74,6 +77,10 @@
                                 <ui:TextBlock Text="{Binding IsCollapsed, StringFormat={}{0:v;^}}" Foreground="White" FontSize="10"/>
                             </ui:Button>
                         </Grid>
+                        
+                        <!-- Bypass Indicator -->
+                        <TextBlock Text="(BYPASSED)" Foreground="Red" FontWeight="Bold" HorizontalAlignment="Center" 
+                                   Visibility="{Binding IsBypassed, Converter={StaticResource BoolToVisibilityConverter}}"/>
 
                         <!-- Collapsible Content Area -->
                         <StackPanel Visibility="{Binding IsCollapsed, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Inverse}">
@@ -179,6 +186,10 @@
 
                             <!-- Action Buttons -->
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,5,0,0">
+                                <!-- Bypass Button -->
+                                <ui:Button Content="Bypass" Command="{Binding DataContext.ToggleBypassCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" 
+                                        CommandParameter="{Binding}" Background="#555522" FontSize="10" Padding="2" Margin="0,0,5,0"/>
+
                                 <!-- Duplicate Button -->
                                 <ui:Button Content="Duplicate" Command="{Binding DataContext.DuplicateNodeCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" 
                                         CommandParameter="{Binding}" Background="#222255" FontSize="10" Padding="2" Margin="0,0,5,0"
@@ -290,6 +301,13 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
+                    
+                    <!-- Selection Box -->
+                    <Canvas IsHitTestVisible="False" Visibility="{Binding IsSelecting, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <Rectangle Canvas.Left="{Binding SelectionX}" Canvas.Top="{Binding SelectionY}"
+                                   Width="{Binding SelectionWidth}" Height="{Binding SelectionHeight}"
+                                   Stroke="#0078D7" StrokeThickness="1" Fill="#330078D7"/>
+                    </Canvas>
                 </Grid>
             </ScrollViewer>
         </Grid>

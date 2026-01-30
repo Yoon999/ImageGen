@@ -56,7 +56,9 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="*" MinHeight="150" /> <!-- Prompts -->
                             <RowDefinition Height="Auto" /> <!-- Splitter -->
-                            <RowDefinition Height="Auto" MinHeight="200" /> <!-- Parameters -->
+                            <RowDefinition Height="Auto" MinHeight="60" /> <!-- TagSuggestions -->
+                            <RowDefinition Height="Auto" /> <!-- Parameters -->
+                            <RowDefinition Height="Auto" /> <!-- Generation -->
                         </Grid.RowDefinitions>
 
                         <!-- Top: Prompts -->
@@ -87,20 +89,6 @@
                                     </TabItem>
                                 </TabControl>
 
-                                <!-- Tag Suggestions Panel -->
-                                <ItemsControl ItemsSource="{Binding TagSuggestions}" Margin="0,0,0,10">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <WrapPanel Orientation="Horizontal" />
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Button Content="{Binding Tag}" Margin="0,0,5,5" Padding="5,2"
-                                                    Click="TagSuggestionButton_Click" Tag="{Binding}" Focusable="False" />
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
 
                                 <!-- Character Prompts -->
                                 <Grid Margin="0,5,0,5">
@@ -120,8 +108,25 @@
 
                         <GridSplitter Grid.Row="1" Height="5" Background="#ff002020" HorizontalAlignment="Stretch" Margin="0,0,0,10" />
 
+                        <!-- Tag Suggestions Panel -->
+                        <ItemsControl Grid.Row="2" ItemsSource="{Binding TagSuggestions}"
+                                      VerticalAlignment="Bottom"
+                                      Margin="0,0,0,10">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Content="{Binding Tag}" Margin="0,0,5,5" Padding="5,2"
+                                            Click="TagSuggestionButton_Click" Tag="{Binding}" Focusable="False" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
                         <!-- Bottom: Parameters -->
-                        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">
                             <StackPanel>
                                 <ui:CardExpander Header="Parameters" IsExpanded="False" FontWeight="Bold" Margin="5">
                                     <StackPanel Margin="0,5,0,0">
@@ -186,11 +191,13 @@
                                         </Grid>
                                     </StackPanel>
                                 </ui:CardExpander>
-
-                                <!-- Generate Button -->
-                                <ui:Button Content="Generate Image" HorizontalAlignment="Stretch" Margin="5" Command="{Binding GenerateCommand}" Height="40" FontSize="16" FontWeight="Bold" />
                             </StackPanel>
                         </ScrollViewer>
+
+                        <!-- Generate Button -->
+                        <ui:Button Grid.Row="4" Content="Generate Image"
+                                   HorizontalAlignment="Stretch" VerticalAlignment="Bottom"
+                                   Margin="5" Command="{Binding GenerateCommand}" Height="40" FontSize="16" FontWeight="Bold" />
                     </Grid>
 
                     <!-- Splitter -->
@@ -200,13 +207,13 @@
                     <Border Grid.Column="2" BorderBrush="Gray" BorderThickness="1">
                         <Grid>
                             <Image Source="{Binding GeneratedImage}" Stretch="Uniform" />
-                            
+
                             <!-- Copy to Clipboard Button -->
-                            <ui:Button Content="Copy to Clipboard" 
+                            <ui:Button Content="Copy to Clipboard"
                                        Command="{Binding CopyImageCommand}"
-                                       HorizontalAlignment="Right" 
-                                       VerticalAlignment="Bottom" 
-                                       Margin="10" 
+                                       HorizontalAlignment="Right"
+                                       VerticalAlignment="Bottom"
+                                       Margin="10"
                                        Padding="10,5"
                                        Visibility="{Binding GeneratedImage, Converter={StaticResource NullToVisibilityConverter}}" />
                         </Grid>
@@ -256,7 +263,7 @@
 
                         <ui:TextBox Grid.Row="1" Text="{Binding ExifData}"
                                     TextAlignment="Left" TextWrapping="Wrap" AcceptsReturn="True"
-                                    VerticalScrollBarVisibility="Auto" IsReadOnly="True" 
+                                    VerticalScrollBarVisibility="Auto" IsReadOnly="True"
                                     ClearButtonEnabled="False" />
                     </Grid>
                 </Grid>

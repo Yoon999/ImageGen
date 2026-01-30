@@ -35,6 +35,13 @@ public class NodeGraphViewModel : INotifyPropertyChanged
     // Zoom
     private double _zoomScale = 1.0;
 
+    // Selection Box
+    private bool _isSelecting;
+    private double _selectionX;
+    private double _selectionY;
+    private double _selectionWidth;
+    private double _selectionHeight;
+
     public ObservableCollection<GenerationNode> Nodes { get; } = new();
     public ObservableCollection<ConnectionViewModel> Connections { get; } = new();
     public ObservableCollection<CharacterPreset> CharacterPresets { get; } = new();
@@ -66,6 +73,9 @@ public class NodeGraphViewModel : INotifyPropertyChanged
     public ICommand ResetZoomCommand { get; }
     public ICommand GoToBeginNodeCommand { get; }
     public ICommand SelectGraphFileCommand { get; }
+    public ICommand CopyNodesCommand { get; }
+    public ICommand PasteNodesCommand { get; }
+    public ICommand ToggleBypassCommand { get; }
 
     public NodeGraphViewModel(MainViewModel mainViewModel, INovelAiService novelAiService, IImageService imageService)
     {
@@ -100,6 +110,9 @@ public class NodeGraphViewModel : INotifyPropertyChanged
         ResetZoomCommand = new RelayCommand(_ => ZoomScale = 1.0);
         GoToBeginNodeCommand = new RelayCommand(ExecuteGoToBeginNode);
         SelectGraphFileCommand = new RelayCommand(ExecuteSelectGraphFile);
+        CopyNodesCommand = new RelayCommand(ExecuteCopyNodes);
+        PasteNodesCommand = new RelayCommand(ExecutePasteNodes);
+        ToggleBypassCommand = new RelayCommand(ExecuteToggleBypass);
         
         // Listen for node changes to update connections BEFORE adding initial nodes
         Nodes.CollectionChanged += Nodes_CollectionChanged;
@@ -238,12 +251,72 @@ public class NodeGraphViewModel : INotifyPropertyChanged
         }
     }
 
+    public bool IsSelecting
+    {
+        get => _isSelecting;
+        set { _isSelecting = value; OnPropertyChanged(); }
+    }
+
+    public double SelectionX
+    {
+        get => _selectionX;
+        set { _selectionX = value; OnPropertyChanged(); }
+    }
+
+    public double SelectionY
+    {
+        get => _selectionY;
+        set { _selectionY = value; OnPropertyChanged(); }
+    }
+
+    public double SelectionWidth
+    {
+        get => _selectionWidth;
+        set { _selectionWidth = value; OnPropertyChanged(); }
+    }
+
+    public double SelectionHeight
+    {
+        get => _selectionHeight;
+        set { _selectionHeight = value; OnPropertyChanged(); }
+    }
+
     public void UpdateTempConnection(double x, double y)
     {
         if (IsConnecting)
         {
             TempX2 = x;
             TempY2 = y;
+        }
+    }
+
+    public void UpdateSelectionBox(double x, double y, double width, double height)
+    {
+        SelectionX = x;
+        SelectionY = y;
+        SelectionWidth = width;
+        SelectionHeight = height;
+    }
+
+    public void SelectNodesInArea(double x, double y, double width, double height)
+    {
+        foreach (var node in Nodes)
+        {
+            // Simple AABB collision detection
+            bool isInside = node.UiX < x + width &&
+                            node.UiX + node.Width > x &&
+                            node.UiY < y + height &&
+                            node.UiY + node.Height > y;
+            
+            node.IsSelected = isInside;
+        }
+    }
+
+    public void ClearSelection()
+    {
+        foreach (var node in Nodes)
+        {
+            node.IsSelected = false;
         }
     }
 
@@ -353,29 +426,41 @@ public class NodeGraphViewModel : INotifyPropertyChanged
 
     private void ExecuteDeleteNode(object? parameter)
     {
+        var nodesToDelete = new List<GenerationNode>();
+
         if (parameter is GenerationNode node)
         {
+            nodesToDelete.Add(node);
+        }
+        else
+        {
+            // Delete all selected nodes
+            nodesToDelete.AddRange(Nodes.Where(n => n.IsSelected));
+        }
+
+        foreach (var n in nodesToDelete)
+        {
             // Prevent deletion of Begin and End nodes
-            if (node.Type == NodeType.Begin || node.Type == NodeType.End)
+            if (n.Type == NodeType.Begin || n.Type == NodeType.End)
             {
-                return;
+                continue;
             }
 
             // Remove connections to this node
-            foreach (var n in Nodes)
+            foreach (var other in Nodes)
             {
-                if (n.NextNode == node)
+                if (other.NextNode == n)
                 {
-                    n.NextNode = null;
+                    other.NextNode = null;
                 }
-                if (n.NextNodes.Contains(node))
+                if (other.NextNodes.Contains(n))
                 {
-                    n.NextNodes.Remove(node);
+                    other.NextNodes.Remove(n);
                 }
             }
-            Nodes.Remove(node);
-            UpdateConnections();
+            Nodes.Remove(n);
         }
+        UpdateConnections();
     }
 
     private void ExecuteDuplicateNode(object? parameter)
@@ -402,10 +487,127 @@ public class NodeGraphViewModel : INotifyPropertyChanged
                 CharY = node.CharY,
                 Width = node.Width,
                 Height = node.Height,
-                IsCollapsed = node.IsCollapsed
+                IsCollapsed = node.IsCollapsed,
+                IsBypassed = node.IsBypassed
             };
             
             Nodes.Add(newNode);
+        }
+    }
+
+    private void ExecuteCopyNodes(object? parameter)
+    {
+        var selectedNodes = Nodes.Where(n => n.IsSelected && n.Type != NodeType.Begin && n.Type != NodeType.End).ToList();
+        if (selectedNodes.Any())
+        {
+            var saveData = new NodeGraphSaveData
+            {
+                Nodes = selectedNodes
+            };
+            
+            // Only copy connections between selected nodes
+            foreach (var node in selectedNodes)
+            {
+                if (node.NextNode != null && selectedNodes.Contains(node.NextNode))
+                {
+                    saveData.Connections.Add(new NodeConnectionData { SourceId = node.Id, TargetId = node.NextNode.Id });
+                }
+                foreach (var target in node.NextNodes)
+                {
+                    if (selectedNodes.Contains(target))
+                    {
+                        saveData.Connections.Add(new NodeConnectionData { SourceId = node.Id, TargetId = target.Id });
+                    }
+                }
+            }
+
+            string json = JsonSerializer.Serialize(saveData);
+            System.Windows.Clipboard.SetText(json);
+        }
+    }
+
+    private void ExecutePasteNodes(object? parameter)
+    {
+        try
+        {
+            string json = System.Windows.Clipboard.GetText();
+            if (string.IsNullOrWhiteSpace(json)) return;
+
+            var saveData = JsonSerializer.Deserialize<NodeGraphSaveData>(json);
+            if (saveData != null && saveData.Nodes.Any())
+            {
+                var idMap = new Dictionary<string, GenerationNode>();
+                
+                // Create new nodes
+                foreach (var nodeData in saveData.Nodes)
+                {
+                    var newNode = new GenerationNode
+                    {
+                        UiX = nodeData.UiX + 20, // Offset slightly
+                        UiY = nodeData.UiY + 20,
+                        Type = nodeData.Type,
+                        Title = nodeData.Title,
+                        BasePrompt = nodeData.BasePrompt,
+                        NegativePrompt = nodeData.NegativePrompt,
+                        PresetName = nodeData.PresetName,
+                        CharX = nodeData.CharX,
+                        CharY = nodeData.CharY,
+                        Width = nodeData.Width,
+                        Height = nodeData.Height,
+                        IsCollapsed = nodeData.IsCollapsed,
+                        IsBypassed = nodeData.IsBypassed
+                    };
+                    
+                    idMap[nodeData.Id] = newNode;
+                    Nodes.Add(newNode);
+                    
+                    // Select newly pasted nodes
+                    newNode.IsSelected = true;
+                }
+                
+                // Deselect others
+                foreach (var node in Nodes)
+                {
+                    if (!idMap.ContainsValue(node)) node.IsSelected = false;
+                }
+
+                // Restore connections
+                foreach (var conn in saveData.Connections)
+                {
+                    if (idMap.TryGetValue(conn.SourceId, out var source) && idMap.TryGetValue(conn.TargetId, out var target))
+                    {
+                        if (source.Type == NodeType.Character || source.Type == NodeType.Base || source.Type == NodeType.BaseConcat)
+                        {
+                            source.NextNodes.Add(target);
+                        }
+                        else
+                        {
+                            source.NextNode = target;
+                        }
+                    }
+                }
+                
+                UpdateConnections();
+            }
+        }
+        catch
+        {
+            // Ignore invalid clipboard data
+        }
+    }
+
+    private void ExecuteToggleBypass(object? parameter)
+    {
+        if (parameter is GenerationNode node)
+        {
+            node.IsBypassed = !node.IsBypassed;
+        }
+        else
+        {
+            foreach (var n in Nodes.Where(n => n.IsSelected))
+            {
+                n.IsBypassed = !n.IsBypassed;
+            }
         }
     }
 
@@ -750,6 +952,14 @@ public class NodeGraphViewModel : INotifyPropertyChanged
                 _mainViewModel.StatusMessage = "Reached End node.";
                 break;
             }
+
+            // Bypass logic
+            if (currentNode.IsBypassed)
+            {
+                _mainViewModel.StatusMessage = $"Bypassing node: {currentNode.Title}";
+                currentNode = currentNode.NextNode;
+                continue;
+            }
             
             if (currentNode.Type == NodeType.Graph)
             {
@@ -822,6 +1032,12 @@ public class NodeGraphViewModel : INotifyPropertyChanged
             {
                 break;
             }
+
+            if (currentNode.IsBypassed)
+            {
+                currentNode = currentNode.NextNode;
+                continue;
+            }
             
             if (currentNode.Type == NodeType.Graph)
             {
@@ -872,17 +1088,45 @@ public class NodeGraphViewModel : INotifyPropertyChanged
         }
     }
 
+    private List<GenerationNode> GetEffectiveInputs(GenerationNode targetNode, IList<GenerationNode> contextNodes, HashSet<GenerationNode>? visited = null)
+    {
+        visited ??= new HashSet<GenerationNode>();
+        if (visited.Contains(targetNode)) return new List<GenerationNode>(); // Cycle detection
+        visited.Add(targetNode);
+
+        var inputs = new List<GenerationNode>();
+        // Find nodes that point to targetNode
+        var directInputs = contextNodes.Where(n => n.NextNode == targetNode || n.NextNodes.Contains(targetNode)).ToList();
+        
+        foreach (var input in directInputs)
+        {
+            if (input.IsBypassed)
+            {
+                // If input is bypassed, recursively get its inputs
+                // We pass the visited set to avoid cycles
+                inputs.AddRange(GetEffectiveInputs(input, contextNodes, visited));
+            }
+            else
+            {
+                inputs.Add(input);
+            }
+        }
+        
+        return inputs.Distinct().ToList();
+    }
+
     private async Task GenerateImageForNode(GenerationNode currentNode, IList<GenerationNode> contextNodes)
     {
         _mainViewModel.StatusMessage = $"Generating node...";
         
-        // Find connected Base and Character nodes within the context
-        var incomingNodes = contextNodes.Where(n => n.NextNode == currentNode || n.NextNodes.Contains(currentNode)).ToList();
+        // Resolve effective inputs (handling bypassed nodes)
+        var incomingNodes = GetEffectiveInputs(currentNode, contextNodes);
 
         // Handle BaseConcat nodes logic
         foreach (var node in incomingNodes.Where(n => n.Type == NodeType.BaseConcat).ToList())
         {
-            var concatInputs = contextNodes.Where(n => n.NextNodes.Contains(node)).ToList();
+            // Resolve inputs for this BaseConcat node
+            var concatInputs = GetEffectiveInputs(node, contextNodes);
             
             string combinedPositive = "";
             string combinedNegative = "";

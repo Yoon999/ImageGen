@@ -6,6 +6,7 @@ using ImageGen.ViewModels;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 using MouseEventArgs = System.Windows.Input.MouseEventArgs;
 using Point = System.Windows.Point;
+using TextBox = System.Windows.Controls.TextBox;
 using UserControl = System.Windows.Controls.UserControl;
 
 namespace ImageGen.Views.Controls;
@@ -13,7 +14,9 @@ namespace ImageGen.Views.Controls;
 public partial class NodeGraphControl : UserControl
 {
     private bool _isDraggingNode;
+    private bool _isSelecting;
     private Point _clickPosition;
+    private Point _selectionStart;
     private GenerationNode? _draggedNode;
 
     public NodeGraphControl()
@@ -97,10 +100,38 @@ public partial class NodeGraphControl : UserControl
         Keyboard.ClearFocus();
         this.Focus(); // Ensure UserControl has focus for key bindings
 
-        // Cancel connection if clicking on empty canvas
-        if (DataContext is NodeGraphViewModel vm && vm.IsConnecting)
+        if (DataContext is NodeGraphViewModel vm)
         {
-            vm.CancelConnectionCommand.Execute(null);
+            // Cancel connection if clicking on empty canvas
+            if (vm.IsConnecting)
+            {
+                vm.CancelConnectionCommand.Execute(null);
+                return;
+            }
+
+            // Ctrl + Click Drag for Selection
+            if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+            {
+                _isSelecting = true;
+                vm.IsSelecting = true;
+                
+                // Get position relative to the Canvas (logical coordinates)
+                if (sender is IInputElement canvas)
+                {
+                    _selectionStart = e.GetPosition(canvas);
+                    vm.UpdateSelectionBox(_selectionStart.X, _selectionStart.Y, 0, 0);
+                }
+                
+                if (sender is FrameworkElement element)
+                {
+                    element.CaptureMouse();
+                }
+                e.Handled = true;
+                return;
+            }
+            
+            // Clear selection if clicking on empty space without Ctrl
+            vm.ClearSelection();
         }
     }
 
@@ -113,18 +144,37 @@ public partial class NodeGraphControl : UserControl
             this.Focus();
 
             // If we are in connecting mode, this click might be to complete the connection
-            if (DataContext is NodeGraphViewModel vm && vm.IsConnecting)
+            if (DataContext is NodeGraphViewModel vm)
             {
-                vm.CompleteConnectionCommand.Execute(node);
-                e.Handled = true;
-                return;
-            }
+                if (vm.IsConnecting)
+                {
+                    vm.CompleteConnectionCommand.Execute(node);
+                    e.Handled = true;
+                    return;
+                }
+                
+                // Handle Selection
+                if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+                {
+                    // Toggle selection
+                    node.IsSelected = !node.IsSelected;
+                }
+                else
+                {
+                    // If node is not already selected, clear others and select this one
+                    if (!node.IsSelected)
+                    {
+                        vm.ClearSelection();
+                        node.IsSelected = true;
+                    }
+                }
 
-            _isDraggingNode = true;
-            _draggedNode = node;
-            _clickPosition = e.GetPosition(this);
-            element.CaptureMouse();
-            e.Handled = true;
+                _isDraggingNode = true;
+                _draggedNode = node;
+                _clickPosition = e.GetPosition(this);
+                element.CaptureMouse();
+                e.Handled = true;
+            }
         }
     }
 
@@ -156,14 +206,47 @@ public partial class NodeGraphControl : UserControl
                 }
             }
             
+            // Update Selection Box
+            if (_isSelecting)
+            {
+                if (sender is IInputElement canvas)
+                {
+                    var currentPos = e.GetPosition(canvas);
+                    
+                    double x = Math.Min(_selectionStart.X, currentPos.X);
+                    double y = Math.Min(_selectionStart.Y, currentPos.Y);
+                    double w = Math.Abs(_selectionStart.X - currentPos.X);
+                    double h = Math.Abs(_selectionStart.Y - currentPos.Y);
+                    
+                    vm.UpdateSelectionBox(x, y, w, h);
+                    vm.SelectNodesInArea(x, y, w, h);
+                }
+            }
+            
             // Move node if dragging
             if (_isDraggingNode && _draggedNode != null)
             {
                 var offset = currentControlPosition - _clickPosition;
                 
-                // Adjust movement by zoom scale to keep dragging consistent
-                _draggedNode.UiX += offset.X / vm.ZoomScale;
-                _draggedNode.UiY += offset.Y / vm.ZoomScale;
+                double dx = offset.X / vm.ZoomScale;
+                double dy = offset.Y / vm.ZoomScale;
+
+                // Move all selected nodes
+                var selectedNodes = vm.Nodes.Where(n => n.IsSelected).ToList();
+                if (selectedNodes.Contains(_draggedNode))
+                {
+                    foreach (var node in selectedNodes)
+                    {
+                        node.UiX += dx;
+                        node.UiY += dy;
+                    }
+                }
+                else
+                {
+                    // Fallback if dragged node somehow isn't selected (shouldn't happen with current logic)
+                    _draggedNode.UiX += dx;
+                    _draggedNode.UiY += dy;
+                }
                 
                 _clickPosition = currentControlPosition;
             }
@@ -172,7 +255,18 @@ public partial class NodeGraphControl : UserControl
 
     private void Canvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
-        // Canvas release logic
+        if (_isSelecting)
+        {
+            _isSelecting = false;
+            if (DataContext is NodeGraphViewModel vm)
+            {
+                vm.IsSelecting = false;
+            }
+            if (sender is FrameworkElement element)
+            {
+                element.ReleaseMouseCapture();
+            }
+        }
     }
 
     private void Node_SizeChanged(object sender, SizeChangedEventArgs e)
@@ -242,11 +336,44 @@ public partial class NodeGraphControl : UserControl
 
     private void UserControl_PreviewKeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Home && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+        if (DataContext is NodeGraphViewModel vm)
         {
-            if (DataContext is NodeGraphViewModel vm)
+            // Ctrl + Home -> Go to Begin Node
+            if (e.Key == Key.Home && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
             {
                 vm.GoToBeginNodeCommand.Execute(null);
+                e.Handled = true;
+            }
+            
+            // Ctrl + C -> Copy
+            if (e.Key == Key.C && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+            {
+                vm.CopyNodesCommand.Execute(null);
+                e.Handled = true;
+            }
+            
+            // Ctrl + V -> Paste
+            if (e.Key == Key.V && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+            {
+                vm.PasteNodesCommand.Execute(null);
+                e.Handled = true;
+            }
+            
+            // Delete -> Delete Selected Nodes
+            if (e.Key == Key.Delete)
+            {
+                // Check if any text box is focused to avoid deleting nodes while typing
+                if (!(Keyboard.FocusedElement is TextBox))
+                {
+                    vm.DeleteNodeCommand.Execute(null); // Execute without parameter to delete selected
+                    e.Handled = true;
+                }
+            }
+
+            // Ctrl + B -> Toggle Bypass
+            if (e.Key == Key.B && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+            {
+                vm.ToggleBypassCommand.Execute(null);
                 e.Handled = true;
             }
         }

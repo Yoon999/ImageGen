@@ -32,6 +32,8 @@ public class GenerationNode : INotifyPropertyChanged
     private double _width = 200;
     private double _height = 150; // Approximate height
     private bool _isCollapsed;
+    private bool _isSelected;
+    private bool _isBypassed;
     private GenerationNode? _nextNode;
     private NodeType _type = NodeType.Normal;
     
@@ -81,6 +83,18 @@ public class GenerationNode : INotifyPropertyChanged
         set { _isCollapsed = value; OnPropertyChanged(); }
     }
 
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set { _isSelected = value; OnPropertyChanged(); }
+    }
+
+    public bool IsBypassed
+    {
+        get => _isBypassed;
+        set { _isBypassed = value; OnPropertyChanged(); }
+    }
+
     // Used as Positive Prompt for Base/Character nodes, and legacy prompt for Normal nodes if needed
     // For Graph nodes, this stores the file path
     public string BasePrompt
@@ -94,13 +108,6 @@ public class GenerationNode : INotifyPropertyChanged
         get => _negativePrompt;
         set { _negativePrompt = value; OnPropertyChanged(); }
     }
-
-    /*// Used for Character Prompt in Character nodes
-    public string CharacterPrompt
-    {
-        get => _characterPrompt;
-        set { _characterPrompt = value; OnPropertyChanged(); }
-    }*/
     
     // Used for storing the preset name in Character nodes
     public string PresetName
