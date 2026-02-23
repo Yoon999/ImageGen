@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using ImageGen.Helpers;
 using ImageGen.ViewModels;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 using TextBox = System.Windows.Controls.TextBox;
@@ -72,10 +73,34 @@ public partial class CharacterPromptControl : UserControl
     {
         var window = Window.GetWindow(this) as MainWindow;
         if (window?.DataContext is not MainViewModel mainViewModel) return;
-        if (e.Key != Key.Enter || (Keyboard.Modifiers & ModifierKeys.Shift) != ModifierKeys.Shift) return;
-        if (!mainViewModel.GenerateCommand.CanExecute(null)) return;
-        
-        mainViewModel.GenerateCommand.Execute(null);
-        e.Handled = true;
+        if ((Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift)
+        {
+            if (e.Key == Key.Enter)
+            {
+                if (!mainViewModel.GenerateCommand.CanExecute(null)) return;
+                mainViewModel.GenerateCommand.Execute(null);
+                e.Handled = true;
+            }
+            
+        }
+        else if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+        {
+            if (e.Key == Key.Up)
+            {
+                if (sender is TextBox textBox)
+                {
+                    TextBoxHelper.AdjustWeight(textBox, 0.1);
+                    e.Handled = true;
+                }
+            }
+            else if (e.Key == Key.Down)
+            {
+                if (sender is TextBox textBox)
+                {
+                    TextBoxHelper.AdjustWeight(textBox, -0.1);
+                    e.Handled = true;
+                }
+            }
+        }
     }
 }

@@ -425,6 +425,29 @@ public partial class NodeGraphControl : UserControl
         }
     }
 
+    private void PromptBox_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+        {
+            if (e.Key == Key.Up)
+            {
+                if (sender is TextBox textBox)
+                {
+                    TextBoxHelper.AdjustWeight(textBox, 0.1);
+                    e.Handled = true;
+                }
+            }
+            else if (e.Key == Key.Down)
+            {
+                if (sender is TextBox textBox)
+                {
+                    TextBoxHelper.AdjustWeight(textBox, -0.1);
+                    e.Handled = true;
+                }
+            }
+        }
+    }
+
     private void TagSuggestionButton_Click(object sender, RoutedEventArgs e)
     {
         if (sender is Button button && button.Tag is TagSuggestion suggestion)

@@ -74,6 +74,25 @@ public partial class MainWindow : Window
                 e.Handled = true;
             }
         }
+        else if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+        {
+            if (e.Key == Key.Up)
+            {
+                if (sender is TextBox textBox)
+                {
+                    TextBoxHelper.AdjustWeight(textBox, 0.1);
+                    e.Handled = true;
+                }
+            }
+            else if (e.Key == Key.Down)
+            {
+                if (sender is TextBox textBox)
+                {
+                    TextBoxHelper.AdjustWeight(textBox, -0.1);
+                    e.Handled = true;
+                }
+            }
+        }
     }
     
     public void SetLastFocusedTextBox(TextBox? textBox)
