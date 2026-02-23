@@ -169,8 +169,41 @@
                             
                             <!-- BaseConcat Node Content -->
                             <StackPanel Visibility="{Binding Type, Converter={StaticResource NodeTypeToVisibilityConverter}, ConverterParameter=BaseConcatContent}">
+                                <ui:TextBlock Text="Input Order" Foreground="Gray" FontSize="10" Margin="0,0,0,2"/>
+                                <ItemsControl ItemsSource="{Binding InputNodes}" Margin="0,0,0,5">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,1">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="{Binding Title}" Foreground="White" FontSize="10" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                                    <ui:Button Content="▲" FontSize="8" Padding="2,0" Margin="2,0"
+                                                               Command="{Binding DataContext.MoveInputUpCommand, RelativeSource={RelativeSource AncestorType=ItemsControl, AncestorLevel=2}}">
+                                                        <Button.CommandParameter>
+                                                            <MultiBinding Converter="{StaticResource MultiValueConverter}">
+                                                                <Binding Path="."/>
+                                                                <Binding Path="DataContext" RelativeSource="{RelativeSource AncestorType=ItemsControl}"/>
+                                                            </MultiBinding>
+                                                        </Button.CommandParameter>
+                                                    </ui:Button>
+                                                    <ui:Button Content="▼" FontSize="8" Padding="2,0"
+                                                               Command="{Binding DataContext.MoveInputDownCommand, RelativeSource={RelativeSource AncestorType=ItemsControl, AncestorLevel=2}}">
+                                                        <Button.CommandParameter>
+                                                            <MultiBinding Converter="{StaticResource MultiValueConverter}">
+                                                                <Binding Path="."/>
+                                                                <Binding Path="DataContext" RelativeSource="{RelativeSource AncestorType=ItemsControl}"/>
+                                                            </MultiBinding>
+                                                        </Button.CommandParameter>
+                                                    </ui:Button>
+                                                </StackPanel>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
                                 <ui:TextBlock Text="Concatenates inputs from Base nodes" Foreground="Gray" FontSize="10" FontStyle="Italic" HorizontalAlignment="Center"/>
-                                <ui:TextBlock Text="Output acts as a Base node" Foreground="Gray" FontSize="10" FontStyle="Italic" HorizontalAlignment="Center" Margin="0,0,0,5"/>
                             </StackPanel>
                             
                             <!-- Graph Node Content -->

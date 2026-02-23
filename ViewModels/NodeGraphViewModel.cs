@@ -90,6 +90,8 @@ public class NodeGraphViewModel : INotifyPropertyChanged
     public ICommand CopyNodesCommand { get; }
     public ICommand PasteNodesCommand { get; }
     public ICommand ToggleBypassCommand { get; }
+    public ICommand MoveInputUpCommand { get; }
+    public ICommand MoveInputDownCommand { get; }
 
     public NodeGraphViewModel(MainViewModel mainViewModel, INovelAiService novelAiService, IImageService imageService)
     {
@@ -127,6 +129,8 @@ public class NodeGraphViewModel : INotifyPropertyChanged
         CopyNodesCommand = new RelayCommand(ExecuteCopyNodes);
         PasteNodesCommand = new RelayCommand(ExecutePasteNodes);
         ToggleBypassCommand = new RelayCommand(ExecuteToggleBypass);
+        MoveInputUpCommand = new RelayCommand(ExecuteMoveInputUp);
+        MoveInputDownCommand = new RelayCommand(ExecuteMoveInputDown);
         
         // Listen for node changes to update connections BEFORE adding initial nodes
         Nodes.CollectionChanged += Nodes_CollectionChanged;
@@ -197,6 +201,12 @@ public class NodeGraphViewModel : INotifyPropertyChanged
             if (node.NextNode != null && Nodes.Contains(node.NextNode))
             {
                 Connections.Add(new ConnectionViewModel(node, node.NextNode));
+                
+                // Update InputNodes for BaseConcat
+                if (node.NextNode.Type == NodeType.BaseConcat)
+                {
+                    UpdateBaseConcatInputs(node.NextNode);
+                }
             }
             
             // Handle multiple connections (Character/Base nodes)
@@ -205,8 +215,52 @@ public class NodeGraphViewModel : INotifyPropertyChanged
                 if (Nodes.Contains(target))
                 {
                     Connections.Add(new ConnectionViewModel(node, target));
+                    
+                    // Update InputNodes for BaseConcat
+                    if (target.Type == NodeType.BaseConcat)
+                    {
+                        UpdateBaseConcatInputs(target);
+                    }
                 }
             }
+        }
+    }
+
+    private void UpdateBaseConcatInputs(GenerationNode concatNode)
+    {
+        // Find all nodes connecting to this BaseConcat node
+        var incoming = Nodes.Where(n => n.NextNode == concatNode || n.NextNodes.Contains(concatNode)).ToList();
+        
+        // Remove nodes that are no longer connected
+        var toRemove = concatNode.InputNodes.Where(n => !incoming.Contains(n)).ToList();
+        foreach (var n in toRemove)
+        {
+            concatNode.InputNodes.Remove(n);
+            if (concatNode.InputOrder.Contains(n.Id))
+            {
+                concatNode.InputOrder.Remove(n.Id);
+            }
+        }
+        
+        // Add new nodes
+        foreach (var n in incoming)
+        {
+            if (!concatNode.InputNodes.Contains(n))
+            {
+                concatNode.InputNodes.Add(n);
+                if (!concatNode.InputOrder.Contains(n.Id))
+                {
+                    concatNode.InputOrder.Add(n.Id);
+                }
+            }
+        }
+        
+        // Sort InputNodes based on InputOrder
+        var sorted = concatNode.InputNodes.OrderBy(n => concatNode.InputOrder.IndexOf(n.Id)).ToList();
+        concatNode.InputNodes.Clear();
+        foreach (var n in sorted)
+        {
+            concatNode.InputNodes.Add(n);
         }
     }
 
@@ -828,6 +882,13 @@ public class NodeGraphViewModel : INotifyPropertyChanged
                     TargetId = target.Id
                 });
             }
+            
+            // Save InputOrder for BaseConcat nodes
+            if (node.Type == NodeType.BaseConcat)
+            {
+                // Ensure InputOrder is up to date with current InputNodes
+                node.InputOrder = node.InputNodes.Select(n => n.Id).ToList();
+            }
         }
 
         var dialog = new SaveFileDialog
@@ -914,6 +975,38 @@ public class NodeGraphViewModel : INotifyPropertyChanged
             node.IsCollapsed = !node.IsCollapsed;
         }
     }
+    
+    private void ExecuteMoveInputUp(object? parameter)
+    {
+        if (parameter is object[] args && args.Length == 2)
+        {
+            if (args[0] is GenerationNode inputNode && args[1] is GenerationNode concatNode)
+            {
+                int index = concatNode.InputNodes.IndexOf(inputNode);
+                if (index > 0)
+                {
+                    concatNode.InputNodes.Move(index, index - 1);
+                    concatNode.InputOrder = concatNode.InputNodes.Select(n => n.Id).ToList();
+                }
+            }
+        }
+    }
+
+    private void ExecuteMoveInputDown(object? parameter)
+    {
+        if (parameter is object[] args && args.Length == 2)
+        {
+            if (args[0] is GenerationNode inputNode && args[1] is GenerationNode concatNode)
+            {
+                int index = concatNode.InputNodes.IndexOf(inputNode);
+                if (index < concatNode.InputNodes.Count - 1)
+                {
+                    concatNode.InputNodes.Move(index, index + 1);
+                    concatNode.InputOrder = concatNode.InputNodes.Select(n => n.Id).ToList();
+                }
+            }
+        }
+    }
 
     private bool CanExecuteGenerateChain(object? parameter)
     {
@@ -957,8 +1050,7 @@ public class NodeGraphViewModel : INotifyPropertyChanged
     private async Task ProcessNodeChain(GenerationNode startNode)
     {
         var currentNode = startNode.NextNode;
-        int stepIndex = 1;
-        
+
         while (currentNode != null)
         {
             if (currentNode.Type == NodeType.End)
@@ -998,16 +1090,14 @@ public class NodeGraphViewModel : INotifyPropertyChanged
                                     var source = saveData.Nodes.FirstOrDefault(n => n.Id == conn.SourceId);
                                     var target = saveData.Nodes.FirstOrDefault(n => n.Id == conn.TargetId);
 
-                                    if (source != null && target != null)
+                                    if (source == null || target == null) continue;
+                                    if (source.Type == NodeType.Character || source.Type == NodeType.Base || source.Type == NodeType.BaseConcat)
                                     {
-                                        if (source.Type == NodeType.Character || source.Type == NodeType.Base || source.Type == NodeType.BaseConcat)
-                                        {
-                                            source.NextNodes.Add(target);
-                                        }
-                                        else
-                                        {
-                                            source.NextNode = target;
-                                        }
+                                        source.NextNodes.Add(target);
+                                    }
+                                    else
+                                    {
+                                        source.NextNode = target;
                                     }
                                 }
                                 
@@ -1028,7 +1118,6 @@ public class NodeGraphViewModel : INotifyPropertyChanged
             else if (currentNode.Type == NodeType.Normal)
             {
                 await GenerateImageForNode(currentNode, Nodes);
-                stepIndex++;
             }
 
             currentNode = currentNode.NextNode;
@@ -1105,8 +1194,8 @@ public class NodeGraphViewModel : INotifyPropertyChanged
     private List<GenerationNode> GetEffectiveInputs(GenerationNode targetNode, IList<GenerationNode> contextNodes, HashSet<GenerationNode>? visited = null)
     {
         visited ??= new HashSet<GenerationNode>();
-        if (visited.Contains(targetNode)) return new List<GenerationNode>(); // Cycle detection
-        visited.Add(targetNode);
+        if (!visited.Add(targetNode)) return new List<GenerationNode>(); // Cycle detection
+
 
         var inputs = new List<GenerationNode>();
         // Find nodes that point to targetNode
@@ -1116,14 +1205,9 @@ public class NodeGraphViewModel : INotifyPropertyChanged
         {
             if (input.IsBypassed)
             {
-                // If input is bypassed, recursively get its inputs
-                // We pass the visited set to avoid cycles
-                inputs.AddRange(GetEffectiveInputs(input, contextNodes, visited));
+                continue;
             }
-            else
-            {
-                inputs.Add(input);
-            }
+            inputs.Add(input);
         }
         
         return inputs.Distinct().ToList();
@@ -1137,34 +1221,20 @@ public class NodeGraphViewModel : INotifyPropertyChanged
         var incomingNodes = GetEffectiveInputs(currentNode, contextNodes);
 
         // Handle BaseConcat nodes logic
-        foreach (var node in incomingNodes.Where(n => n.Type == NodeType.BaseConcat).ToList())
+        // If current node is BaseConcat, update it first
+        if (currentNode.Type == NodeType.BaseConcat)
         {
-            // Resolve inputs for this BaseConcat node
-            var concatInputs = GetEffectiveInputs(node, contextNodes);
-            
-            string combinedPositive = "";
-            string combinedNegative = "";
-            
-            foreach (var input in concatInputs)
-            {
-                if (!string.IsNullOrWhiteSpace(input.BasePrompt))
-                {
-                    if (!string.IsNullOrWhiteSpace(combinedPositive)) combinedPositive += ", ";
-                    combinedPositive += input.BasePrompt;
-                }
-                if (!string.IsNullOrWhiteSpace(input.NegativePrompt))
-                {
-                    if (!string.IsNullOrWhiteSpace(combinedNegative)) combinedNegative += ", ";
-                    combinedNegative += input.NegativePrompt;
-                }
-            }
-            
-            node.BasePrompt = combinedPositive;
-            node.NegativePrompt = combinedNegative;
+            UpdateBaseConcatNode(currentNode, contextNodes);
         }
 
-        var baseNode = incomingNodes.FirstOrDefault(n => n.Type == NodeType.Base || n.Type == NodeType.BaseConcat);
-        var charNodes = incomingNodes.Where(n => n.Type == NodeType.Character).ToList();
+        // Update incoming BaseConcat nodes
+        foreach (var node in incomingNodes.Where(n => n.Type == NodeType.BaseConcat).ToList())
+        {
+            UpdateBaseConcatNode(node, contextNodes);
+        }
+        
+        var baseNode = incomingNodes.FirstOrDefault(n => (!n.IsBypassed) && (n.Type == NodeType.Base || n.Type == NodeType.BaseConcat));
+        var charNodes = incomingNodes.Where(n => (!n.IsBypassed) && n.Type == NodeType.Character).ToList();
         
         // Prepare Request
         var request = CloneRequest(_mainViewModel.Request);
@@ -1185,6 +1255,15 @@ public class NodeGraphViewModel : INotifyPropertyChanged
             if (baseNode != null)
             {
                 request.parameters.V4Prompt.Caption.BaseCaption = baseNode.BasePrompt;
+
+                if (!string.IsNullOrWhiteSpace(currentNode.BasePrompt))
+                {
+                    if (!string.IsNullOrWhiteSpace(request.parameters.V4Prompt.Caption.BaseCaption))
+                    {
+                        request.parameters.V4Prompt.Caption.BaseCaption += ", ";
+                    }
+                    request.parameters.V4Prompt.Caption.BaseCaption += currentNode.BasePrompt;
+                }
                 
                 if (request.parameters.V4NegativePrompt == null)
                 {
@@ -1232,8 +1311,19 @@ public class NodeGraphViewModel : INotifyPropertyChanged
         {
             // Legacy handling
             string fullPrompt = "";
-            if (baseNode != null) fullPrompt += baseNode.BasePrompt;
-            else fullPrompt += currentNode.BasePrompt;
+            if (baseNode != null)
+            {
+                fullPrompt += baseNode.BasePrompt;
+                if (!string.IsNullOrWhiteSpace(currentNode.BasePrompt))
+                {
+                    if (!string.IsNullOrWhiteSpace(fullPrompt)) fullPrompt += ", ";
+                    fullPrompt += currentNode.BasePrompt;
+                }
+            }
+            else
+            {
+                fullPrompt += currentNode.BasePrompt;
+            }
             
             foreach (var charNode in charNodes)
             {
@@ -1266,7 +1356,10 @@ public class NodeGraphViewModel : INotifyPropertyChanged
                     var bitmap = _imageService.ConvertToBitmapImage(imageData);
                     Application.Current.Dispatcher.Invoke(() => { _mainViewModel.GeneratedImage = bitmap; });
                 }
-                catch { }
+                catch
+                {
+                    // ignored
+                }
             }
         });
 
@@ -1285,6 +1378,52 @@ public class NodeGraphViewModel : INotifyPropertyChanged
             var bitmap = await Task.Run(() => _imageService.ConvertToBitmapImage(imageData));
             Application.Current.Dispatcher.Invoke(() => { _mainViewModel.GeneratedImage = bitmap; });
         }
+    }
+
+    private void UpdateBaseConcatNode(GenerationNode node, IList<GenerationNode> contextNodes)
+    {
+        // Resolve inputs for this BaseConcat node
+        // Use InputNodes order if available, otherwise fallback to GetEffectiveInputs
+        var concatInputs = node.InputNodes.Any() ? node.InputNodes.Where(n => !n.IsBypassed).ToList() // Filter bypassed if they are in InputNodes
+            : GetEffectiveInputs(node, contextNodes).Where(n => !n.IsBypassed).ToList(); // Filter bypassed from effective inputs
+        
+        // If using InputNodes, we might need to handle bypassed nodes recursively if they are in the list
+        if (node.InputNodes.Any())
+        {
+            var resolvedInputs = new List<GenerationNode>();
+            foreach (var input in node.InputNodes)
+            {
+                if (input.IsBypassed)
+                {
+                    resolvedInputs.AddRange(GetEffectiveInputs(input, contextNodes));
+                }
+                else
+                {
+                    resolvedInputs.Add(input);
+                }
+            }
+            concatInputs = resolvedInputs.Distinct().Where(n => !n.IsBypassed).ToList();
+        }
+
+        string combinedPositive = "";
+        string combinedNegative = "";
+        
+        foreach (var input in concatInputs)
+        {
+            if (!string.IsNullOrWhiteSpace(input.BasePrompt))
+            {
+                if (!string.IsNullOrWhiteSpace(combinedPositive)) combinedPositive += ", ";
+                combinedPositive += input.BasePrompt;
+            }
+            if (!string.IsNullOrWhiteSpace(input.NegativePrompt))
+            {
+                if (!string.IsNullOrWhiteSpace(combinedNegative)) combinedNegative += ", ";
+                combinedNegative += input.NegativePrompt;
+            }
+        }
+        
+        node.BasePrompt = combinedPositive;
+        node.NegativePrompt = combinedNegative;
     }
     
     // View에서 호출할 메서드: 태그 검색

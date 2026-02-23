@@ -41,9 +41,12 @@ public class GenerationNode : INotifyPropertyChanged
     [JsonIgnore]
     public ObservableCollection<GenerationNode> NextNodes { get; } = new();
     
-    // For BaseConcat inputs
+    // For BaseConcat inputs (Runtime only, ordered)
     [JsonIgnore]
     public ObservableCollection<GenerationNode> InputNodes { get; } = new();
+    
+    // Persisted order of inputs for BaseConcat
+    public List<string> InputOrder { get; set; } = new();
     
     public string Id 
     { 
