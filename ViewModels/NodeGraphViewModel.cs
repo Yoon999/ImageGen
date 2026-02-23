@@ -533,34 +533,28 @@ public class NodeGraphViewModel : INotifyPropertyChanged
 
     private void ExecuteDuplicateNode(object? parameter)
     {
-        if (parameter is GenerationNode node)
-        {
-            // Prevent duplication of Begin and End nodes
-            if (node.Type == NodeType.Begin || node.Type == NodeType.End)
-            {
-                return;
-            }
+        if (parameter is not GenerationNode node) return;
+        if (node.Type is NodeType.Begin or NodeType.End) return;
 
-            var newNode = new GenerationNode
-            {
-                UiX = node.UiX + 20,
-                UiY = node.UiY + 20,
-                Type = node.Type,
-                Title = node.Title,
-                BasePrompt = node.BasePrompt,
-                NegativePrompt = node.NegativePrompt,
-                // CharacterPrompt = node.CharacterPrompt,
-                PresetName = node.PresetName,
-                CharX = node.CharX,
-                CharY = node.CharY,
-                Width = node.Width,
-                Height = node.Height,
-                IsCollapsed = node.IsCollapsed,
-                IsBypassed = node.IsBypassed
-            };
+        var newNode = new GenerationNode
+        {
+            UiX = node.UiX + 20,
+            UiY = node.UiY + 20,
+            Type = node.Type,
+            Title = node.Title,
+            BasePrompt = node.BasePrompt,
+            NegativePrompt = node.NegativePrompt,
+            // CharacterPrompt = node.CharacterPrompt,
+            PresetName = node.PresetName,
+            CharX = node.CharX,
+            CharY = node.CharY,
+            Width = node.Width,
+            Height = node.Height,
+            IsCollapsed = node.IsCollapsed,
+            IsBypassed = node.IsBypassed
+        };
             
-            Nodes.Add(newNode);
-        }
+        Nodes.Add(newNode);
     }
 
     private void ExecuteCopyNodes(object? parameter)
@@ -600,63 +594,62 @@ public class NodeGraphViewModel : INotifyPropertyChanged
         {
             string json = System.Windows.Clipboard.GetText();
             if (string.IsNullOrWhiteSpace(json)) return;
-
+            
             var saveData = JsonSerializer.Deserialize<NodeGraphSaveData>(json);
-            if (saveData != null && saveData.Nodes.Any())
+            if (saveData == null || saveData.Nodes.Count == 0) return;
+            
+            var idMap = new Dictionary<string, GenerationNode>();
+                
+            // Create new nodes
+            foreach (var nodeData in saveData.Nodes)
             {
-                var idMap = new Dictionary<string, GenerationNode>();
-                
-                // Create new nodes
-                foreach (var nodeData in saveData.Nodes)
+                var newNode = new GenerationNode
                 {
-                    var newNode = new GenerationNode
-                    {
-                        UiX = nodeData.UiX + 20, // Offset slightly
-                        UiY = nodeData.UiY + 20,
-                        Type = nodeData.Type,
-                        Title = nodeData.Title,
-                        BasePrompt = nodeData.BasePrompt,
-                        NegativePrompt = nodeData.NegativePrompt,
-                        PresetName = nodeData.PresetName,
-                        CharX = nodeData.CharX,
-                        CharY = nodeData.CharY,
-                        Width = nodeData.Width,
-                        Height = nodeData.Height,
-                        IsCollapsed = nodeData.IsCollapsed,
-                        IsBypassed = nodeData.IsBypassed
-                    };
+                    UiX = nodeData.UiX + 20, // Offset slightly
+                    UiY = nodeData.UiY + 20,
+                    Type = nodeData.Type,
+                    Title = nodeData.Title,
+                    BasePrompt = nodeData.BasePrompt,
+                    NegativePrompt = nodeData.NegativePrompt,
+                    PresetName = nodeData.PresetName,
+                    CharX = nodeData.CharX,
+                    CharY = nodeData.CharY,
+                    Width = nodeData.Width,
+                    Height = nodeData.Height,
+                    IsCollapsed = nodeData.IsCollapsed,
+                    IsBypassed = nodeData.IsBypassed
+                };
                     
-                    idMap[nodeData.Id] = newNode;
-                    Nodes.Add(newNode);
+                idMap[nodeData.Id] = newNode;
+                Nodes.Add(newNode);
                     
-                    // Select newly pasted nodes
-                    newNode.IsSelected = true;
-                }
+                // Select newly pasted nodes
+                newNode.IsSelected = true;
+            }
                 
-                // Deselect others
-                foreach (var node in Nodes)
-                {
-                    if (!idMap.ContainsValue(node)) node.IsSelected = false;
-                }
+            // Deselect others
+            foreach (var node in Nodes)
+            {
+                if (!idMap.ContainsValue(node)) node.IsSelected = false;
+            }
 
-                // Restore connections
-                foreach (var conn in saveData.Connections)
+            // Restore connections
+            foreach (var conn in saveData.Connections)
+            {
+                if (idMap.TryGetValue(conn.SourceId, out var source) && idMap.TryGetValue(conn.TargetId, out var target))
                 {
-                    if (idMap.TryGetValue(conn.SourceId, out var source) && idMap.TryGetValue(conn.TargetId, out var target))
+                    if (source.Type == NodeType.Character || source.Type == NodeType.Base || source.Type == NodeType.BaseConcat)
                     {
-                        if (source.Type == NodeType.Character || source.Type == NodeType.Base || source.Type == NodeType.BaseConcat)
-                        {
-                            source.NextNodes.Add(target);
-                        }
-                        else
-                        {
-                            source.NextNode = target;
-                        }
+                        source.NextNodes.Add(target);
+                    }
+                    else
+                    {
+                        source.NextNode = target;
                     }
                 }
-                
-                UpdateConnections();
             }
+                
+            UpdateConnections();
         }
         catch
         {
@@ -681,54 +674,51 @@ public class NodeGraphViewModel : INotifyPropertyChanged
 
     private void ExecuteStartConnection(object? parameter)
     {
-        if (parameter is GenerationNode node)
-        {
-            if (node.Type == NodeType.End) return; // End node cannot have output
+        if (parameter is not GenerationNode node) return;
+        if (node.Type == NodeType.End) return; // End node cannot have output
             
-            IsConnecting = true;
-            _connectingSource = node;
+        IsConnecting = true;
+        _connectingSource = node;
             
-            // Set initial temp line position (Right side center)
-            TempX1 = node.UiX + node.Width;
-            TempY1 = node.UiY + (node.Height / 2);
-            TempX2 = TempX1;
-            TempY2 = TempY1;
-        }
+        // Set initial temp line position (Right side center)
+        TempX1 = node.UiX + node.Width;
+        TempY1 = node.UiY + (node.Height / 2);
+        TempX2 = TempX1;
+        TempY2 = TempY1;
     }
 
     private void ExecuteCompleteConnection(object? parameter)
     {
-        if (IsConnecting && _connectingSource != null && parameter is GenerationNode targetNode)
+        if (!IsConnecting || _connectingSource == null || parameter is not GenerationNode targetNode) return;
+        
+        if (_connectingSource != targetNode)
         {
-            if (_connectingSource != targetNode)
+            if (targetNode.Type == NodeType.Begin)
             {
-                if (targetNode.Type == NodeType.Begin)
-                {
-                     // Begin node cannot be a target
-                     IsConnecting = false;
-                     _connectingSource = null;
-                     return;
-                }
+                // Begin node cannot be a target
+                IsConnecting = false;
+                _connectingSource = null;
+                return;
+            }
                 
-                // If source is Character or Base node, allow multiple outputs
-                // BaseConcat also acts as a Base node source
-                if (_connectingSource.Type == NodeType.Character || _connectingSource.Type == NodeType.Base || _connectingSource.Type == NodeType.BaseConcat)
+            // If source is Character or Base node, allow multiple outputs
+            // BaseConcat also acts as a Base node source
+            if (_connectingSource.Type is NodeType.Character or NodeType.Base or NodeType.BaseConcat)
+            {
+                if (!_connectingSource.NextNodes.Contains(targetNode))
                 {
-                    if (!_connectingSource.NextNodes.Contains(targetNode))
-                    {
-                        _connectingSource.NextNodes.Add(targetNode);
-                        UpdateConnections(); // Explicitly update because ObservableCollection change might not trigger property changed for NextNodes property itself
-                    }
-                }
-                else
-                {
-                    // Normal/Begin/Graph nodes usually have single output flow
-                    _connectingSource.NextNode = targetNode;
+                    _connectingSource.NextNodes.Add(targetNode);
+                    UpdateConnections();
                 }
             }
-            IsConnecting = false;
-            _connectingSource = null;
+            else
+            {
+                _connectingSource.NextNode = targetNode;
+            }
         }
+        
+        IsConnecting = false;
+        _connectingSource = null;
     }
     
     private void ExecuteCancelConnection(object? parameter)
@@ -739,121 +729,109 @@ public class NodeGraphViewModel : INotifyPropertyChanged
     
     private void ExecuteClearConnections(object? parameter)
     {
-        if (parameter is GenerationNode node)
-        {
-            node.NextNode = null;
-            node.NextNodes.Clear();
-            UpdateConnections();
-        }
+        if (parameter is not GenerationNode node) return;
+        
+        node.NextNode = null;
+        node.NextNodes.Clear();
+        UpdateConnections();
     }
     
     private void ExecuteDisconnectInput(object? parameter)
     {
-        if (parameter is GenerationNode targetNode)
+        if (parameter is not GenerationNode targetNode) return;
+        
+        foreach (var node in Nodes)
         {
-            foreach (var node in Nodes)
+            if (node.NextNode == targetNode)
             {
-                if (node.NextNode == targetNode)
-                {
-                    node.NextNode = null;
-                }
-                if (node.NextNodes.Contains(targetNode))
-                {
-                    node.NextNodes.Remove(targetNode);
-                }
+                node.NextNode = null;
             }
-            UpdateConnections();
+            
+            node.NextNodes.Remove(targetNode);
         }
+        UpdateConnections();
     }
 
     private void ExecuteSaveCharacterPreset(object? parameter)
     {
-        if (parameter is GenerationNode node && node.Type == NodeType.Character)
+        if (parameter is not GenerationNode { Type: NodeType.Character } node) return;
+        
+        string name = node.PresetName;
+            
+        if (string.IsNullOrWhiteSpace(name))
         {
-            string name = node.PresetName;
-            
-            if (string.IsNullOrWhiteSpace(name))
+            name = $"Character_{DateTime.Now:yyyyMMdd_HHmmss}";
+            if (!string.IsNullOrWhiteSpace(node.BasePrompt) && node.BasePrompt.Length < 20)
             {
-                name = $"Character_{DateTime.Now:yyyyMMdd_HHmmss}";
-                if (!string.IsNullOrWhiteSpace(node.BasePrompt) && node.BasePrompt.Length < 20)
-                {
-                    name = node.BasePrompt;
-                }
-                node.PresetName = name; // Update node's preset name
+                name = node.BasePrompt;
             }
-
-            var preset = new CharacterPreset
-            {
-                Name = name,
-                Prompt = node.BasePrompt,
-                NegativePrompt = node.NegativePrompt,
-                X = node.CharX,
-                Y = node.CharY
-            };
-            
-            new CharacterPresetService().SavePreset(preset);
-            LoadPresets(); // Refresh list
-            MessageBox.Show($"Saved preset: {name}");
+            node.PresetName = name; // Update node's preset name
         }
+
+        var preset = new CharacterPreset
+        {
+            Name = name,
+            Prompt = node.BasePrompt,
+            NegativePrompt = node.NegativePrompt,
+            X = node.CharX,
+            Y = node.CharY
+        };
+            
+        new CharacterPresetService().SavePreset(preset);
+        LoadPresets(); // Refresh list
+        MessageBox.Show($"Saved preset: {name}");
     }
 
     private void ExecuteUpdateCharacterPreset(object? parameter)
     {
         // This command is intended to update an existing preset selected in the ComboBox
         // We need both the Node (source of data) and the Selected Preset (target to update)
+
+        if (parameter is not object[] { Length: 2 } args) return;
         
-        if (parameter is object[] args && args.Length == 2)
+        if (args[0] is GenerationNode node && args[1] is CharacterPreset selectedPreset)
         {
-            if (args[0] is GenerationNode node && args[1] is CharacterPreset selectedPreset)
-            {
-                // Update the selected preset with current node data
-                selectedPreset.Prompt = node.BasePrompt;
-                selectedPreset.NegativePrompt = node.NegativePrompt;
-                selectedPreset.X = node.CharX;
-                selectedPreset.Y = node.CharY;
+            // Update the selected preset with current node data
+            selectedPreset.Prompt = node.BasePrompt;
+            selectedPreset.NegativePrompt = node.NegativePrompt;
+            selectedPreset.X = node.CharX;
+            selectedPreset.Y = node.CharY;
                 
-                // Save using service (it handles update by name)
-                new CharacterPresetService().SavePreset(selectedPreset);
-                LoadPresets();
-                MessageBox.Show($"Updated preset: {selectedPreset.Name}");
-            }
-            else
-            {
-                MessageBox.Show("Please select a preset to update.");
-            }
+            // Save using service (it handles update by name)
+            new CharacterPresetService().SavePreset(selectedPreset);
+            LoadPresets();
+            MessageBox.Show($"Updated preset: {selectedPreset.Name}");
+        }
+        else
+        {
+            MessageBox.Show("Please select a preset to update.");
         }
     }
 
     private void ExecuteLoadCharacterPreset(object? parameter)
     {
-        if (parameter is object[] args && args.Length == 2)
-        {
-            if (args[0] is GenerationNode node && args[1] is CharacterPreset preset)
-            {
-                node.BasePrompt = preset.Prompt;
-                node.NegativePrompt = preset.NegativePrompt;
-                node.CharX = preset.X;
-                node.CharY = preset.Y;
-                node.PresetName = preset.Name; // Also load the name
-            }
-        }
+        if (parameter is not object[] { Length: 2 } args) return;
+        if (args[0] is not GenerationNode node || args[1] is not CharacterPreset preset) return;
+        
+        node.BasePrompt = preset.Prompt;
+        node.NegativePrompt = preset.NegativePrompt;
+        node.CharX = preset.X;
+        node.CharY = preset.Y;
+        node.PresetName = preset.Name; // Also load the name
     }
     
     private void ExecuteSelectGraphFile(object? parameter)
     {
-        if (parameter is GenerationNode node && node.Type == NodeType.Graph)
+        if (parameter is not GenerationNode { Type: NodeType.Graph } node) return;
+        var dialog = new OpenFileDialog
         {
-            var dialog = new OpenFileDialog
-            {
-                Filter = "JSON Files (*.json)|*.json|All Files (*.*)|*.*"
-            };
+            Filter = "JSON Files (*.json)|*.json|All Files (*.*)|*.*"
+        };
 
-            if (dialog.ShowDialog() == true)
-            {
-                node.BasePrompt = dialog.FileName;
-                node.Title = Path.GetFileNameWithoutExtension(dialog.FileName);
-            }
-        }
+        if (dialog.ShowDialog() != true) return;
+        
+        node.BasePrompt = dialog.FileName;
+        node.Title = Path.GetFileNameWithoutExtension(dialog.FileName);
     }
 
     private void ExecuteSaveGraph(object? parameter)
@@ -898,18 +876,17 @@ public class NodeGraphViewModel : INotifyPropertyChanged
             FileName = "graph_layout.json"
         };
 
-        if (dialog.ShowDialog() == true)
+        if (dialog.ShowDialog() != true) return;
+        
+        try
         {
-            try
-            {
-                string json = JsonSerializer.Serialize(saveData, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(dialog.FileName, json);
-                MessageBox.Show("Graph saved successfully.");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Error saving graph: {ex.Message}");
-            }
+            string json = JsonSerializer.Serialize(saveData, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(dialog.FileName, json);
+            MessageBox.Show("Graph saved successfully.");
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error saving graph: {ex.Message}");
         }
     }
 
@@ -920,51 +897,46 @@ public class NodeGraphViewModel : INotifyPropertyChanged
             Filter = "JSON Files (*.json)|*.json|All Files (*.*)|*.*"
         };
 
-        if (dialog.ShowDialog() == true)
+        if (dialog.ShowDialog() != true) return;
+        
+        try
         {
-            try
-            {
-                string json = File.ReadAllText(dialog.FileName);
-                var saveData = JsonSerializer.Deserialize<NodeGraphSaveData>(json);
+            string json = File.ReadAllText(dialog.FileName);
+            var saveData = JsonSerializer.Deserialize<NodeGraphSaveData>(json);
 
-                if (saveData != null)
+            if (saveData == null) return;
+            Nodes.Clear();
+            Connections.Clear();
+
+            // Add nodes
+            foreach (var node in saveData.Nodes)
+            {
+                Nodes.Add(node);
+            }
+
+            // Restore connections
+            foreach (var conn in saveData.Connections)
+            {
+                var source = Nodes.FirstOrDefault(n => n.Id == conn.SourceId);
+                var target = Nodes.FirstOrDefault(n => n.Id == conn.TargetId);
+
+                if (source == null || target == null) continue;
+                
+                if (source.Type is NodeType.Character or NodeType.Base or NodeType.BaseConcat)
                 {
-                    Nodes.Clear();
-                    Connections.Clear();
-
-                    // Add nodes
-                    foreach (var node in saveData.Nodes)
-                    {
-                        Nodes.Add(node);
-                    }
-
-                    // Restore connections
-                    foreach (var conn in saveData.Connections)
-                    {
-                        var source = Nodes.FirstOrDefault(n => n.Id == conn.SourceId);
-                        var target = Nodes.FirstOrDefault(n => n.Id == conn.TargetId);
-
-                        if (source != null && target != null)
-                        {
-                            if (source.Type == NodeType.Character || source.Type == NodeType.Base || source.Type == NodeType.BaseConcat)
-                            {
-                                source.NextNodes.Add(target);
-                            }
-                            else
-                            {
-                                source.NextNode = target;
-                            }
-                        }
-                    }
-                    
-                    UpdateConnections();
-                    MessageBox.Show("Graph loaded successfully.");
+                    source.NextNodes.Add(target);
+                    continue;
                 }
+                
+                source.NextNode = target;
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Error loading graph: {ex.Message}");
-            }
+                    
+            UpdateConnections();
+            MessageBox.Show("Graph loaded successfully.");
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error loading graph: {ex.Message}");
         }
     }
 
@@ -978,34 +950,26 @@ public class NodeGraphViewModel : INotifyPropertyChanged
     
     private void ExecuteMoveInputUp(object? parameter)
     {
-        if (parameter is object[] args && args.Length == 2)
-        {
-            if (args[0] is GenerationNode inputNode && args[1] is GenerationNode concatNode)
-            {
-                int index = concatNode.InputNodes.IndexOf(inputNode);
-                if (index > 0)
-                {
-                    concatNode.InputNodes.Move(index, index - 1);
-                    concatNode.InputOrder = concatNode.InputNodes.Select(n => n.Id).ToList();
-                }
-            }
-        }
+        if (parameter is not object[] { Length: 2 } args) return;
+        if (args[0] is not GenerationNode inputNode || args[1] is not GenerationNode concatNode) return;
+        
+        int index = concatNode.InputNodes.IndexOf(inputNode);
+        if (index <= 0) return;
+        
+        concatNode.InputNodes.Move(index, index - 1);
+        concatNode.InputOrder = concatNode.InputNodes.Select(n => n.Id).ToList();
     }
 
     private void ExecuteMoveInputDown(object? parameter)
     {
-        if (parameter is object[] args && args.Length == 2)
-        {
-            if (args[0] is GenerationNode inputNode && args[1] is GenerationNode concatNode)
-            {
-                int index = concatNode.InputNodes.IndexOf(inputNode);
-                if (index < concatNode.InputNodes.Count - 1)
-                {
-                    concatNode.InputNodes.Move(index, index + 1);
-                    concatNode.InputOrder = concatNode.InputNodes.Select(n => n.Id).ToList();
-                }
-            }
-        }
+        if (parameter is not object[] { Length: 2 } args) return;
+        if (args[0] is not GenerationNode inputNode || args[1] is not GenerationNode concatNode) return;
+            
+        int index = concatNode.InputNodes.IndexOf(inputNode);
+        if (index >= concatNode.InputNodes.Count - 1) return;
+                
+        concatNode.InputNodes.Move(index, index + 1);
+        concatNode.InputOrder = concatNode.InputNodes.Select(n => n.Id).ToList();
     }
 
     private bool CanExecuteGenerateChain(object? parameter)
@@ -1091,14 +1055,13 @@ public class NodeGraphViewModel : INotifyPropertyChanged
                                     var target = saveData.Nodes.FirstOrDefault(n => n.Id == conn.TargetId);
 
                                     if (source == null || target == null) continue;
-                                    if (source.Type == NodeType.Character || source.Type == NodeType.Base || source.Type == NodeType.BaseConcat)
+                                    if (source.Type is NodeType.Character or NodeType.Base or NodeType.BaseConcat)
                                     {
                                         source.NextNodes.Add(target);
+                                        continue;
                                     }
-                                    else
-                                    {
-                                        source.NextNode = target;
-                                    }
+                                    
+                                    source.NextNode = target;
                                 }
                                 
                                 // Execute sub-graph recursively
@@ -1162,17 +1125,14 @@ public class NodeGraphViewModel : INotifyPropertyChanged
                                     var source = saveData.Nodes.FirstOrDefault(n => n.Id == conn.SourceId);
                                     var target = saveData.Nodes.FirstOrDefault(n => n.Id == conn.TargetId);
 
-                                    if (source != null && target != null)
+                                    if (source == null || target == null) continue;
+                                    if (source.Type is NodeType.Character or NodeType.Base or NodeType.BaseConcat)
                                     {
-                                        if (source.Type == NodeType.Character || source.Type == NodeType.Base || source.Type == NodeType.BaseConcat)
-                                        {
-                                            source.NextNodes.Add(target);
-                                        }
-                                        else
-                                        {
-                                            source.NextNode = target;
-                                        }
+                                        source.NextNodes.Add(target);
+                                        continue;
                                     }
+                                    
+                                    source.NextNode = target;
                                 }
                                 await ProcessNodeChainRecursive(subBeginNode, saveData.Nodes);
                             }
@@ -1382,10 +1342,9 @@ public class NodeGraphViewModel : INotifyPropertyChanged
 
     private void UpdateBaseConcatNode(GenerationNode node, IList<GenerationNode> contextNodes)
     {
-        // Resolve inputs for this BaseConcat node
-        // Use InputNodes order if available, otherwise fallback to GetEffectiveInputs
-        var concatInputs = node.InputNodes.Any() ? node.InputNodes.Where(n => !n.IsBypassed).ToList() // Filter bypassed if they are in InputNodes
-            : GetEffectiveInputs(node, contextNodes).Where(n => !n.IsBypassed).ToList(); // Filter bypassed from effective inputs
+        var concatInputs = node.InputNodes.Any() ? 
+            node.InputNodes.Where(n => !n.IsBypassed).ToList() : 
+            GetEffectiveInputs(node, contextNodes).Where(n => !n.IsBypassed).ToList();
         
         // If using InputNodes, we might need to handle bypassed nodes recursively if they are in the list
         if (node.InputNodes.Any())
@@ -1467,14 +1426,6 @@ public class NodeGraphViewModel : INotifyPropertyChanged
 
     private void ExecuteGoToBeginNode(object? parameter)
     {
-        // This command will be handled in the View (Code-behind) because it involves ScrollViewer manipulation
-        // But we can trigger an event or use a service if we want strict MVVM.
-        // For simplicity, we can let the View subscribe to this command or handle the key binding directly in View.
-        // However, since the user asked for "Ctrl+Home", we can handle the logic here if we had access to ScrollViewer offset.
-        
-        // Actually, the best way to handle "Go to Node" in MVVM without direct View reference is to have an event or a messenger.
-        // But since we are in a simple project, we can just expose an event here that the View subscribes to.
-        
         RequestBringIntoView?.Invoke(this, NodeType.Begin);
     }
 

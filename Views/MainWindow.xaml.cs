@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using ImageGen.Helpers;
 using ImageGen.Models.Api;
 using ImageGen.ViewModels;
 using Button = System.Windows.Controls.Button;
@@ -93,63 +94,7 @@ public partial class MainWindow : Window
     {
         if (ViewModel == null || _lastFocusedTextBox == null) return;
 
-        var textBox = _lastFocusedTextBox;
-        string text = textBox.Text;
-        int caretIndex = textBox.CaretIndex;
-
-        // 커서 위치가 텍스트 범위를 벗어나는 경우 보정
-        if (caretIndex > text.Length) caretIndex = text.Length;
-        if (caretIndex < 0) caretIndex = 0;
-
-        // 구분자 위치 찾기
-        int delimiterIndex = -1;
-        if (text.Length > 0)
-        {
-            delimiterIndex = text.LastIndexOfAny(new[] { ',', '\n' }, Math.Min(Math.Max(0, caretIndex - 1), text.Length - 1));
-        }
-
-        int start;
-        string prefix = "";
-
-        if (delimiterIndex == -1)
-        {
-            start = 0;
-        }
-        else
-        {
-            start = delimiterIndex + 1;
-            // 구분자가 쉼표인 경우에만 공백 추가
-            if (text[delimiterIndex] == ',')
-            {
-                prefix = " ";
-            }
-        }
-
-        int end = text.IndexOfAny(new[] { ',', '\n' }, caretIndex);
-        if (end == -1)
-        {
-            end = text.Length;
-        }
-
-        // 기존 단어 교체
-        string newText = text.Substring(0, start) + prefix + selectedTag.Tag + ", " + text.Substring(end);
-        int newCaretIndex = start + prefix.Length + selectedTag.Tag.Length + 2;
-        
-        if (textBox.Name == "PromptBox") // Positive Prompt
-        {
-            ViewModel.Prompt = newText;
-        }
-        else 
-        {
-            // TextBox의 Text 속성을 직접 변경하고, 바인딩을 업데이트
-            textBox.Text = newText;
-            var binding = textBox.GetBindingExpression(TextBox.TextProperty);
-            binding?.UpdateSource();
-        }
-
-        // 커서 위치 복원 및 포커스
-        textBox.CaretIndex = newCaretIndex;
-        textBox.Focus();
+        TextBoxHelper.ApplyTag(_lastFocusedTextBox, selectedTag);
         
         ViewModel.TagSuggestions.Clear();
     }
