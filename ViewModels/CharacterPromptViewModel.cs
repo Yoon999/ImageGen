@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using ImageGen.Models;
 using ImageGen.Services;
+using ImageGen.Views;
 
 namespace ImageGen.ViewModels;
 
@@ -14,7 +15,7 @@ public class CharacterPromptViewModel : INotifyPropertyChanged
     private double _x = 0.5;
     private double _y = 0.5;
     private CharacterPreset? _selectedPreset;
-    private string _newPresetName = string.Empty;
+    private string _newPresetPath = string.Empty; 
     
     public ICommand RefreshPresetsCommand { get; }
 
@@ -22,15 +23,18 @@ public class CharacterPromptViewModel : INotifyPropertyChanged
     {
         LoadPresets();
         
-        LoadPresetCommand = new RelayCommand(ExecuteLoadPreset);
-        UpdatePresetCommand = new RelayCommand(ExecuteUpdatePreset);
+        LoadPresetCommand = new RelayCommand(ExecuteLoadPreset, CanExecutePresetAction);
+        UpdatePresetCommand = new RelayCommand(ExecuteUpdatePreset, CanExecutePresetAction);
         SavePresetCommand = new RelayCommand(ExecuteSavePreset);
-        DeletePresetCommand = new RelayCommand(ExecuteDeletePreset);
+        DeletePresetCommand = new RelayCommand(ExecuteDeletePreset, CanExecutePresetAction);
+        ClearPresetCommand = new RelayCommand(ExecuteClearPreset);
         RefreshPresetsCommand = new RelayCommand(_ => LoadPresets());
+        OpenPresetWindowCommand = new RelayCommand(ExecuteOpenPresetWindow);
+        OpenSavePresetWindowCommand = new RelayCommand(ExecuteOpenSavePresetWindow);
     }
 
     public ObservableCollection<CharacterPreset> Presets { get; } = new();
-
+    
     public CharacterPreset? SelectedPreset
     {
         get => _selectedPreset;
@@ -40,16 +44,28 @@ public class CharacterPromptViewModel : INotifyPropertyChanged
             {
                 _selectedPreset = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(IsPresetSelected));
+                OnPropertyChanged(nameof(SelectedPresetDisplay));
+                CommandManager.InvalidateRequerySuggested();
+                
+                if (value != null && !value.IsFolder)
+                {
+                    NewPresetPath = value.FullPath;
+                }
             }
         }
     }
 
-    public string NewPresetName
+    public bool IsPresetSelected => SelectedPreset != null && !SelectedPreset.IsFolder;
+
+    public string SelectedPresetDisplay => IsPresetSelected ? SelectedPreset!.FullPath : "No preset selected";
+
+    public string NewPresetPath
     {
-        get => _newPresetName;
+        get => _newPresetPath;
         set
         {
-            _newPresetName = value;
+            _newPresetPath = value;
             OnPropertyChanged();
         }
     }
@@ -110,20 +126,42 @@ public class CharacterPromptViewModel : INotifyPropertyChanged
     public ICommand UpdatePresetCommand { get; }
     public ICommand SavePresetCommand { get; }
     public ICommand DeletePresetCommand { get; }
+    public ICommand ClearPresetCommand { get; }
+    public ICommand OpenPresetWindowCommand { get; }
+    public ICommand OpenSavePresetWindowCommand { get; }
 
     private void LoadPresets()
     {
+        var savedSelectedPath = SelectedPreset?.FullPath;
         Presets.Clear();
-        foreach (var preset in new CharacterPresetService().GetPresets())
+        
+        var service = new CharacterPresetService();
+        var allPresets = service.GetPresets();
+        
+        foreach(var preset in allPresets)
         {
             Presets.Add(preset);
+        }
+
+        if (savedSelectedPath != null)
+        {
+            SelectedPreset = service.FindPresetByPath(savedSelectedPath);
         }
     }
 
     private void ApplyPreset(CharacterPreset preset)
     {
+        if (preset.IsFolder) return;
+        
         Prompt = preset.Prompt;
         NegativePrompt = preset.NegativePrompt;
+        X = preset.X;
+        Y = preset.Y;
+    }
+
+    private bool CanExecutePresetAction(object? parameter)
+    {
+        return IsPresetSelected;
     }
 
     private void ExecuteLoadPreset(object? parameter)
@@ -136,50 +174,78 @@ public class CharacterPromptViewModel : INotifyPropertyChanged
 
     private void ExecuteUpdatePreset(object? parameter)
     {
-        if (SelectedPreset == null) return;
+        if (SelectedPreset == null || SelectedPreset.IsFolder) return;
+        
         var preset = new CharacterPreset
         {
-            Name = SelectedPreset.Name,
             Prompt = Prompt,
             NegativePrompt = NegativePrompt,
             X = X,
             Y = Y
         };
 
-        new CharacterPresetService().SavePreset(preset);
+        new CharacterPresetService().SavePreset(SelectedPreset.FullPath, preset);
         LoadPresets();
-        
-        // 방금 저장한 프리셋 선택
-        SelectedPreset = Presets.FirstOrDefault(p => p.Name == preset.Name);
     }
     
     private void ExecuteSavePreset(object? parameter)
     {
-        if (string.IsNullOrWhiteSpace(NewPresetName)) return;
+        if (string.IsNullOrWhiteSpace(NewPresetPath)) return;
 
         var preset = new CharacterPreset
         {
-            Name = NewPresetName,
             Prompt = Prompt,
             NegativePrompt = NegativePrompt,
             X = X,
             Y = Y
         };
 
-        new CharacterPresetService().SavePreset(preset);
+        new CharacterPresetService().SavePreset(NewPresetPath, preset);
         LoadPresets();
         
-        // 방금 저장한 프리셋 선택
-        SelectedPreset = Presets.FirstOrDefault(p => p.Name == NewPresetName);
+        SelectedPreset = new CharacterPresetService().FindPresetByPath(NewPresetPath);
     }
 
     private void ExecuteDeletePreset(object? parameter)
     {
-        if (SelectedPreset == null) return;
+        if (SelectedPreset == null || SelectedPreset.IsFolder) return;
 
-        new CharacterPresetService().DeletePreset(SelectedPreset.Name);
+        new CharacterPresetService().DeletePreset(SelectedPreset.FullPath);
         LoadPresets();
         SelectedPreset = null;
+    }
+
+    private void ExecuteClearPreset(object? parameter)
+    {
+        SelectedPreset = null;
+    }
+
+    private void ExecuteOpenPresetWindow(object? parameter)
+    {
+        var service = new CharacterPresetService();
+        var presets = service.GetPresets();
+        
+        var window = new PresetSelectionWindow(presets);
+        
+        if (window.ShowDialog() == true && window.SelectedPreset != null)
+        {
+            SelectedPreset = window.SelectedPreset;
+            ApplyPreset(window.SelectedPreset);
+        }
+    }
+
+    private void ExecuteOpenSavePresetWindow(object? parameter)
+    {
+        var service = new CharacterPresetService();
+        var presets = service.GetPresets();
+        
+        var window = new PresetSaveWindow(presets, NewPresetPath);
+        
+        if (window.ShowDialog() == true && !string.IsNullOrWhiteSpace(window.SavePath))
+        {
+            NewPresetPath = window.SavePath;
+            ExecuteSavePreset(null);
+        }
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

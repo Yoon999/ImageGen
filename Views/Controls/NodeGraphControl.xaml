@@ -97,59 +97,58 @@
                             <StackPanel Visibility="{Binding Type, Converter={StaticResource NodeTypeToVisibilityConverter}, ConverterParameter=BaseContent}">
                                 <ui:TextBlock Text="Positive Prompt" Foreground="Gray" FontSize="10"/>
                                 <ui:TextBox Text="{Binding BasePrompt}" Margin="0,0,0,5" MinHeight="40" MaxHeight="120" TextAlignment="Left" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" ClearButtonEnabled="False"
-                                            TextChanged="PromptBox_OnTextChanged" GotFocus="PromptBox_GotFocus"/>
+                                            TextChanged="PromptBox_OnTextChanged" GotFocus="PromptBox_GotFocus" PreviewKeyDown="PromptBox_PreviewKeyDown"/>
                                 
                                 <ui:TextBlock Text="Negative Prompt" Foreground="Gray" FontSize="10"/>
                                 <ui:TextBox Text="{Binding NegativePrompt}" Margin="0,0,0,5" MinHeight="40" MaxHeight="120" TextAlignment="Left" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" ClearButtonEnabled="False"
-                                            TextChanged="PromptBox_OnTextChanged" GotFocus="PromptBox_GotFocus"/>
+                                            TextChanged="PromptBox_OnTextChanged" GotFocus="PromptBox_GotFocus" PreviewKeyDown="PromptBox_PreviewKeyDown"/>
                             </StackPanel>
 
                             <!-- Character Node Content -->
                             <StackPanel Visibility="{Binding Type, Converter={StaticResource NodeTypeToVisibilityConverter}, ConverterParameter=CharacterContent}">
                                 <!-- Preset Selection -->
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
-                                    <ComboBox ItemsSource="{Binding DataContext.CharacterPresets, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                              DisplayMemberPath="Name"
-                                              Width="100" Margin="0,0,5,0"
-                                              x:Name="PresetComboBox"/>
-                                    <ui:Button Content="Load" 
-                                            Command="{Binding DataContext.LoadCharacterPresetCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                            FontSize="10" Padding="2">
-                                        <Button.CommandParameter>
-                                            <MultiBinding Converter="{StaticResource MultiValueConverter}">
-                                                <Binding Path="."/>
-                                                <Binding ElementName="PresetComboBox" Path="SelectedItem"/>
-                                            </MultiBinding>
-                                        </Button.CommandParameter>
-                                    </ui:Button>
+                                <Grid Margin="0,0,0,5">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    
+                                    <ui:Button Grid.Column="0" Content="📂 Browse" 
+                                            Command="{Binding DataContext.OpenPresetWindowCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding}"
+                                            FontSize="10" Padding="5,0" Margin="0,0,5,0" Height="22"/>
+                                            
+                                    <TextBlock Grid.Column="1" Text="{Binding PresetNameDisplay}" VerticalAlignment="Center" Margin="5,0,0,0"
+                                               Foreground="LightGray" TextTrimming="CharacterEllipsis" ToolTip="{Binding PresetNameDisplay}"/>
+                                </Grid>
+                                
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,5">
+                                    <ui:Button Content="Clear" 
+                                            Command="{Binding DataContext.ClearCharacterPresetCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding}"
+                                            FontSize="10" Padding="5,0" Margin="0,0,5,0" Height="22" ToolTip="Clear Selected Preset"/>
                                     <ui:Button Content="Update" 
                                             Command="{Binding DataContext.UpdateCharacterPresetCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                            FontSize="10" Padding="2" Margin="5,0,0,0">
-                                        <Button.CommandParameter>
-                                            <MultiBinding Converter="{StaticResource MultiValueConverter}">
-                                                <Binding Path="."/>
-                                                <Binding ElementName="PresetComboBox" Path="SelectedItem"/>
-                                            </MultiBinding>
-                                        </Button.CommandParameter>
-                                    </ui:Button>
+                                            CommandParameter="{Binding}"
+                                            FontSize="10" Padding="5,0" Margin="0,0,0,0" Height="22"/>
                                 </StackPanel>
                                 
-                                <!-- Preset Name Input & Save New -->
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
-                                    <ui:TextBox Text="{Binding PresetName}" Width="100" Margin="0,0,5,0" ToolTip="Preset Name"/>
-                                    <ui:Button Content="Save New" 
-                                            Command="{Binding DataContext.SaveCharacterPresetCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                <!-- Save New -->
+                                <Grid Margin="0,0,0,5">
+                                    <ui:Button Content="💾 Save As New Preset" 
+                                            Command="{Binding DataContext.OpenSavePresetWindowCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                             CommandParameter="{Binding}"
-                                            FontSize="10" Padding="2"/>
-                                </StackPanel>
+                                            HorizontalAlignment="Stretch"
+                                            FontSize="10" Padding="5,0" Height="24"/>
+                                </Grid>
 
                                 <ui:TextBlock Text="Positive Prompt" Foreground="Gray" FontSize="10"/>
                                 <ui:TextBox Text="{Binding BasePrompt}" Margin="0,0,0,5" MinHeight="40" MaxHeight="120" TextAlignment="Left" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" ClearButtonEnabled="False"
-                                            TextChanged="PromptBox_OnTextChanged" GotFocus="PromptBox_GotFocus"/>
+                                            TextChanged="PromptBox_OnTextChanged" GotFocus="PromptBox_GotFocus" PreviewKeyDown="PromptBox_PreviewKeyDown"/>
                                 
                                 <ui:TextBlock Text="Negative Prompt" Foreground="Gray" FontSize="10"/>
                                 <ui:TextBox Text="{Binding NegativePrompt}" Margin="0,0,0,5" MinHeight="40" MaxHeight="120" TextAlignment="Left" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" ClearButtonEnabled="False"
-                                            TextChanged="PromptBox_OnTextChanged" GotFocus="PromptBox_GotFocus"/>
+                                            TextChanged="PromptBox_OnTextChanged" GotFocus="PromptBox_GotFocus" PreviewKeyDown="PromptBox_PreviewKeyDown"/>
                                 
                                 <Grid Margin="0,5,0,0">
                                     <Grid.ColumnDefinitions>

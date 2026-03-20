@@ -9,6 +9,7 @@ using ImageGen.Models;
 using ImageGen.Models.Api;
 using ImageGen.Services;
 using ImageGen.Services.Interfaces;
+using ImageGen.Views;
 using Application = System.Windows.Application;
 using MessageBox = System.Windows.MessageBox;
 using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
@@ -48,7 +49,7 @@ public class NodeGraphViewModel : INotifyPropertyChanged
 
     public ObservableCollection<GenerationNode> Nodes { get; } = new();
     public ObservableCollection<ConnectionViewModel> Connections { get; } = new();
-    public ObservableCollection<CharacterPreset> CharacterPresets { get; } = new();
+    public ObservableCollection<string> CharacterPresetPaths { get; } = new();
     
     public ObservableCollection<TagSuggestion> TagSuggestions
     {
@@ -78,6 +79,9 @@ public class NodeGraphViewModel : INotifyPropertyChanged
     public ICommand SaveCharacterPresetCommand { get; }
     public ICommand UpdateCharacterPresetCommand { get; }
     public ICommand LoadCharacterPresetCommand { get; }
+    public ICommand OpenPresetWindowCommand { get; }
+    public ICommand OpenSavePresetWindowCommand { get; }
+    public ICommand ClearCharacterPresetCommand { get; }
     public ICommand SaveGraphCommand { get; }
     public ICommand LoadGraphCommand { get; }
     public ICommand RefreshPresetsCommand { get; }
@@ -115,8 +119,11 @@ public class NodeGraphViewModel : INotifyPropertyChanged
         GenerateChainCommand = new RelayCommand(ExecuteGenerateChain, CanExecuteGenerateChain);
         CancelConnectionCommand = new RelayCommand(ExecuteCancelConnection);
         SaveCharacterPresetCommand = new RelayCommand(ExecuteSaveCharacterPreset);
-        UpdateCharacterPresetCommand = new RelayCommand(ExecuteUpdateCharacterPreset);
+        UpdateCharacterPresetCommand = new RelayCommand(ExecuteUpdateCharacterPreset, CanExecuteNodePresetAction);
         LoadCharacterPresetCommand = new RelayCommand(ExecuteLoadCharacterPreset);
+        OpenPresetWindowCommand = new RelayCommand(ExecuteOpenPresetWindow);
+        OpenSavePresetWindowCommand = new RelayCommand(ExecuteOpenSavePresetWindow);
+        ClearCharacterPresetCommand = new RelayCommand(ExecuteClearCharacterPreset, CanExecuteNodePresetAction);
         SaveGraphCommand = new RelayCommand(ExecuteSaveGraph);
         LoadGraphCommand = new RelayCommand(ExecuteLoadGraph);
         RefreshPresetsCommand = new RelayCommand(_ => LoadPresets());
@@ -142,10 +149,25 @@ public class NodeGraphViewModel : INotifyPropertyChanged
 
     private void LoadPresets()
     {
-        CharacterPresets.Clear();
-        foreach (var preset in new CharacterPresetService().GetPresets())
+        CharacterPresetPaths.Clear();
+        var service = new CharacterPresetService();
+        var allPresets = service.GetPresets();
+        FlattenPresets(allPresets, "", CharacterPresetPaths);
+    }
+    
+    private void FlattenPresets(List<CharacterPreset> nodes, string currentPath, ObservableCollection<string> result)
+    {
+        foreach (var node in nodes)
         {
-            CharacterPresets.Add(preset);
+            string path = string.IsNullOrEmpty(currentPath) ? node.Name : $"{currentPath}/{node.Name}";
+            if (node.IsFolder)
+            {
+                FlattenPresets(node.Children, path, result);
+            }
+            else
+            {
+                result.Add(path);
+            }
         }
     }
 
@@ -186,6 +208,10 @@ public class NodeGraphViewModel : INotifyPropertyChanged
         if (e.PropertyName == nameof(GenerationNode.NextNode) || e.PropertyName == nameof(GenerationNode.NextNodes))
         {
             UpdateConnections();
+        }
+        else if (e.PropertyName == nameof(GenerationNode.PresetName))
+        {
+            CommandManager.InvalidateRequerySuggested();
         }
     }
 
@@ -756,51 +782,67 @@ public class NodeGraphViewModel : INotifyPropertyChanged
     {
         if (parameter is not GenerationNode { Type: NodeType.Character } node) return;
         
-        string name = node.PresetName;
+        string path = node.PresetName;
             
-        if (string.IsNullOrWhiteSpace(name))
+        if (string.IsNullOrWhiteSpace(path))
         {
-            name = $"Character_{DateTime.Now:yyyyMMdd_HHmmss}";
+            path = $"Character_{DateTime.Now:yyyyMMdd_HHmmss}";
             if (!string.IsNullOrWhiteSpace(node.BasePrompt) && node.BasePrompt.Length < 20)
             {
-                name = node.BasePrompt;
+                path = node.BasePrompt;
             }
-            node.PresetName = name; // Update node's preset name
+            node.PresetName = path; // Update node's preset path
         }
 
         var preset = new CharacterPreset
         {
-            Name = name,
             Prompt = node.BasePrompt,
             NegativePrompt = node.NegativePrompt,
             X = node.CharX,
             Y = node.CharY
         };
             
-        new CharacterPresetService().SavePreset(preset);
+        new CharacterPresetService().SavePreset(path, preset);
         LoadPresets(); // Refresh list
-        MessageBox.Show($"Saved preset: {name}");
+        MessageBox.Show($"Saved preset: {path}");
+    }
+
+    private bool CanExecuteNodePresetAction(object? parameter)
+    {
+        if (parameter is object[] { Length: 2 } args)
+        {
+            if (args[0] is GenerationNode node)
+            {
+                 return node.IsPresetSelected;
+            }
+        }
+        else if (parameter is GenerationNode singleNode)
+        {
+            return singleNode.IsPresetSelected;
+        }
+        return false;
     }
 
     private void ExecuteUpdateCharacterPreset(object? parameter)
     {
         // This command is intended to update an existing preset selected in the ComboBox
-        // We need both the Node (source of data) and the Selected Preset (target to update)
+        // We need both the Node (source of data) and the Selected Preset Path (target to update)
 
         if (parameter is not object[] { Length: 2 } args) return;
         
-        if (args[0] is GenerationNode node && args[1] is CharacterPreset selectedPreset)
+        if (args[0] is GenerationNode node && args[1] is string selectedPath)
         {
-            // Update the selected preset with current node data
-            selectedPreset.Prompt = node.BasePrompt;
-            selectedPreset.NegativePrompt = node.NegativePrompt;
-            selectedPreset.X = node.CharX;
-            selectedPreset.Y = node.CharY;
+            var presetData = new CharacterPreset
+            {
+                Prompt = node.BasePrompt,
+                NegativePrompt = node.NegativePrompt,
+                X = node.CharX,
+                Y = node.CharY
+            };
                 
-            // Save using service (it handles update by name)
-            new CharacterPresetService().SavePreset(selectedPreset);
+            new CharacterPresetService().SavePreset(selectedPath, presetData);
             LoadPresets();
-            MessageBox.Show($"Updated preset: {selectedPreset.Name}");
+            MessageBox.Show($"Updated preset: {selectedPath}");
         }
         else
         {
@@ -810,14 +852,63 @@ public class NodeGraphViewModel : INotifyPropertyChanged
 
     private void ExecuteLoadCharacterPreset(object? parameter)
     {
-        if (parameter is not object[] { Length: 2 } args) return;
-        if (args[0] is not GenerationNode node || args[1] is not CharacterPreset preset) return;
+        // Now it's handled by OpenPresetWindowCommand mostly, 
+        // but keeping this if we still want to support typing path and hitting load
+        if (parameter is not GenerationNode node) return;
         
+        string path = node.PresetName;
+        if (string.IsNullOrWhiteSpace(path)) return;
+        
+        var preset = new CharacterPresetService().FindPresetByPath(path);
+        if (preset == null || preset.IsFolder) return;
+
         node.BasePrompt = preset.Prompt;
         node.NegativePrompt = preset.NegativePrompt;
         node.CharX = preset.X;
         node.CharY = preset.Y;
-        node.PresetName = preset.Name; // Also load the name
+    }
+    
+    private void ExecuteClearCharacterPreset(object? parameter)
+    {
+         if (parameter is GenerationNode node)
+         {
+             node.PresetName = string.Empty;
+         }
+    }
+
+    private void ExecuteOpenPresetWindow(object? parameter)
+    {
+        if (parameter is not GenerationNode node) return;
+        
+        var service = new CharacterPresetService();
+        var presets = service.GetPresets();
+        
+        var window = new PresetSelectionWindow(presets);
+        
+        if (window.ShowDialog() == true && window.SelectedPreset != null)
+        {
+            node.BasePrompt = window.SelectedPreset.Prompt;
+            node.NegativePrompt = window.SelectedPreset.NegativePrompt;
+            node.CharX = window.SelectedPreset.X;
+            node.CharY = window.SelectedPreset.Y;
+            node.PresetName = window.SelectedPreset.FullPath;
+        }
+    }
+
+    private void ExecuteOpenSavePresetWindow(object? parameter)
+    {
+        if (parameter is not GenerationNode node) return;
+
+        var service = new CharacterPresetService();
+        var presets = service.GetPresets();
+        
+        var window = new PresetSaveWindow(presets, node.PresetName);
+        
+        if (window.ShowDialog() == true && !string.IsNullOrWhiteSpace(window.SavePath))
+        {
+            node.PresetName = window.SavePath;
+            ExecuteSaveCharacterPreset(node);
+        }
     }
     
     private void ExecuteSelectGraphFile(object? parameter)

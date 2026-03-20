@@ -23,29 +23,25 @@ public class GenerationNode : INotifyPropertyChanged
     private string _title = string.Empty;
     private string _basePrompt = string.Empty;
     private string _negativePrompt = string.Empty;
-    // private string _characterPrompt = string.Empty;
     private string _presetName = string.Empty;
     private double _charX = 0.5;
     private double _charY = 0.5;
     private double _uiX = 0;
     private double _uiY = 0;
     private double _width = 200;
-    private double _height = 150; // Approximate height
+    private double _height = 150; 
     private bool _isCollapsed;
     private bool _isSelected;
     private bool _isBypassed;
     private GenerationNode? _nextNode;
     private NodeType _type = NodeType.Normal;
     
-    // For multiple outputs (Character nodes)
     [JsonIgnore]
     public ObservableCollection<GenerationNode> NextNodes { get; } = new();
     
-    // For BaseConcat inputs (Runtime only, ordered)
     [JsonIgnore]
     public ObservableCollection<GenerationNode> InputNodes { get; } = new();
     
-    // Persisted order of inputs for BaseConcat
     public List<string> InputOrder { get; set; } = new();
     
     public string Id 
@@ -98,8 +94,6 @@ public class GenerationNode : INotifyPropertyChanged
         set { _isBypassed = value; OnPropertyChanged(); }
     }
 
-    // Used as Positive Prompt for Base/Character nodes, and legacy prompt for Normal nodes if needed
-    // For Graph nodes, this stores the file path
     public string BasePrompt
     {
         get => _basePrompt;
@@ -112,12 +106,23 @@ public class GenerationNode : INotifyPropertyChanged
         set { _negativePrompt = value; OnPropertyChanged(); }
     }
     
-    // Used for storing the preset name in Character nodes
     public string PresetName
     {
         get => _presetName;
-        set { _presetName = value; OnPropertyChanged(); }
+        set 
+        { 
+            _presetName = value; 
+            OnPropertyChanged(); 
+            OnPropertyChanged(nameof(PresetNameDisplay));
+            OnPropertyChanged(nameof(IsPresetSelected));
+        }
     }
+
+    [JsonIgnore]
+    public string PresetNameDisplay => string.IsNullOrEmpty(PresetName) ? "No preset selected" : PresetName;
+
+    [JsonIgnore]
+    public bool IsPresetSelected => !string.IsNullOrEmpty(PresetName);
 
     public double CharX
     {
@@ -131,7 +136,6 @@ public class GenerationNode : INotifyPropertyChanged
         set { _charY = value; OnPropertyChanged(); }
     }
 
-    // UI Position & Size
     public double UiX
     {
         get => _uiX;
@@ -156,9 +160,6 @@ public class GenerationNode : INotifyPropertyChanged
         set { _height = value; OnPropertyChanged(); }
     }
     
-    // Connection (Single output for Normal/Begin/Base nodes mostly, but we can generalize)
-    // We keep NextNode for backward compatibility or single-path logic (Begin->Normal->End)
-    // But for Character nodes, we use NextNodes.
     [JsonIgnore]
     public GenerationNode? NextNode
     {

@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using ImageGen.Helpers;
+using ImageGen.Models;
 using ImageGen.ViewModels;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 using TextBox = System.Windows.Controls.TextBox;
@@ -100,6 +101,21 @@ public partial class CharacterPromptControl : UserControl
                     TextBoxHelper.AdjustWeight(textBox, -0.1);
                     e.Handled = true;
                 }
+            }
+        }
+    }
+
+    private void TreeView_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
+    {
+        if (DataContext is CharacterPromptViewModel vm)
+        {
+            if (e.NewValue is CharacterPreset preset)
+            {
+                vm.SelectedPreset = preset;
+            }
+            else
+            {
+                vm.SelectedPreset = null;
             }
         }
     }

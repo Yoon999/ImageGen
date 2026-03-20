@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:ImageGen.Views.Controls"
              xmlns:helpers="clr-namespace:ImageGen.Helpers"
+             xmlns:models="clr-namespace:ImageGen.Models"
              mc:Ignorable="d"
              d:DesignHeight="240" d:DesignWidth="400"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
@@ -29,51 +30,43 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Row="0">
+                    
                     <!-- Row 1: Select, Load, Update, Delete -->
                     <Grid Margin="0,5,0,5">
                         <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <ComboBox Grid.Column="0" ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}" DisplayMemberPath="Name" 
-                                  FontSize="10" Padding="0" Margin="0,0,5,0" Height="22" HorizontalAlignment="Stretch" VerticalAlignment="Center">
-                            <ComboBox.ItemContainerStyle>
-                                <Style TargetType="{x:Type ComboBoxItem}">
-
-                                </Style>
-                            </ComboBox.ItemContainerStyle>
-                        </ComboBox>
-
-                        <ui:Button Grid.Column="1" Content="Load" Command="{Binding LoadPresetCommand}" HorizontalAlignment="Right"
-                                   FontSize="10" Padding="0" Margin="0,0,5,0" Width="80" Height="22" />
-
-                        <ui:Button Grid.Column="2" Content="Update" Command="{Binding UpdatePresetCommand}" HorizontalAlignment="Right"
-                                   FontSize="10" Padding="0" Margin="0,0,5,0" Width="64" Height="22" />
-
-                        <ui:Button Grid.Column="3" Content="🗑️" Command="{Binding DeletePresetCommand}" HorizontalAlignment="Right"
-                                   FontSize="10" Padding="0" Margin="0,0,5,0" Width="32" Height="22" ToolTip="Delete Preset" />
-                    </Grid>
-
-                    <!-- Row 2: Name Input, Save New -->
-                    <Grid Margin="0,5,0,5">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <ui:TextBox Grid.Column="0" Text="{Binding NewPresetName, UpdateSourceTrigger=PropertyChanged}"
-                                    FontSize="16" Padding="0" Margin="0,0,5,0" Height="22" HorizontalAlignment="Stretch" VerticalAlignment="Center"
-                                    ToolTip="New Preset Name" />
                         
-                        <ui:Button Grid.Column="1" Content="Save New" Command="{Binding SavePresetCommand}" HorizontalAlignment="Right"
-                                   FontSize="10" Padding="5,0" Margin="0,0,5,0" Width="80" Height="22" />
+                        <ui:Button Grid.Column="0" Content="📂" Command="{Binding OpenPresetWindowCommand}" 
+                                   FontSize="10" Padding="5,0" Margin="0,0,5,0" Height="22" />
+                        
+                        <ui:Button Grid.Column="1" Content="💾" Command="{Binding OpenSavePresetWindowCommand}" HorizontalAlignment="Stretch"
+                                   FontSize="10" Padding="5,0" Height="24" />
+                                   
+                        
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
+                            <ui:Button Content="Clear" Command="{Binding ClearPresetCommand}"
+                                       FontSize="10" Padding="5,0" Margin="5,0,0,0" Height="22" ToolTip="Clear Selected Preset" />
+
+                            <ui:Button Content="Update" Command="{Binding UpdatePresetCommand}"
+                                       FontSize="10" Padding="5,0" Margin="5,0,0,0" Height="22" />
+
+                            <ui:Button Content="🗑️" Command="{Binding DeletePresetCommand}"
+                                       FontSize="10" Padding="5,0" Margin="5,0,0,0" Height="22" ToolTip="Delete Selected Preset" />
+                        </StackPanel>
                     </Grid>
+
+                    <!-- Row 2: Save New -->
+                    <TextBlock Text="{Binding SelectedPresetDisplay}" VerticalAlignment="Center" Margin="5,0,0,0"
+                               Foreground="LightGray" TextTrimming="CharacterEllipsis" ToolTip="{Binding SelectedPresetDisplay}"/>
+
                 </StackPanel>
 
                 <!-- Remove Character Button -->
                 <ui:Button Grid.Column="1" Content="❌" Command="{Binding DataContext.RemoveCharacterCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                           CommandParameter="{Binding}" Width="25" Height="22" Padding="1" Margin="5,0,0,0" VerticalAlignment="Top" Foreground="Red" ToolTip="Remove Character" />
+                           CommandParameter="{Binding}" Width="25" Height="22" Padding="1" Margin="5,0,0,0" VerticalAlignment="Top" HorizontalAlignment="Right" Foreground="Red" ToolTip="Remove Character from Layout" />
             </Grid>
 
             <TabControl Grid.Row="1" Height="120" Margin="0,0,0,5">
@@ -101,12 +94,12 @@
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                     <ui:TextBlock Text="Center X:" VerticalAlignment="Center" Margin="0,0,5,0" />
                     <ui:TextBox Text="{Binding X, StringFormat=N2}" Width="60" VerticalAlignment="Center" Margin="0,0,10,0" BorderThickness="0" />
-                    <Slider Value="{Binding X}" Minimum="0.0" Maximum="1.0" Width="80" VerticalAlignment="Center" />
+                    <Slider Value="{Binding X}" Minimum="0.0" Maximum="1.0" Width="120" VerticalAlignment="Center" />
                 </StackPanel>
                 <StackPanel Orientation="Horizontal">
                     <ui:TextBlock Text="Center Y:" VerticalAlignment="Center" Margin="0,0,5,0" />
                     <ui:TextBox Text="{Binding Y, StringFormat=N2}" Width="60" VerticalAlignment="Center" Margin="0,0,10,0" BorderThickness="0" />
-                    <Slider Value="{Binding Y}" Minimum="0.0" Maximum="1.0" Width="80" VerticalAlignment="Center" />
+                    <Slider Value="{Binding Y}" Minimum="0.0" Maximum="1.0" Width="120" VerticalAlignment="Center" />
                 </StackPanel>
             </StackPanel>
         </Grid>
