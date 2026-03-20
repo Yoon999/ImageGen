@@ -113,10 +113,9 @@ public partial class CharacterPromptControl : UserControl
             {
                 vm.SelectedPreset = preset;
             }
-            else
-            {
-                vm.SelectedPreset = null;
-            }
+            // 컬렉션이 Clear() 될 때 e.NewValue가 null로 들어오는데,
+            // 이때 SelectedPreset을 null로 초기화해버리면 방금 저장/로드한 선택 상태가 풀려버립니다.
+            // Clear는 명시적인 Clear 버튼을 통해서만 동작하도록 변경합니다.
         }
     }
 }

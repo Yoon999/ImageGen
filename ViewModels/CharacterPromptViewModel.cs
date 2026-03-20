@@ -200,9 +200,14 @@ public class CharacterPromptViewModel : INotifyPropertyChanged
             Y = Y
         };
 
-        new CharacterPresetService().SavePreset(NewPresetPath, preset);
-        LoadPresets();
+        var service = new CharacterPresetService();
+        service.SavePreset(NewPresetPath, preset);
         
+        // 새로 저장한 후 로드 상태로 만들기
+        // 주의: SelectedPreset을 null로 초기화한 후 다시 찾아서 넣어야
+        // PropertyChanged가 제대로 발생하여 UI가 갱신될 수 있습니다. (특히 덮어쓰기 할 때 같은 객체면 무시됨)
+        SelectedPreset = null;
+        LoadPresets(); // 트리를 갱신하기 위해 호출
         SelectedPreset = new CharacterPresetService().FindPresetByPath(NewPresetPath);
     }
 
@@ -245,6 +250,8 @@ public class CharacterPromptViewModel : INotifyPropertyChanged
         {
             NewPresetPath = window.SavePath;
             ExecuteSavePreset(null);
+            
+            // ExecuteSavePreset internally updates SelectedPreset
         }
     }
 

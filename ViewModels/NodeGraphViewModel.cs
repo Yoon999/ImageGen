@@ -906,8 +906,21 @@ public class NodeGraphViewModel : INotifyPropertyChanged
         
         if (window.ShowDialog() == true && !string.IsNullOrWhiteSpace(window.SavePath))
         {
+            // Update node first so that when LoadPresets causes re-evaluation it works
             node.PresetName = window.SavePath;
-            ExecuteSaveCharacterPreset(node);
+            
+            var preset = new CharacterPreset
+            {
+                Prompt = node.BasePrompt,
+                NegativePrompt = node.NegativePrompt,
+                X = node.CharX,
+                Y = node.CharY
+            };
+                
+            new CharacterPresetService().SavePreset(window.SavePath, preset);
+            LoadPresets();
+            // Force re-evaluate if preset name display changed internally due to LoadPresets
+            node.PresetName = window.SavePath;
         }
     }
     
