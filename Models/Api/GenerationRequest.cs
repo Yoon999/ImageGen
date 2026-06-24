@@ -16,6 +16,9 @@ public class RequestParameters
     public int height { get; set; } = 1216;
     public double scale { get; set; } = 5.0;
     public string sampler { get; set; } = "k_euler_ancestral";
+    
+    [JsonPropertyName("controlnet_strength")]
+    public double controlnet_strength { get; set; } = 1.0;
     public int steps { get; set; } = 28;
     public long seed { get; set; }
     public int n_samples { get; set; } = 1;
@@ -26,6 +29,8 @@ public class RequestParameters
     public double cfg_rescale { get; set; } = 0.0;
     public string noise_schedule { get; set; } = "karras";
     public bool qualityToggle { get; set; } = true;
+    
+    [JsonPropertyName("uc")]
     public string uc { get; set; } = string.Empty; // Negative Prompt
     public bool dynamic_thresholding { get; set; } = false;
     public bool deliberate_euler_ancestral_bug { get; set; } = false;
@@ -74,6 +79,6 @@ public class V4ExternalCharacterCaption
 
 public class Coordinates
 {
-    public double x { get; set; }
-    public double y { get; set; }
+    public double x { get; set; } = 0.5;
+    public double y { get; set; } = 0.5;
 }

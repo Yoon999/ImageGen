@@ -487,7 +487,6 @@ public class MainViewModel : INotifyPropertyChanged
         {
             // V4 모델인지 확인 (nai-diffusion-4 포함 여부)
             bool isV4 = Request.model.Contains("nai-diffusion-4");
-
             if (isV4)
             {
                 // V4 모델일 경우 v4_prompt 구조체 설정
@@ -526,11 +525,7 @@ public class MainViewModel : INotifyPropertyChanged
                                 new Coordinates { x = charPrompt.X, y = charPrompt.Y }
                             }
                         });
-                    }
-
-                    // Negative Prompt 추가 (캐릭터별 Negative Prompt가 있는 경우)
-                    if (!string.IsNullOrWhiteSpace(charPrompt.NegativePrompt))
-                    {
+         
                         v4NegativePrompt.Caption.CharCaptions.Add(new V4ExternalCharacterCaption
                         {
                             CharCaption = charPrompt.NegativePrompt,
