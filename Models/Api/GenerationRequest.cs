@@ -26,7 +26,7 @@ public class RequestParameters
     public double cfg_rescale { get; set; } = 0.0;
     public string noise_schedule { get; set; } = "karras";
     public bool qualityToggle { get; set; } = true;
-    public string uc { get; set; } = string.Empty; // Negative Prompt (Legacy or V3)
+    public string uc { get; set; } = string.Empty; // Negative Prompt
     public bool dynamic_thresholding { get; set; } = false;
     public bool deliberate_euler_ancestral_bug { get; set; } = false;
     public bool prefer_brownian { get; set; } = true;
@@ -44,8 +44,8 @@ public class V4ConditionInput
     [JsonPropertyName("caption")]
     public V4ExternalCaption Caption { get; set; } = new V4ExternalCaption();
 
-    [JsonPropertyName("legacy_uc")]
-    public bool LegacyUc { get; set; } = false;
+    /*[JsonPropertyName("legacy_uc")]
+    public bool LegacyUc { get; set; } = false;*/
 
     [JsonPropertyName("use_coords")]
     public bool UseCoords { get; set; } = false;

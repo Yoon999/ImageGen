@@ -420,7 +420,7 @@ public class NodeGraphViewModel : INotifyPropertyChanged
         {
             UiX = 200,
             UiY = 200,
-            BasePrompt = "New Node",
+            BasePrompt = "",
             CharX = 0.5,
             CharY = 0.5,
             Type = NodeType.Normal
@@ -1347,6 +1347,7 @@ public class NodeGraphViewModel : INotifyPropertyChanged
             
             // Set Character Prompts
             request.parameters.V4Prompt.Caption.CharCaptions.Clear();
+            request.parameters.V4NegativePrompt?.Caption.CharCaptions.Clear();
             foreach (var charNode in charNodes)
             {
                 request.parameters.V4Prompt.Caption.CharCaptions.Add(new V4ExternalCharacterCaption
@@ -1358,7 +1359,6 @@ public class NodeGraphViewModel : INotifyPropertyChanged
                     }
                 });
                 
-                request.parameters.V4NegativePrompt?.Caption.CharCaptions.Clear();
                 request.parameters.V4NegativePrompt?.Caption.CharCaptions.Add(new V4ExternalCharacterCaption
                 {
                     CharCaption = charNode.NegativePrompt,
@@ -1369,7 +1369,7 @@ public class NodeGraphViewModel : INotifyPropertyChanged
                 });
             }
             
-            request.input = request.parameters.V4Prompt.Caption.BaseCaption; 
+            request.input = request.parameters.V4Prompt.Caption.BaseCaption;
         }
         else
         {

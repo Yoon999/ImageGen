@@ -97,6 +97,12 @@ public class MainViewModel : INotifyPropertyChanged
                     X = charSettings.X,
                     Y = charSettings.Y
                 };
+                
+                if (!string.IsNullOrEmpty(charSettings.PresetPath))
+                {
+                    charViewModel.SelectedPreset = new CharacterPresetService().FindPresetByPath(charSettings.PresetPath);
+                }
+
                 // 각 캐릭터 ViewModel의 변경 사항도 감지하여 저장
                 charViewModel.PropertyChanged += (s, e) => SaveCurrentSettings();
                 CharacterPrompts.Add(charViewModel);
@@ -109,7 +115,7 @@ public class MainViewModel : INotifyPropertyChanged
         // 기본값 설정 (만약 로드된 값이 없거나 비어있다면)
         if (string.IsNullOrEmpty(Request.parameters.uc))
         {
-            Request.parameters.uc = "low quality, worst quality, jpeg artifacts, 2::signature, watermark, copyright name, artist name, logo, artist logo, weibo username, twitter username::, mosaic censoring, bar censor, censored, lowres, bad anatomy, bad hands, abstract, 2::multiple views::, deformed, \nhair flaps, armpit hair, shota, loli, beard,\n\nalphes (style), zun (style), toriyama akira (style), \nasanagi, bkub, bb_(baalbuddy), neocoill, gaoo_(frpjx283), yukito_(dreamrider), konoshige_(ryuun), milkpanda, nameo_(judgemasterkou)";
+            Request.parameters.uc = "";
         }
         
         // Sampler 기본값 확인
@@ -159,7 +165,6 @@ public class MainViewModel : INotifyPropertyChanged
                 _prompt = value;
                 OnPropertyChanged();
                 SaveCurrentSettings(); // 변경 시 저장
-                // OnPromptChanged() 제거: View에서 처리
             }
         }
     }
@@ -181,7 +186,6 @@ public class MainViewModel : INotifyPropertyChanged
         {
             _selectedSuggestion = value;
             OnPropertyChanged();
-            // 선택 시 로직은 View에서 처리하므로 여기서는 제거
         }
     }
 
@@ -470,7 +474,8 @@ public class MainViewModel : INotifyPropertyChanged
                 Prompt = cp.Prompt,
                 NegativePrompt = cp.NegativePrompt,
                 X = cp.X,
-                Y = cp.Y
+                Y = cp.Y,
+                PresetPath = cp.SelectedPreset?.FullPath ?? string.Empty
             }).ToList()
         };
         _settingsService.SaveSettings(settings);

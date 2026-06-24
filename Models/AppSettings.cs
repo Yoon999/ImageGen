@@ -19,4 +19,5 @@ public class CharacterPromptSettings
     public string NegativePrompt { get; set; } = string.Empty;
     public double X { get; set; } = 0.5;
     public double Y { get; set; } = 0.5;
+    public string PresetPath { get; set; } = string.Empty;
 }
