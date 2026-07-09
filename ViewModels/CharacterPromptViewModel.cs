@@ -10,6 +10,7 @@ namespace ImageGen.ViewModels;
 
 public class CharacterPromptViewModel : INotifyPropertyChanged
 {
+    private readonly CharacterPresetService _presetService;
     private string _prompt = string.Empty;
     private string _negativePrompt = string.Empty;
     private double _x = 0.5;
@@ -20,7 +21,13 @@ public class CharacterPromptViewModel : INotifyPropertyChanged
     public ICommand RefreshPresetsCommand { get; }
 
     public CharacterPromptViewModel()
+        : this(new CharacterPresetService())
     {
+    }
+
+    public CharacterPromptViewModel(CharacterPresetService presetService)
+    {
+        _presetService = presetService;
         LoadPresets();
         
         LoadPresetCommand = new RelayCommand(ExecuteLoadPreset, CanExecutePresetAction);
@@ -135,8 +142,7 @@ public class CharacterPromptViewModel : INotifyPropertyChanged
         var savedSelectedPath = SelectedPreset?.FullPath;
         Presets.Clear();
         
-        var service = new CharacterPresetService();
-        var allPresets = service.GetPresets();
+        var allPresets = _presetService.GetPresets();
         
         foreach(var preset in allPresets)
         {
@@ -145,7 +151,7 @@ public class CharacterPromptViewModel : INotifyPropertyChanged
 
         if (savedSelectedPath != null)
         {
-            SelectedPreset = service.FindPresetByPath(savedSelectedPath);
+            SelectedPreset = _presetService.FindPresetByPath(savedSelectedPath);
         }
     }
 
@@ -176,15 +182,9 @@ public class CharacterPromptViewModel : INotifyPropertyChanged
     {
         if (SelectedPreset == null || SelectedPreset.IsFolder) return;
         
-        var preset = new CharacterPreset
-        {
-            Prompt = Prompt,
-            NegativePrompt = NegativePrompt,
-            X = X,
-            Y = Y
-        };
+        var preset = CharacterPresetService.CreatePreset(Prompt, NegativePrompt, X, Y);
 
-        new CharacterPresetService().SavePreset(SelectedPreset.FullPath, preset);
+        _presetService.SavePreset(SelectedPreset.FullPath, preset);
         LoadPresets();
     }
     
@@ -192,30 +192,23 @@ public class CharacterPromptViewModel : INotifyPropertyChanged
     {
         if (string.IsNullOrWhiteSpace(NewPresetPath)) return;
 
-        var preset = new CharacterPreset
-        {
-            Prompt = Prompt,
-            NegativePrompt = NegativePrompt,
-            X = X,
-            Y = Y
-        };
+        var preset = CharacterPresetService.CreatePreset(Prompt, NegativePrompt, X, Y);
 
-        var service = new CharacterPresetService();
-        service.SavePreset(NewPresetPath, preset);
+        _presetService.SavePreset(NewPresetPath, preset);
         
         // 새로 저장한 후 로드 상태로 만들기
         // 주의: SelectedPreset을 null로 초기화한 후 다시 찾아서 넣어야
         // PropertyChanged가 제대로 발생하여 UI가 갱신될 수 있습니다. (특히 덮어쓰기 할 때 같은 객체면 무시됨)
         SelectedPreset = null;
         LoadPresets(); // 트리를 갱신하기 위해 호출
-        SelectedPreset = new CharacterPresetService().FindPresetByPath(NewPresetPath);
+        SelectedPreset = _presetService.FindPresetByPath(NewPresetPath);
     }
 
     private void ExecuteDeletePreset(object? parameter)
     {
         if (SelectedPreset == null || SelectedPreset.IsFolder) return;
 
-        new CharacterPresetService().DeletePreset(SelectedPreset.FullPath);
+        _presetService.DeletePreset(SelectedPreset.FullPath);
         LoadPresets();
         SelectedPreset = null;
     }
@@ -227,8 +220,7 @@ public class CharacterPromptViewModel : INotifyPropertyChanged
 
     private void ExecuteOpenPresetWindow(object? parameter)
     {
-        var service = new CharacterPresetService();
-        var presets = service.GetPresets();
+        var presets = _presetService.GetPresets();
         
         var window = new PresetSelectionWindow(presets);
         
@@ -241,8 +233,7 @@ public class CharacterPromptViewModel : INotifyPropertyChanged
 
     private void ExecuteOpenSavePresetWindow(object? parameter)
     {
-        var service = new CharacterPresetService();
-        var presets = service.GetPresets();
+        var presets = _presetService.GetPresets();
         
         var window = new PresetSaveWindow(presets, NewPresetPath);
         

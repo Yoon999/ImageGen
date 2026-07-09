@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using ImageGen.Helpers;
 using ImageGen.Models;
 
 namespace ImageGen.Services;
@@ -21,6 +22,24 @@ public class CharacterPresetService
     public List<CharacterPreset> GetPresets()
     {
         return _presets;
+    }
+
+    public List<string> GetPresetPaths()
+    {
+        var paths = new List<string>();
+        FlattenPresets(_presets, "", paths);
+        return paths;
+    }
+
+    public static CharacterPreset CreatePreset(string prompt, string negativePrompt, double x, double y)
+    {
+        return new CharacterPreset
+        {
+            Prompt = prompt,
+            NegativePrompt = negativePrompt,
+            X = x,
+            Y = y
+        };
     }
 
     public CharacterPreset? FindPresetByPath(string path)
@@ -124,8 +143,9 @@ public class CharacterPresetService
                 _presets = JsonSerializer.Deserialize<List<CharacterPreset>>(json) ?? new List<CharacterPreset>();
                 PopulateFullPaths(_presets, "");
             }
-            catch
+            catch (Exception ex)
             {
+                Logger.LogError("Failed to load character presets", ex);
                 _presets = new List<CharacterPreset>();
             }
         }
@@ -152,9 +172,25 @@ public class CharacterPresetService
             // Update full paths after save
             PopulateFullPaths(_presets, "");
         }
-        catch
+        catch (Exception ex)
         {
-            // Ignore errors for now
+            Logger.LogError("Failed to save character presets", ex);
+        }
+    }
+
+    private static void FlattenPresets(List<CharacterPreset> nodes, string currentPath, List<string> result)
+    {
+        foreach (var node in nodes)
+        {
+            string path = string.IsNullOrEmpty(currentPath) ? node.Name : $"{currentPath}/{node.Name}";
+            if (node.IsFolder)
+            {
+                FlattenPresets(node.Children, path, result);
+            }
+            else
+            {
+                result.Add(path);
+            }
         }
     }
 }

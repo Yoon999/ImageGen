@@ -19,7 +19,10 @@ public class ImageService : IImageService
 
     public BitmapImage ConvertToBitmapImage(byte[] imageData)
     {
-        if (imageData == null || imageData.Length == 0) return null;
+        if (imageData.Length == 0)
+        {
+            throw new ArgumentException("Image data cannot be empty.", nameof(imageData));
+        }
 
         var image = new BitmapImage();
         using (var mem = new MemoryStream(imageData))

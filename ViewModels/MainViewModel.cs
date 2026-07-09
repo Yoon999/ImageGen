@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.IO;
@@ -23,34 +23,31 @@ public class MainViewModel : INotifyPropertyChanged
     private readonly INovelAiService _novelAiService;
     private readonly IImageService _imageService;
     private readonly SettingsService _settingsService;
-    
+    private readonly CharacterPresetService _characterPresetService;
+    private readonly TagSuggestionService _tagSuggestionService;
+    private readonly ImageGenerationWorkflow _imageGenerationWorkflow;
+
     private string _prompt = string.Empty;
     private string _apiToken = string.Empty;
     private bool _isGenerating;
     private string _statusMessage = "Ready";
     private BitmapImage? _generatedImage;
     private string _saveDirectory;
-    
-    // EXIF Viewer 관련
+
     private BitmapImage? _exifImage;
     private string _exifData = string.Empty;
-    
-    // 중복 생성 방지용
+
     private string _lastRequestJson = string.Empty;
-    
-    // 태그 자동완성 관련
-    private CancellationTokenSource? _debounceCts;
+
     private ObservableCollection<TagSuggestion> _tagSuggestions = new();
     private TagSuggestion? _selectedSuggestion;
     // private bool _isUpdatingPrompt;
 
-    // Seed 관련
     private bool _isRandomSeed = true;
 
     // Character Prompts
     public ObservableCollection<CharacterPromptViewModel> CharacterPrompts { get; } = new();
-
-    // Sampler 목록
+    
     public ObservableCollection<string> Samplers { get; } = new ObservableCollection<string>
     {
         "k_euler_ancestral",
@@ -66,64 +63,65 @@ public class MainViewModel : INotifyPropertyChanged
         _novelAiService = new NovelAiApiService();
         _imageService = new ImageService();
         _settingsService = new SettingsService();
-        
+        _characterPresetService = new CharacterPresetService();
+        _tagSuggestionService = new TagSuggestionService(_novelAiService);
+        _imageGenerationWorkflow = new ImageGenerationWorkflow(_novelAiService, _imageService);
+
         // Initialize NodeGraphViewModel
-        NodeGraphViewModel = new NodeGraphViewModel(this, _novelAiService, _imageService);
-        
-        // 설정 로드
+        NodeGraphViewModel = new NodeGraphViewModel(
+            this,
+            _novelAiService,
+            _imageService,
+            _characterPresetService,
+            _imageGenerationWorkflow);
+
         var settings = _settingsService.LoadSettings();
         _apiToken = settings.ApiToken;
-        _saveDirectory = string.IsNullOrWhiteSpace(settings.SaveDirectory) 
-            ? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Output") 
+        _saveDirectory = string.IsNullOrWhiteSpace(settings.SaveDirectory)
+            ? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Output")
             : settings.SaveDirectory;
         _prompt = settings.LastPrompt;
-        
-        // 파라미터 복원 (null 체크)
+
         if (settings.LastParameters != null)
         {
             Request.parameters = settings.LastParameters;
             _isRandomSeed = settings.IsRandomSeed;
         }
-        
-        // 캐릭터 프롬프트 복원
+
         if (settings.CharacterPrompts != null)
         {
             foreach (var charSettings in settings.CharacterPrompts)
             {
-                var charViewModel = new CharacterPromptViewModel
+                var charViewModel = new CharacterPromptViewModel(_characterPresetService)
                 {
                     Prompt = charSettings.Prompt,
                     NegativePrompt = charSettings.NegativePrompt,
                     X = charSettings.X,
                     Y = charSettings.Y
                 };
-                
+
                 if (!string.IsNullOrEmpty(charSettings.PresetPath))
                 {
-                    charViewModel.SelectedPreset = new CharacterPresetService().FindPresetByPath(charSettings.PresetPath);
+                    charViewModel.SelectedPreset = _characterPresetService.FindPresetByPath(charSettings.PresetPath);
                 }
 
-                // 각 캐릭터 ViewModel의 변경 사항도 감지하여 저장
                 charViewModel.PropertyChanged += (s, e) => SaveCurrentSettings();
                 CharacterPrompts.Add(charViewModel);
             }
         }
-        
-        // CharacterPrompts 컬렉션 변경 감지 (추가/삭제 시 저장)
+
         CharacterPrompts.CollectionChanged += CharacterPrompts_CollectionChanged;
-        
-        // 기본값 설정 (만약 로드된 값이 없거나 비어있다면)
+
         if (string.IsNullOrEmpty(Request.parameters.uc))
         {
             Request.parameters.uc = "";
         }
-        
-        // Sampler 기본값 확인
+
         if (!Samplers.Contains(Request.parameters.sampler))
         {
             Request.parameters.sampler = "k_euler";
         }
-        
+
         GenerateCommand = new RelayCommand(ExecuteGenerate, CanExecuteGenerate);
         SelectFolderCommand = new RelayCommand(ExecuteSelectFolder);
         RandomizeSeedCommand = new RelayCommand(ExecuteRandomizeSeed);
@@ -142,16 +140,14 @@ public class MainViewModel : INotifyPropertyChanged
                 item.PropertyChanged += (s, args) => SaveCurrentSettings();
             }
         }
-        
+
         if (e.OldItems != null)
         {
             foreach (CharacterPromptViewModel item in e.OldItems)
             {
-                // 이벤트 핸들러 제거는 선택사항이지만 메모리 누수 방지를 위해 권장됨
-                // 여기서는 람다식이라 정확한 제거가 어렵지만, ViewModel 수명이 짧으므로 큰 문제는 아님
             }
         }
-        
+
         SaveCurrentSettings();
     }
 
@@ -164,7 +160,7 @@ public class MainViewModel : INotifyPropertyChanged
             {
                 _prompt = value;
                 OnPropertyChanged();
-                SaveCurrentSettings(); // 변경 시 저장
+                SaveCurrentSettings();
             }
         }
     }
@@ -198,11 +194,11 @@ public class MainViewModel : INotifyPropertyChanged
             {
                 _apiToken = value;
                 OnPropertyChanged();
-                SaveCurrentSettings(); // 변경 시 저장
+                SaveCurrentSettings();
             }
         }
     }
-    
+
     public string SaveDirectory
     {
         get => _saveDirectory;
@@ -212,7 +208,7 @@ public class MainViewModel : INotifyPropertyChanged
             {
                 _saveDirectory = value;
                 OnPropertyChanged();
-                SaveCurrentSettings(); // 변경 시 저장
+                SaveCurrentSettings();
             }
         }
     }
@@ -263,11 +259,10 @@ public class MainViewModel : INotifyPropertyChanged
                 Request.parameters.seed = 0;
                 OnPropertyChanged(nameof(Request));
             }
-            SaveCurrentSettings(); // 변경 시 저장
+            SaveCurrentSettings();
         }
     }
 
-    // CfgRescale 바인딩 속성
     public double CfgRescale
     {
         get => Request.parameters.cfg_rescale;
@@ -282,7 +277,6 @@ public class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    // Negative Prompt 바인딩 속성
     public string NegativePrompt
     {
         get => Request.parameters.uc;
@@ -297,7 +291,6 @@ public class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    // SelectedSampler 바인딩 속성
     public string SelectedSampler
     {
         get => Request.parameters.sampler;
@@ -311,8 +304,7 @@ public class MainViewModel : INotifyPropertyChanged
             }
         }
     }
-    
-    // EXIF Viewer 속성
+
     public BitmapImage? ExifImage
     {
         get => _exifImage;
@@ -366,17 +358,15 @@ public class MainViewModel : INotifyPropertyChanged
 
     private void ExecuteRandomizeSeed(object? parameter)
     {
-        var random = new Random();
-        long newSeed = random.NextInt64(1, 9999999999); 
+        long newSeed = RandomSeedService.NextSeed();
         Request.parameters.seed = newSeed;
-        IsRandomSeed = false; 
+        IsRandomSeed = false;
         OnPropertyChanged(nameof(Request));
-        SaveCurrentSettings(); // 변경 시 저장
+        SaveCurrentSettings();
     }
-    
+
     private void ExecuteLoadExifImage(object? parameter)
     {
-        // 파일 열기 다이얼로그 (WPF용)
         var openFileDialog = new Microsoft.Win32.OpenFileDialog
         {
             Filter = "Image files (*.png;*.jpg;*.jpeg)|*.png;*.jpg;*.jpeg|All files (*.*)|*.*"
@@ -390,7 +380,7 @@ public class MainViewModel : INotifyPropertyChanged
 
     private void ExecuteAddCharacter(object? parameter)
     {
-        CharacterPrompts.Add(new CharacterPromptViewModel());
+        CharacterPrompts.Add(new CharacterPromptViewModel(_characterPresetService));
     }
 
     private void ExecuteRemoveCharacter(object? parameter)
@@ -426,7 +416,7 @@ public class MainViewModel : INotifyPropertyChanged
     {
         try
         {
-            // 이미지 표시
+            // ?대?吏 ?쒖떆
             var bitmap = new BitmapImage();
             bitmap.BeginInit();
             bitmap.UriSource = new Uri(filePath);
@@ -435,7 +425,7 @@ public class MainViewModel : INotifyPropertyChanged
             bitmap.Freeze();
             ExifImage = bitmap;
 
-            // 메타데이터 추출
+            // 硫뷀??곗씠??異붿텧
             ExifData = ExifHelper.ExtractMetadata(filePath);
         }
         catch (Exception ex)
@@ -455,7 +445,7 @@ public class MainViewModel : INotifyPropertyChanged
                 Request.parameters.seed = value;
                 OnPropertyChanged();
                 IsRandomSeed = (value == 0);
-                SaveCurrentSettings(); // 변경 시 저장
+                SaveCurrentSettings();
             }
         }
     }
@@ -483,95 +473,40 @@ public class MainViewModel : INotifyPropertyChanged
 
     private async void ExecuteGenerate(object? parameter)
     {
+        await ExecuteGenerateRefactored();
+    }
+
+    private async Task ExecuteGenerateRefactored()
+    {
         try
         {
-            // V4 모델인지 확인 (nai-diffusion-4 포함 여부)
-            bool isV4 = Request.model.Contains("nai-diffusion-4");
-            if (isV4)
-            {
-                // V4 모델일 경우 v4_prompt 구조체 설정
-                var v4Prompt = new V4ConditionInput
+            var request = GenerationRequestBuilder.BuildStandaloneRequest(
+                Request,
+                Prompt,
+                NegativePrompt,
+                CharacterPrompts.Select(cp => new CharacterPromptSettings
                 {
-                    Caption = new V4ExternalCaption
-                    {
-                        BaseCaption = Prompt
-                    },
-                    UseCoords = true, 
-                    UseOrder = true   
-                };
+                    Prompt = cp.Prompt,
+                    NegativePrompt = cp.NegativePrompt,
+                    X = cp.X,
+                    Y = cp.Y,
+                    PresetPath = cp.SelectedPreset?.FullPath ?? string.Empty
+                }),
+                IsRandomSeed);
 
-                // Negative Prompt 설정 (사용자 입력값 사용)
-                var v4NegativePrompt = new V4ConditionInput
-                {
-                    Caption = new V4ExternalCaption
-                    {
-                        BaseCaption = NegativePrompt // 사용자가 입력한 Negative Prompt 사용
-                    },
-                    UseCoords = false,
-                    UseOrder = false
-                };
+            Request = request;
+            OnPropertyChanged(nameof(Request));
+            OnPropertyChanged(nameof(Seed));
 
-                // 캐릭터 프롬프트 추가
-                foreach (var charPrompt in CharacterPrompts)
-                {
-                    // Positive Prompt 추가
-                    if (!string.IsNullOrWhiteSpace(charPrompt.Prompt))
-                    {
-                        v4Prompt.Caption.CharCaptions.Add(new V4ExternalCharacterCaption
-                        {
-                            CharCaption = charPrompt.Prompt,
-                            Centers = new List<Coordinates>
-                            {
-                                new Coordinates { x = charPrompt.X, y = charPrompt.Y }
-                            }
-                        });
-         
-                        v4NegativePrompt.Caption.CharCaptions.Add(new V4ExternalCharacterCaption
-                        {
-                            CharCaption = charPrompt.NegativePrompt,
-                            Centers = new List<Coordinates>
-                            {
-                                new Coordinates { x = charPrompt.X, y = charPrompt.Y }
-                            }
-                        });
-                    }
-                }
-
-                Request.parameters.V4Prompt = v4Prompt;
-                Request.parameters.V4NegativePrompt = v4NegativePrompt;
-                
-                // V4 파라미터 설정
-                Request.parameters.noise_schedule = "karras";
-                // CfgRescale은 바인딩된 값 사용
-                Request.parameters.prefer_brownian = true;
-                // uc는 이미 바인딩되어 있지만 명시적으로 확인
-                
-                Request.input = Prompt; 
-            }
-            else
-            {
-                // V3 이하 모델
-                Request.input = Prompt;
-                Request.parameters.V4Prompt = null;
-                Request.parameters.V4NegativePrompt = null;
-            }
-            
-            // 랜덤 시드 처리: 클라이언트에서 직접 생성하여 전송
-            if (IsRandomSeed)
-            {
-                var random = new Random();
-                Request.parameters.seed = random.NextInt64(1, 9999999999);
-                OnPropertyChanged(nameof(Seed)); // UI 갱신
-            }
-            
             string currentRequestJson = JsonSerializer.Serialize(Request);
-            
-            // 랜덤 시드일 때는 매번 시드가 바뀌므로 중복 검사가 자연스럽게 통과됨.
-            // 고정 시드일 때만 중복 검사 수행
             if (!IsRandomSeed && currentRequestJson == _lastRequestJson)
             {
-                var result = MessageBox.Show("The settings are identical to the last generation. Generate anyway?", 
-                                             "Duplicate Settings", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                var result = MessageBox.Show(
+                    "The settings are identical to the last generation. Generate anyway?",
+                    "Duplicate Settings",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
                 if (result == MessageBoxResult.No)
                 {
                     return;
@@ -580,63 +515,21 @@ public class MainViewModel : INotifyPropertyChanged
 
             IsGenerating = true;
             StatusMessage = "Generating image...";
-            
-            // 생성 시작 전 설정 저장 (파라미터 등 최신 상태 유지)
             SaveCurrentSettings();
 
-            byte[]? imageData = null;
-            
-            // 스트림 처리를 백그라운드 스레드로 이동하여 UI 스레드 블로킹 방지
-            await Task.Run(async () =>
+            var fileName = await _imageGenerationWorkflow.GenerateAndSaveAsync(
+                Request,
+                ApiToken,
+                SaveDirectory,
+                "img",
+                bitmap => GeneratedImage = bitmap);
+
+            if (fileName == null)
             {
-                var lastUpdate = DateTime.MinValue;
-                await foreach (var zipData in _novelAiService.GenerateImageStreamAsync(Request, ApiToken))
-                {
-                    imageData = zipData;
-
-                    // 시간 기반 스로틀링 (약 60ms 마다 갱신, 약 15fps)
-                    var now = DateTime.Now;
-                    if ((now - lastUpdate).TotalMilliseconds < 60) continue;
-                    lastUpdate = now;
-
-                    try
-                    {
-                        var bitmap = _imageService.ConvertToBitmapImage(imageData);
-
-                        Application.Current.Dispatcher.Invoke(() =>
-                        {
-                            GeneratedImage = bitmap;
-                        });
-                    }
-                    catch
-                    {
-                        // ignored
-                    }
-                }
-            });
-
-             if (imageData == null) return;
-             GeneratedImage = await Task.Run(() => _imageService.ConvertToBitmapImage(imageData));
-             
-            if (!Directory.Exists(SaveDirectory))
-            {
-                try
-                {
-                    Directory.CreateDirectory(SaveDirectory);
-                }
-                catch (Exception ex)
-                {
-                    StatusMessage = $"Error creating directory: {ex.Message}";
-                    Logger.LogError($"Failed to create directory: {SaveDirectory}", ex);
-                    return;
-                }
+                return;
             }
-            
-            string fileName = $"img_{DateTime.Now:yyyyMMdd_HHmmss}.png";
-            await _imageService.SaveImageAsync(imageData, SaveDirectory, fileName);
 
             StatusMessage = $"Saved to {fileName}";
-            
             _lastRequestJson = currentRequestJson;
         }
         catch (Exception ex)
@@ -650,43 +543,9 @@ public class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    // View에서 호출할 메서드: 태그 검색
     public void SearchTags(string query)
     {
-        _debounceCts?.Cancel();
-        _debounceCts = new CancellationTokenSource();
-        var token = _debounceCts.Token;
-
-        Task.Delay(300, token).ContinueWith(async _ =>
-        {
-            if (token.IsCancellationRequested) return;
-            
-            if (string.IsNullOrWhiteSpace(query) || query.Length < 2) 
-            {
-                System.Windows.Application.Current.Dispatcher.Invoke(() => TagSuggestions.Clear());
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(ApiToken)) return;
-
-            try
-            {
-                var suggestions = await _novelAiService.SuggestTagsAsync(query, Request.model, ApiToken);
-                
-                System.Windows.Application.Current.Dispatcher.Invoke(() =>
-                {
-                    TagSuggestions.Clear();
-                    foreach (var tag in suggestions)
-                    {
-                        TagSuggestions.Add(tag);
-                    }
-                });
-            }
-            catch (Exception)
-            {
-                // Logger.LogError("Tag suggestion failed", ex);
-            }
-        });
+        _tagSuggestionService.Search(query, Request.model, ApiToken, TagSuggestions);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
