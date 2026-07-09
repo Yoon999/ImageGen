@@ -28,4 +28,6 @@ public interface INovelAiService
     /// <param name="accessToken">Bearer 인증 토큰</param>
     /// <returns>추천 태그 목록</returns>
     Task<List<TagSuggestion>> SuggestTagsAsync(string prompt, string model, string accessToken);
+
+    Task<int> GetAnlasAsync(string accessToken);
 }

@@ -18,6 +18,7 @@ public class NovelAiApiService : INovelAiService
         Timeout = TimeSpan.FromMinutes(5) // 생성 시간이 걸릴 수 있으므로 타임아웃 넉넉하게 설정
     };
     private const string BaseUrl = "https://image.novelai.net";
+    private const string UserDataUrl = "https://image.novelai.net/user/data";
 
     public async Task<byte[]> GenerateImageAsync(GenerationRequest request, string accessToken)
     {
@@ -105,6 +106,33 @@ public class NovelAiApiService : INovelAiService
         catch (Exception)
         {
             return new List<TagSuggestion>();
+        }
+    }
+
+    public async Task<int> GetAnlasAsync(string accessToken)
+    {
+        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+        try
+        {
+            var response = await _httpClient.GetAsync(UserDataUrl);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                var errorMessage = $"API Error: {response.StatusCode} - {errorContent}";
+                Logger.LogError(errorMessage);
+                throw new HttpRequestException(errorMessage);
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<UserDataResponse>();
+            var steps = result?.Subscription?.TrainingStepsLeft;
+            return (steps?.FixedTrainingStepsLeft ?? 0); // + (steps?.PurchasedTrainingSteps ?? 0);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError("Exception in GetAnlasAsync", ex);
+            throw;
         }
     }
 }

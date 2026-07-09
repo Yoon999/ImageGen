@@ -300,6 +300,22 @@
                            Margin="0,0,8,0" />
             </StatusBarItem>
             <StatusBarItem>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,0">
+                    <ui:TextBlock Text="Anlas"
+                                  Foreground="{StaticResource AppMutedTextBrush}"
+                                  VerticalAlignment="Center"
+                                  Margin="0,0,5,0" />
+                    <ui:TextBlock Text="{Binding AnlasDisplay}"
+                                  FontWeight="SemiBold"
+                                  VerticalAlignment="Center"
+                                  Margin="0,0,6,0" />
+                    <ui:Button Content="Refresh"
+                               Command="{Binding RefreshAnlasCommand}"
+                               Height="28"
+                               Padding="8,2" />
+                </StackPanel>
+            </StatusBarItem>
+            <StatusBarItem>
                 <ui:TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource AppMutedTextBrush}" />
             </StatusBarItem>
         </StatusBar>

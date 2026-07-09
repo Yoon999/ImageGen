@@ -38,6 +38,8 @@ public class MainViewModel : INotifyPropertyChanged
     private string _exifData = string.Empty;
 
     private string _lastRequestJson = string.Empty;
+    private int? _anlasBalance;
+    private bool _isRefreshingAnlas;
 
     private ObservableCollection<TagSuggestion> _tagSuggestions = new();
     private TagSuggestion? _selectedSuggestion;
@@ -129,6 +131,7 @@ public class MainViewModel : INotifyPropertyChanged
         AddCharacterCommand = new RelayCommand(ExecuteAddCharacter);
         RemoveCharacterCommand = new RelayCommand(ExecuteRemoveCharacter);
         CopyImageCommand = new RelayCommand(ExecuteCopyImage, CanExecuteCopyImage);
+        RefreshAnlasCommand = new RelayCommand(ExecuteRefreshAnlas, CanExecuteRefreshAnlas);
     }
 
     private void CharacterPrompts_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -234,6 +237,36 @@ public class MainViewModel : INotifyPropertyChanged
         }
     }
 
+    public int? AnlasBalance
+    {
+        get => _anlasBalance;
+        set
+        {
+            if (_anlasBalance != value)
+            {
+                _anlasBalance = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(AnlasDisplay));
+            }
+        }
+    }
+
+    public string AnlasDisplay => AnlasBalance.HasValue ? AnlasBalance.Value.ToString("N0") : "-";
+
+    public bool IsRefreshingAnlas
+    {
+        get => _isRefreshingAnlas;
+        set
+        {
+            if (_isRefreshingAnlas != value)
+            {
+                _isRefreshingAnlas = value;
+                OnPropertyChanged();
+                CommandManager.InvalidateRequerySuggested();
+            }
+        }
+    }
+
     public BitmapImage? GeneratedImage
     {
         get => _generatedImage;
@@ -332,6 +365,7 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand AddCharacterCommand { get; }
     public ICommand RemoveCharacterCommand { get; }
     public ICommand CopyImageCommand { get; }
+    public ICommand RefreshAnlasCommand { get; }
 
     private bool CanExecuteGenerate(object? parameter)
     {
@@ -409,6 +443,48 @@ public class MainViewModel : INotifyPropertyChanged
             {
                 StatusMessage = $"Failed to copy image: {ex.Message}";
             }
+        }
+    }
+
+    private bool CanExecuteRefreshAnlas(object? parameter)
+    {
+        return !IsRefreshingAnlas && !string.IsNullOrWhiteSpace(ApiToken);
+    }
+
+    private async void ExecuteRefreshAnlas(object? parameter)
+    {
+        await RefreshAnlasAsync(true);
+    }
+
+    public async Task RefreshAnlasAsync(bool updateStatus = true)
+    {
+        try
+        {
+            IsRefreshingAnlas = true;
+            if (updateStatus)
+            {
+                StatusMessage = "Refreshing anlas...";
+            }
+
+            AnlasBalance = await _novelAiService.GetAnlasAsync(ApiToken);
+
+            if (updateStatus)
+            {
+                StatusMessage = $"Anlas refreshed: {AnlasDisplay}";
+            }
+        }
+        catch (Exception ex)
+        {
+            if (updateStatus)
+            {
+                StatusMessage = $"Failed to refresh anlas: {ex.Message}";
+            }
+
+            Logger.LogError("Error refreshing anlas", ex);
+        }
+        finally
+        {
+            IsRefreshingAnlas = false;
         }
     }
 
@@ -531,6 +607,7 @@ public class MainViewModel : INotifyPropertyChanged
 
             StatusMessage = $"Saved to {fileName}";
             _lastRequestJson = currentRequestJson;
+            await RefreshAnlasAsync(false);
         }
         catch (Exception ex)
         {

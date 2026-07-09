@@ -982,6 +982,7 @@ public class NodeGraphViewModel : INotifyPropertyChanged
         {
             await ProcessNodeChain(startNode);
             _mainViewModel.StatusMessage = "Chain generation complete.";
+            await _mainViewModel.RefreshAnlasAsync(false);
         }
         catch (Exception ex)
         {
