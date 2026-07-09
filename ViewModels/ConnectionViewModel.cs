@@ -32,54 +32,90 @@ public class ConnectionViewModel : INotifyPropertyChanged
         }
     }
 
-    // Calculate connection points
-    // Source Output: Right side center
-    // Target Input: Left side center
-    
-    // Adjust for margins/padding if necessary. 
-    // Assuming Width/Height are actual render sizes updated by SizeChanged event.
-
     public double X1 => _source.UiX + _source.Width; 
     public double Y1 => _source.UiY + (_source.Height / 2); 
 
     public double X2 => _target.UiX;
-    public double Y2 
+    public double Y2 => _target.UiY + GetTargetInputOffset();
+
+    private double GetTargetInputOffset()
     {
-        get
+        var visiblePorts = GetVisibleInputPorts(_target.Type);
+        if (visiblePorts.Count == 0)
         {
-            // If source is Base, connect to Base Input Pin (offset from top)
-            if (_source.Type == NodeType.Base)
-            {
-                // Base Input Pin is the second one (index 1) in the stack panel
-                // Approx offset: 12 (Main) + 4 (Margin) + 10 (Base) / 2 = ~21?
-                // Let's approximate based on visual layout
-                // Main Input: Center - 10?
-                // Base Input: Center
-                // Character Input: Center + 10?
-                
-                // Actually, the stack panel is centered vertically.
-                // Main Input (12px)
-                // Base Input (10px)
-                // Character Input (10px)
-                // Total height ~ 32px + margins.
-                
-                // If we want to be precise, we need to know the exact layout.
-                // For now, let's just offset slightly if it's a specific type.
-                
-                return _target.UiY + (_target.Height / 2); // Keep it simple for now, or adjust if needed visually
-            }
-            
-            if (_source.Type == NodeType.Character)
-            {
-                return _target.UiY + (_target.Height / 2) + 10; // Offset down slightly
-            }
-            
-            return _target.UiY + (_target.Height / 2);
+            return _target.Height / 2;
         }
+
+        var desiredPort = GetDesiredTargetPort(_source.Type);
+        if (!visiblePorts.Contains(desiredPort))
+        {
+            desiredPort = visiblePorts.Contains(InputPortKind.Base) ? InputPortKind.Base : visiblePorts[0];
+        }
+
+        double totalHeight = visiblePorts.Sum(GetPortSlotHeight);
+        double top = (_target.Height - totalHeight) / 2;
+        double cursor = top;
+
+        foreach (var port in visiblePorts)
+        {
+            double slotHeight = GetPortSlotHeight(port);
+            if (port == desiredPort)
+            {
+                return cursor + (slotHeight / 2);
+            }
+
+            cursor += slotHeight;
+        }
+
+        return _target.Height / 2;
     }
 
     public GenerationNode Source => _source;
     public GenerationNode Target => _target;
+
+    private enum InputPortKind
+    {
+        Flow,
+        Base,
+        Character
+    }
+
+    private static InputPortKind GetDesiredTargetPort(NodeType sourceType)
+    {
+        return sourceType switch
+        {
+            NodeType.Base or NodeType.BaseConcat => InputPortKind.Base,
+            NodeType.Character => InputPortKind.Character,
+            _ => InputPortKind.Flow
+        };
+    }
+
+    private static List<InputPortKind> GetVisibleInputPorts(NodeType targetType)
+    {
+        var ports = new List<InputPortKind>();
+
+        if (targetType is not NodeType.Begin and not NodeType.Base and not NodeType.Character)
+        {
+            ports.Add(InputPortKind.Flow);
+        }
+
+        if (targetType is NodeType.Normal or NodeType.BaseConcat)
+        {
+            ports.Add(InputPortKind.Base);
+        }
+
+        if (targetType == NodeType.Normal)
+        {
+            ports.Add(InputPortKind.Character);
+        }
+
+        return ports;
+    }
+
+    private static double GetPortSlotHeight(InputPortKind port)
+    {
+        return port == InputPortKind.Flow ? 22 : 20;
+    }
 
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string? name = null)

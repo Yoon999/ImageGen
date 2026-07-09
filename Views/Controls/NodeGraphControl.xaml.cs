@@ -320,8 +320,7 @@ public partial class NodeGraphControl : UserControl
 
     private void UserControl_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
     {
-        // Check for Ctrl + Shift + MouseWheel
-        if ((Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Shift)) == (ModifierKeys.Control | ModifierKeys.Shift))
+        if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
         {
             if (DataContext is NodeGraphViewModel vm)
             {
@@ -335,6 +334,14 @@ public partial class NodeGraphControl : UserControl
                 }
                 e.Handled = true;
             }
+        }
+        else if ((Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift)
+        {
+            var scrollViewer = FindVisualChild<ScrollViewer>(this);
+            if (scrollViewer == null) return;
+
+            scrollViewer.ScrollToHorizontalOffset(scrollViewer.HorizontalOffset - e.Delta);
+            e.Handled = true;
         }
     }
 

@@ -527,7 +527,7 @@
         <Border Grid.Row="2" Background="{StaticResource AppSurfaceBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="8" Margin="0,10,0,0">
             <TextBlock Foreground="{StaticResource AppMutedTextBrush}"
                        FontSize="12"
-                       Text="Shortcuts: Ctrl+Shift+Wheel zoom, Ctrl+C/V copy/paste, Delete remove, Ctrl+B bypass, Ctrl+Home go to Begin. Ctrl+drag on canvas selects nodes." />
+                       Text="Shortcuts: Ctrl+Wheel zoom, Shift+Wheel horizontal scroll, Ctrl+C/V copy/paste, Delete remove, Ctrl+B bypass, Ctrl+Home go to Begin. Ctrl+drag on canvas selects nodes." />
         </Border>
 
         <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" MaxHeight="78" Margin="0,10,0,0">
