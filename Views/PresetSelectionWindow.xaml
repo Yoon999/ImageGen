@@ -9,26 +9,19 @@
         mc:Ignorable="d"
         Title="Select Character Preset" Height="450" Width="400"
         WindowStartupLocation="CenterOwner"
-        Background="#1e1e1e" Foreground="White">
+        Background="{StaticResource AppBackgroundBrush}" Foreground="{StaticResource AppTextBrush}">
 
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
         <HierarchicalDataTemplate DataType="{x:Type models:CharacterPreset}" ItemsSource="{Binding Children}">
-            <StackPanel Orientation="Horizontal" Margin="2">
-                <!-- 폴더 아이콘 -->
-                <TextBlock Text="📁 " Foreground="#FFD700"
-                           Visibility="{Binding IsFolder, Converter={StaticResource BoolToVisibilityConverter}}" />
-                <!-- 파일 아이콘 -->
-                <TextBlock Text="📄 " Foreground="#87CEEB"
-                           Visibility="{Binding IsFolder, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Inverse}" />
-                <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+            <StackPanel Orientation="Horizontal" Margin="2,3">
+                <TextBlock Text="{Binding Name}" VerticalAlignment="Center" Foreground="{StaticResource AppTextBrush}" />
             </StackPanel>
         </HierarchicalDataTemplate>
 
         <Style TargetType="TreeViewItem">
             <Setter Property="IsExpanded" Value="True" />
-            <Setter Property="Foreground" Value="White"/>
-            <!-- 더블 클릭 이벤트 연결 (코드 비하인드에서 처리) -->
+            <Setter Property="Foreground" Value="{StaticResource AppTextBrush}"/>
             <EventSetter Event="MouseDoubleClick" Handler="TreeViewItem_MouseDoubleClick"/>
         </Style>
     </Window.Resources>
@@ -40,9 +33,9 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" Text="Select a preset to load:" Margin="0,0,0,10" Foreground="LightGray"/>
+        <TextBlock Grid.Row="0" Text="Select a preset to load" Style="{StaticResource SectionLabelStyle}" />
 
-        <TreeView Grid.Row="1" x:Name="PresetTreeView" Background="#2d2d2d" BorderBrush="#3f3f46" BorderThickness="1"
+        <TreeView Grid.Row="1" x:Name="PresetTreeView" Background="{StaticResource AppSurfaceBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1"
                   SelectedItemChanged="PresetTreeView_SelectedItemChanged">
         </TreeView>
 
@@ -53,7 +46,7 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             
-            <TextBlock Grid.Column="0" x:Name="SelectedPathText" VerticalAlignment="Center" Foreground="LightGray" TextWrapping="Wrap"/>
+            <TextBlock Grid.Column="0" x:Name="SelectedPathText" VerticalAlignment="Center" Foreground="{StaticResource AppMutedTextBrush}" TextWrapping="Wrap"/>
             
             <ui:Button Grid.Column="1" x:Name="LoadButton" Content="Load" Click="LoadButton_Click" 
                        Width="80" Margin="0,0,10,0" IsEnabled="False" Appearance="Primary"/>

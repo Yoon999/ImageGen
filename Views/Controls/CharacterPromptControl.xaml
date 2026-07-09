@@ -3,18 +3,19 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:local="clr-namespace:ImageGen.Views.Controls"
              xmlns:helpers="clr-namespace:ImageGen.Helpers"
-             xmlns:models="clr-namespace:ImageGen.Models"
-             mc:Ignorable="d"
-             d:DesignHeight="240" d:DesignWidth="400"
+             xmlns:controls="clr-namespace:ImageGen.Views.Controls"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-             Background="#ff004444">
+             mc:Ignorable="d"
+             d:DesignHeight="260"
+             d:DesignWidth="400"
+             Background="Transparent">
+
     <UserControl.Resources>
         <helpers:NullToBoolConverter x:Key="NullToBoolConverter" />
     </UserControl.Resources>
-    
-    <Border BorderThickness="0" Margin="0,0,0,5" Padding="5">
+
+    <Border Style="{StaticResource PanelBorderStyle}" Margin="0,0,0,6" Padding="8">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -22,58 +23,76 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <!-- Header / Toolbar -->
-            <Grid Grid.Row="0" Margin="0,0,0,5">
+            <Grid Grid.Row="0" Margin="0,0,0,6">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <StackPanel Grid.Row="0">
-                    
-                    <!-- Row 1: Select, Load, Update, Delete -->
-                    <Grid Margin="0,5,0,5">
+                <StackPanel>
+                    <Grid Margin="0,0,0,4">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        
-                        <ui:Button Grid.Column="0" Content="📂" Command="{Binding OpenPresetWindowCommand}" 
-                                   FontSize="10" Padding="5,0" Margin="0,0,5,0" Height="22" ToolTip="Load Preset" />
-                        
-                        <ui:Button Grid.Column="1" Content="💾" Command="{Binding OpenSavePresetWindowCommand}" HorizontalAlignment="Stretch"
-                                   FontSize="10" Padding="5,0" Height="22" ToolTip="Save as New Preset" />
-                                   
-                        
+
+                        <Button Grid.Column="0"
+                                Content="Load"
+                                Command="{Binding OpenPresetWindowCommand}"
+                                Style="{StaticResource ToolbarButtonStyle}"
+                                ToolTip="Load preset" />
+
+                        <Button Grid.Column="1"
+                                Content="Save"
+                                Command="{Binding OpenSavePresetWindowCommand}"
+                                Style="{StaticResource ToolbarButtonStyle}"
+                                ToolTip="Save as new preset" />
+
                         <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
-                            <ui:Button Content="Clear" Command="{Binding ClearPresetCommand}"
-                                       FontSize="10" Padding="5,0" Margin="5,0,0,0" Height="22" ToolTip="Clear Selected Preset" />
+                            <Button Content="Clear"
+                                    Command="{Binding ClearPresetCommand}"
+                                    Style="{StaticResource ToolbarButtonStyle}"
+                                    ToolTip="Clear selected preset" />
 
-                            <ui:Button Content="Update" Command="{Binding UpdatePresetCommand}"
-                                       FontSize="10" Padding="5,0" Margin="5,0,0,0" Height="22" />
+                            <Button Content="Update"
+                                    Command="{Binding UpdatePresetCommand}"
+                                    Style="{StaticResource ToolbarButtonStyle}"
+                                    ToolTip="Update selected preset" />
 
-                            <ui:Button Content="🗑️" Command="{Binding DeletePresetCommand}"
-                                       FontSize="10" Padding="5,0" Margin="5,0,0,0" Height="22" ToolTip="Delete Selected Preset" />
+                            <Button Content="Delete"
+                                    Command="{Binding DeletePresetCommand}"
+                                    Style="{StaticResource ToolbarButtonStyle}"
+                                    Background="{StaticResource AppDangerBrush}"
+                                    Margin="0"
+                                    ToolTip="Delete selected preset" />
                         </StackPanel>
                     </Grid>
 
-                    <!-- Row 2: Save New -->
-                    <TextBlock Text="{Binding SelectedPresetDisplay}" VerticalAlignment="Center" Margin="5,0,0,0"
-                               Foreground="LightGray" TextTrimming="CharacterEllipsis" ToolTip="{Binding SelectedPresetDisplay}"/>
-
+                    <TextBlock Text="{Binding SelectedPresetDisplay}"
+                               Foreground="{StaticResource AppMutedTextBrush}"
+                               TextTrimming="CharacterEllipsis"
+                               ToolTip="{Binding SelectedPresetDisplay}" />
                 </StackPanel>
 
-                <!-- Remove Character Button -->
-                <ui:Button Grid.Column="1" Content="❌" Command="{Binding DataContext.RemoveCharacterCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                           CommandParameter="{Binding}" Width="25" Height="22" Padding="1" Margin="5,0,0,0" VerticalAlignment="Top" HorizontalAlignment="Right" Foreground="Red" ToolTip="Remove Character from Layout" />
+                <Button Grid.Column="1"
+                        Content="Remove"
+                        Command="{Binding DataContext.RemoveCharacterCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                        CommandParameter="{Binding}"
+                        Style="{StaticResource ToolbarButtonStyle}"
+                        Background="{StaticResource AppDangerBrush}"
+                        Margin="8,0,0,0"
+                        VerticalAlignment="Top"
+                        ToolTip="Remove character prompt from layout" />
             </Grid>
 
-            <TabControl Grid.Row="1" Height="120" Margin="0,0,0,5">
+            <TabControl Grid.Row="1" Height="126" Margin="0,0,0,8">
                 <TabItem Header="Positive">
                     <ui:TextBox Text="{Binding Prompt, UpdateSourceTrigger=PropertyChanged}"
-                                TextAlignment="Left" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
-                                Padding="2"
+                                TextAlignment="Left"
+                                TextWrapping="Wrap"
+                                AcceptsReturn="True"
+                                VerticalScrollBarVisibility="Auto"
                                 ClearButtonEnabled="False"
                                 TextChanged="PromptBox_OnTextChanged"
                                 GotFocus="PromptBox_GotFocus"
@@ -81,8 +100,10 @@
                 </TabItem>
                 <TabItem Header="Negative">
                     <ui:TextBox Text="{Binding NegativePrompt, UpdateSourceTrigger=PropertyChanged}"
-                                TextAlignment="Left" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
-                                Padding="2"
+                                TextAlignment="Left"
+                                TextWrapping="Wrap"
+                                AcceptsReturn="True"
+                                VerticalScrollBarVisibility="Auto"
                                 ClearButtonEnabled="False"
                                 TextChanged="PromptBox_OnTextChanged"
                                 GotFocus="PromptBox_GotFocus"
@@ -90,18 +111,36 @@
                 </TabItem>
             </TabControl>
 
-            <StackPanel Grid.Row="2" Orientation="Vertical" HorizontalAlignment="Left">
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                    <ui:TextBlock Text="Center X:" VerticalAlignment="Center" Margin="0,0,5,0" />
-                    <ui:TextBox Text="{Binding X, StringFormat=N2}" Width="60" VerticalAlignment="Center" Margin="0,0,10,0" BorderThickness="0" />
-                    <Slider Value="{Binding X}" Minimum="0.0" Maximum="1.0" Width="120" VerticalAlignment="Center" />
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="150" />
+                    <ColumnDefinition Width="10" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <controls:CharacterPositionGrid Grid.Column="0"
+                                                XValue="{Binding X, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                YValue="{Binding Y, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                Width="140"
+                                                Height="140" />
+
+                <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                    <TextBlock Text="Character Center" Foreground="{StaticResource AppMutedTextBrush}" FontWeight="SemiBold" Margin="0,0,0,8" />
+                    <DockPanel Margin="0,0,0,6">
+                        <ui:TextBlock Text="X" Width="20" Foreground="{StaticResource AppMutedTextBrush}" VerticalAlignment="Center" />
+                        <ui:TextBox Text="{Binding X, StringFormat=N1, UpdateSourceTrigger=PropertyChanged}" Width="64" />
+                    </DockPanel>
+                    <DockPanel>
+                        <ui:TextBlock Text="Y" Width="20" Foreground="{StaticResource AppMutedTextBrush}" VerticalAlignment="Center" />
+                        <ui:TextBox Text="{Binding Y, StringFormat=N1, UpdateSourceTrigger=PropertyChanged}" Width="64" />
+                    </DockPanel>
+                    <TextBlock Text="Click or drag on the grid. Values snap to 0.1."
+                               Foreground="{StaticResource AppMutedTextBrush}"
+                               TextWrapping="Wrap"
+                               FontSize="11"
+                               Margin="0,8,0,0" />
                 </StackPanel>
-                <StackPanel Orientation="Horizontal">
-                    <ui:TextBlock Text="Center Y:" VerticalAlignment="Center" Margin="0,0,5,0" />
-                    <ui:TextBox Text="{Binding Y, StringFormat=N2}" Width="60" VerticalAlignment="Center" Margin="0,0,10,0" BorderThickness="0" />
-                    <Slider Value="{Binding Y}" Minimum="0.0" Maximum="1.0" Width="120" VerticalAlignment="Center" />
-                </StackPanel>
-            </StackPanel>
+            </Grid>
         </Grid>
     </Border>
 </UserControl>

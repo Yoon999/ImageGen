@@ -9,23 +9,19 @@
         mc:Ignorable="d"
         Title="Save Character Preset" Height="450" Width="400"
         WindowStartupLocation="CenterOwner"
-        Background="#1e1e1e" Foreground="White">
+        Background="{StaticResource AppBackgroundBrush}" Foreground="{StaticResource AppTextBrush}">
 
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
         <HierarchicalDataTemplate DataType="{x:Type models:CharacterPreset}" ItemsSource="{Binding Children}">
-            <StackPanel Orientation="Horizontal" Margin="2">
-                <TextBlock Text="📁 " Foreground="#FFD700"
-                           Visibility="{Binding IsFolder, Converter={StaticResource BoolToVisibilityConverter}}" />
-                <TextBlock Text="📄 " Foreground="#87CEEB"
-                           Visibility="{Binding IsFolder, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Inverse}" />
-                <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+            <StackPanel Orientation="Horizontal" Margin="2,3">
+                <TextBlock Text="{Binding Name}" VerticalAlignment="Center" Foreground="{StaticResource AppTextBrush}" />
             </StackPanel>
         </HierarchicalDataTemplate>
 
         <Style TargetType="TreeViewItem">
             <Setter Property="IsExpanded" Value="True" />
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Foreground" Value="{StaticResource AppTextBrush}"/>
         </Style>
     </Window.Resources>
 
@@ -37,14 +33,14 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" Text="Select a folder to save into (optional):" Margin="0,0,0,10" Foreground="LightGray"/>
+        <TextBlock Grid.Row="0" Text="Select a folder to save into (optional)" Style="{StaticResource SectionLabelStyle}" />
 
-        <TreeView Grid.Row="1" x:Name="PresetTreeView" Background="#2d2d2d" BorderBrush="#3f3f46" BorderThickness="1"
+        <TreeView Grid.Row="1" x:Name="PresetTreeView" Background="{StaticResource AppSurfaceBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1"
                   SelectedItemChanged="PresetTreeView_SelectedItemChanged" Margin="0,0,0,10">
         </TreeView>
 
         <StackPanel Grid.Row="2" Orientation="Vertical" Margin="0,0,0,10">
-            <TextBlock Text="Save Path (e.g. Folder/Name):" Foreground="LightGray" Margin="0,0,0,5"/>
+            <TextBlock Text="Save Path (for example Folder/Name)" Style="{StaticResource SectionLabelStyle}" />
             <ui:TextBox x:Name="SavePathTextBox" TextChanged="SavePathTextBox_TextChanged"/>
         </StackPanel>
 
