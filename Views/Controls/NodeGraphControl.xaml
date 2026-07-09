@@ -20,6 +20,7 @@
         <helpers:NodeTypeToBooleanConverter x:Key="NodeTypeToBooleanConverter" />
         <helpers:MultiValueConverter x:Key="MultiValueConverter" />
         <helpers:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+        <helpers:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
 
         <Style x:Key="NodeActionButtonStyle" TargetType="Button" BasedOn="{StaticResource ToolbarButtonStyle}">
             <Setter Property="MinHeight" Value="24" />
@@ -395,6 +396,152 @@
     </UserControl.Resources>
 
     <Grid Background="{StaticResource AppBackgroundBrush}">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition x:Name="GraphLibraryColumn" Width="220" MinWidth="0" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <Border x:Name="GraphLibraryPanel" Grid.Column="0" Style="{StaticResource PanelBorderStyle}" Padding="8" Margin="0,0, 2,0" ClipToBounds="True">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <DockPanel Grid.Row="0" LastChildFill="False" Margin="0,0,0,2">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Content="&#xE76B;"
+                                Command="{Binding ToggleGraphLibraryCommand}"
+                                Style="{StaticResource ToolbarButtonStyle}"
+                                FontFamily="Segoe MDL2 Assets"
+                                Width="28"
+                                Padding="0"
+                                ToolTip="Collapse graph library" />
+                        <TextBlock Text="Graphs"
+                                   Style="{StaticResource SectionLabelStyle}"
+                                   VerticalAlignment="Center"
+                                   Margin="0" />
+                    </StackPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button Content="&#xE72C;"
+                                Command="{Binding RefreshGraphWorkflowsCommand}"
+                                Style="{StaticResource ToolbarButtonStyle}"
+                                FontFamily="Segoe MDL2 Assets"
+                                Width="28"
+                                Padding="0"
+                                ToolTip="Refresh graph list" />
+                        <Button Content="&#xE74E;"
+                                Command="{Binding SaveCurrentGraphCommand}"
+                                Style="{StaticResource ToolbarButtonStyle}"
+                                FontFamily="Segoe MDL2 Assets"
+                                Width="28"
+                                Padding="0"
+                                ToolTip="Save current graph" />
+                        <Button Content="&#xE792;"
+                                Command="{Binding SaveGraphAsCommand}"
+                                Style="{StaticResource ToolbarButtonStyle}"
+                                FontFamily="Segoe MDL2 Assets"
+                                Width="28"
+                                Padding="0"
+                                ToolTip="Save graph as" />
+                        <Button Content="&#xE8B7;"
+                                Command="{Binding OpenGraphLibraryCommand}"
+                                Style="{StaticResource ToolbarButtonStyle}"
+                                FontFamily="Segoe MDL2 Assets"
+                                Width="28"
+                                Padding="0"
+                                Margin="0"
+                                ToolTip="Open graph folder" />
+                    </StackPanel>
+                </DockPanel>
+
+                <ui:TextBox Grid.Row="1"
+                            Text="{Binding GraphSearchQuery, UpdateSourceTrigger=PropertyChanged}"
+                            Height="30"
+                            Margin="0,0,0,2"
+                            ClearButtonEnabled="True"
+                            ToolTip="Filter graphs by file name" />
+
+                <ListBox Grid.Row="2"
+                         ItemsSource="{Binding GraphWorkflows}"
+                         SelectedItem="{Binding SelectedGraphWorkflow}"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         ScrollViewer.VerticalScrollBarVisibility="Auto">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            <Setter Property="Padding" Value="0" />
+                            <Setter Property="Margin" Value="0" />
+                            <Setter Property="BorderThickness" Value="0" />
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Button Command="{Binding DataContext.LoadGraphWorkflowCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    CommandParameter="{Binding}"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Stretch"
+                                    MinHeight="44"
+                                    Padding="6,3"
+                                    Margin="0,0,0,2"
+                                    Background="{StaticResource AppSurfaceAltBrush}"
+                                    BorderBrush="{StaticResource AppBorderBrush}"
+                                    BorderThickness="1">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="4" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Background="{StaticResource AppAccentBrush}"
+                                            CornerRadius="2"
+                                            Margin="0,2,2,2"
+                                            Visibility="{Binding IsCurrent, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Text="{Binding DisplayName}"
+                                                   Foreground="{StaticResource AppTextBrush}"
+                                                   FontWeight="SemiBold"
+                                                   TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding LastModified, StringFormat={}{0:yyyy-MM-dd HH:mm}}"
+                                                   Foreground="{StaticResource AppMutedTextBrush}"
+                                                   FontSize="11" />
+                                    </StackPanel>
+                                </Grid>
+                            </Button>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <StackPanel Grid.Row="3" Margin="0,8,0,0">
+                    <TextBlock Text="{Binding CurrentGraphDisplayName}"
+                               Foreground="{StaticResource AppTextBrush}"
+                               FontWeight="SemiBold"
+                               TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding GraphDirtyIndicator}"
+                               Foreground="{StaticResource AppMutedTextBrush}"
+                               FontSize="11" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Button x:Name="GraphLibraryExpandButton"
+                Grid.Column="1"
+                Content="&#xE76C;"
+                Command="{Binding ToggleGraphLibraryCommand}"
+                Width="30"
+                Height="36"
+                VerticalAlignment="Top"
+                Margin="0,0,10,0"
+                Padding="0"
+                FontFamily="Segoe MDL2 Assets"
+                Style="{StaticResource ToolbarButtonStyle}"
+                ToolTip="Expand graph library"
+                Visibility="{Binding IsGraphLibraryCollapsed, Converter={StaticResource BoolToVisibilityConverter}}" />
+
+        <Grid Grid.Column="2">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -405,23 +552,12 @@
         <Border Grid.Row="0" Style="{StaticResource PanelBorderStyle}" Padding="10" Margin="0,0,0,10">
             <DockPanel LastChildFill="True">
                 <WrapPanel DockPanel.Dock="Left" VerticalAlignment="Center">
-                    <TextBlock Text="File" Style="{StaticResource SectionLabelStyle}" VerticalAlignment="Center" Margin="0,0,6,0" />
-                    <Button Content="Save Graph" Command="{Binding SaveGraphCommand}" Style="{StaticResource ToolbarButtonStyle}" />
-                    <Button Content="Load Graph" Command="{Binding LoadGraphCommand}" Style="{StaticResource ToolbarButtonStyle}" Margin="0,0,14,0" />
-
                     <TextBlock Text="Add" Style="{StaticResource SectionLabelStyle}" VerticalAlignment="Center" Margin="0,0,6,0" />
                     <Button Content="Normal" Command="{Binding AddNodeCommand}" Style="{StaticResource ToolbarButtonStyle}" />
                     <Button Content="Base" Command="{Binding AddBaseNodeCommand}" Style="{StaticResource ToolbarButtonStyle}" />
                     <Button Content="Concat" Command="{Binding AddBaseConcatNodeCommand}" Style="{StaticResource ToolbarButtonStyle}" />
                     <Button Content="Character" Command="{Binding AddCharacterNodeCommand}" Style="{StaticResource ToolbarButtonStyle}" />
                     <Button Content="Graph" Command="{Binding AddGraphNodeCommand}" Style="{StaticResource ToolbarButtonStyle}" Margin="0,0,14,0" />
-
-                    <TextBlock Text="Run" Style="{StaticResource SectionLabelStyle}" VerticalAlignment="Center" Margin="0,0,6,0" />
-                    <Button Content="Run All"
-                            Command="{Binding GenerateChainCommand}"
-                            Style="{StaticResource ToolbarButtonStyle}"
-                            Background="{StaticResource AppSuccessBrush}"
-                            Margin="0,0,14,0" />
 
                     <TextBlock Text="View" Style="{StaticResource SectionLabelStyle}" VerticalAlignment="Center" Margin="0,0,6,0" />
                     <Button Content="-" Command="{Binding ZoomOutCommand}" Style="{StaticResource ToolbarButtonStyle}" Width="32" />
@@ -450,7 +586,11 @@
         </Border>
 
         <Border Grid.Row="1" Style="{StaticResource PanelBorderStyle}" Padding="0" ClipToBounds="True">
-            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" PanningMode="Both">
+            <Grid>
+            <ScrollViewer x:Name="GraphScrollViewer"
+                          HorizontalScrollBarVisibility="Auto"
+                          VerticalScrollBarVisibility="Auto"
+                          PanningMode="Both">
                 <Grid Width="5000" Height="5000" Background="#10151F">
                     <Grid.LayoutTransform>
                         <ScaleTransform ScaleX="{Binding ZoomScale}" ScaleY="{Binding ZoomScale}" />
@@ -522,6 +662,99 @@
                     </Canvas>
                 </Grid>
             </ScrollViewer>
+
+            <Border x:Name="PreviewPanel"
+                    Width="300"
+                    Height="260"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Bottom"
+                    Margin="0,0,14,14"
+                    Padding="8"
+                    CornerRadius="8"
+                    Background="{StaticResource AppSurfaceBrush}"
+                    BorderBrush="{StaticResource AppBorderBrush}"
+                    BorderThickness="1">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Preview"
+                                   Foreground="{StaticResource AppTextBrush}"
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center" />
+                        <Button Grid.Column="1"
+                                Content="-"
+                                Command="{Binding TogglePreviewPanelCommand}"
+                                Width="28"
+                                Height="24"
+                                Padding="0"
+                                Style="{StaticResource ToolbarButtonStyle}"
+                                Margin="0"
+                                ToolTip="Collapse preview" />
+                    </Grid>
+
+                    <Border Grid.Row="1"
+                            Background="{StaticResource AppSurfaceAltBrush}"
+                            BorderBrush="{StaticResource AppBorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            ClipToBounds="True">
+                        <Grid>
+                            <Image Source="{Binding DataContext.GeneratedImage, RelativeSource={RelativeSource AncestorType=Window}}"
+                                   Stretch="Uniform" />
+                            <TextBlock Text="No image yet"
+                                       Foreground="{StaticResource AppMutedTextBrush}"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Visibility="{Binding DataContext.GeneratedImage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource NullToVisibilityConverter}, ConverterParameter=Inverse}" />
+                        </Grid>
+                    </Border>
+
+                    <Grid Grid.Row="2" Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding DataContext.StatusMessage, RelativeSource={RelativeSource AncestorType=Window}}"
+                                   Foreground="{StaticResource AppMutedTextBrush}"
+                                   VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis"
+                                   Margin="0,0,6,0" />
+                        <Button Grid.Column="1"
+                                Content="Copy"
+                                Command="{Binding DataContext.CopyImageCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                Style="{StaticResource ToolbarButtonStyle}" />
+                        <Button Grid.Column="2"
+                                Content="Open"
+                                Command="{Binding DataContext.OpenSaveDirectoryCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                Style="{StaticResource ToolbarButtonStyle}"
+                                Margin="0" />
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <Button x:Name="PreviewExpandButton"
+                    Content="&#xE8A7;"
+                    Command="{Binding TogglePreviewPanelCommand}"
+                    Width="38"
+                    Height="34"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Bottom"
+                    Margin="0,0,14,14"
+                    FontFamily="Segoe MDL2 Assets"
+                    Style="{StaticResource ToolbarButtonStyle}"
+                    ToolTip="Expand preview"
+                    Visibility="{Binding IsPreviewPanelCollapsed, Converter={StaticResource BoolToVisibilityConverter}}" />
+            </Grid>
         </Border>
 
         <Border Grid.Row="2" Background="{StaticResource AppSurfaceBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="8" Margin="0,10,0,0">
@@ -547,5 +780,6 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
         </ScrollViewer>
+        </Grid>
     </Grid>
 </UserControl>

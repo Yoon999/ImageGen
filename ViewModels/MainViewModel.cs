@@ -1,6 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
@@ -36,6 +37,7 @@ public class MainViewModel : INotifyPropertyChanged
 
     private BitmapImage? _exifImage;
     private string _exifData = string.Empty;
+    private int _selectedMainTabIndex;
 
     private string _lastRequestJson = string.Empty;
     private int? _anlasBalance;
@@ -132,6 +134,7 @@ public class MainViewModel : INotifyPropertyChanged
         RemoveCharacterCommand = new RelayCommand(ExecuteRemoveCharacter);
         CopyImageCommand = new RelayCommand(ExecuteCopyImage, CanExecuteCopyImage);
         RefreshAnlasCommand = new RelayCommand(ExecuteRefreshAnlas, CanExecuteRefreshAnlas);
+        OpenSaveDirectoryCommand = new RelayCommand(ExecuteOpenSaveDirectory);
     }
 
     private void CharacterPrompts_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -234,6 +237,20 @@ public class MainViewModel : INotifyPropertyChanged
         {
             _statusMessage = value;
             OnPropertyChanged();
+        }
+    }
+
+    public int SelectedMainTabIndex
+    {
+        get => _selectedMainTabIndex;
+        set
+        {
+            if (_selectedMainTabIndex != value)
+            {
+                _selectedMainTabIndex = value;
+                OnPropertyChanged();
+                CommandManager.InvalidateRequerySuggested();
+            }
         }
     }
 
@@ -366,9 +383,15 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand RemoveCharacterCommand { get; }
     public ICommand CopyImageCommand { get; }
     public ICommand RefreshAnlasCommand { get; }
+    public ICommand OpenSaveDirectoryCommand { get; }
 
     private bool CanExecuteGenerate(object? parameter)
     {
+        if (SelectedMainTabIndex == 1)
+        {
+            return NodeGraphViewModel.GenerateChainCommand.CanExecute(null);
+        }
+
         return !string.IsNullOrWhiteSpace(ApiToken) && !string.IsNullOrWhiteSpace(Prompt) && !IsGenerating;
     }
 
@@ -443,6 +466,24 @@ public class MainViewModel : INotifyPropertyChanged
             {
                 StatusMessage = $"Failed to copy image: {ex.Message}";
             }
+        }
+    }
+
+    private void ExecuteOpenSaveDirectory(object? parameter)
+    {
+        try
+        {
+            Directory.CreateDirectory(SaveDirectory);
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = SaveDirectory,
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Failed to open save directory: {ex.Message}";
+            Logger.LogError("Error opening save directory", ex);
         }
     }
 
@@ -549,6 +590,12 @@ public class MainViewModel : INotifyPropertyChanged
 
     private async void ExecuteGenerate(object? parameter)
     {
+        if (SelectedMainTabIndex == 1)
+        {
+            NodeGraphViewModel.GenerateChainCommand.Execute(null);
+            return;
+        }
+
         await ExecuteGenerateRefactored();
     }
 
@@ -623,6 +670,16 @@ public class MainViewModel : INotifyPropertyChanged
     public void SearchTags(string query)
     {
         _tagSuggestionService.Search(query, Request.model, ApiToken, TagSuggestions);
+    }
+
+    public async Task<bool> ConfirmCloseAsync()
+    {
+        return await NodeGraphViewModel.ConfirmCloseAsync();
+    }
+
+    public bool ConfirmClose()
+    {
+        return NodeGraphViewModel.ConfirmClose();
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

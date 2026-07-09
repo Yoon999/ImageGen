@@ -1,6 +1,7 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.ComponentModel;
 using ImageGen.Helpers;
 using ImageGen.Models;
 using ImageGen.Models.Api;
@@ -22,12 +23,36 @@ public partial class NodeGraphControl : UserControl
     private Point _selectionStart;
     private GenerationNode? _draggedNode;
     private TextBox? _lastFocusedTextBox;
+    private CancellationTokenSource? _scrollAnimationCts;
+    private CancellationTokenSource? _graphLibraryAnimationCts;
+    private CancellationTokenSource? _previewAnimationCts;
+    private bool _isClosing;
 
     public NodeGraphControl()
     {
         InitializeComponent();
         IsVisibleChanged += NodeGraphControl_IsVisibleChanged;
         DataContextChanged += NodeGraphControl_DataContextChanged;
+        Unloaded += NodeGraphControl_Unloaded;
+    }
+
+    private void NodeGraphControl_Unloaded(object sender, RoutedEventArgs e)
+    {
+        PrepareForClose();
+
+        if (DataContext is NodeGraphViewModel vm)
+        {
+            vm.RequestBringIntoView -= Vm_RequestBringIntoView;
+            vm.PropertyChanged -= Vm_PropertyChanged;
+        }
+    }
+
+    public void PrepareForClose()
+    {
+        _isClosing = true;
+        _scrollAnimationCts?.Cancel();
+        _graphLibraryAnimationCts?.Cancel();
+        _previewAnimationCts?.Cancel();
     }
 
     private void NodeGraphControl_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -35,11 +60,55 @@ public partial class NodeGraphControl : UserControl
         if (e.NewValue is NodeGraphViewModel vm)
         {
             vm.RequestBringIntoView += Vm_RequestBringIntoView;
+            vm.PropertyChanged += Vm_PropertyChanged;
+            ApplyPanelStates(false);
         }
         if (e.OldValue is NodeGraphViewModel oldVm)
         {
             oldVm.RequestBringIntoView -= Vm_RequestBringIntoView;
+            oldVm.PropertyChanged -= Vm_PropertyChanged;
         }
+    }
+
+    private void Vm_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (sender is not NodeGraphViewModel vm)
+        {
+            return;
+        }
+
+        if (e.PropertyName == nameof(NodeGraphViewModel.IsGraphLibraryCollapsed))
+        {
+            _ = AnimateGraphLibraryAsync(vm.IsGraphLibraryCollapsed);
+        }
+        else if (e.PropertyName == nameof(NodeGraphViewModel.IsPreviewPanelCollapsed))
+        {
+            _ = AnimatePreviewPanelAsync(vm.IsPreviewPanelCollapsed);
+        }
+    }
+
+    private void ApplyPanelStates(bool animate)
+    {
+        if (DataContext is not NodeGraphViewModel vm)
+        {
+            return;
+        }
+
+        if (animate)
+        {
+            _ = AnimateGraphLibraryAsync(vm.IsGraphLibraryCollapsed);
+            _ = AnimatePreviewPanelAsync(vm.IsPreviewPanelCollapsed);
+            return;
+        }
+
+        GraphLibraryColumn.Width = new GridLength(vm.IsGraphLibraryCollapsed ? 0 : 220);
+        GraphLibraryPanel.Opacity = vm.IsGraphLibraryCollapsed ? 0 : 1;
+        GraphLibraryPanel.Visibility = vm.IsGraphLibraryCollapsed ? Visibility.Collapsed : Visibility.Visible;
+
+        PreviewPanel.Width = vm.IsPreviewPanelCollapsed ? 38 : 300;
+        PreviewPanel.Height = vm.IsPreviewPanelCollapsed ? 34 : 260;
+        PreviewPanel.Opacity = vm.IsPreviewPanelCollapsed ? 0 : 1;
+        PreviewPanel.Visibility = vm.IsPreviewPanelCollapsed ? Visibility.Collapsed : Visibility.Visible;
     }
 
     private void Vm_RequestBringIntoView(object? sender, NodeType type)
@@ -49,22 +118,197 @@ public partial class NodeGraphControl : UserControl
             var targetNode = vm.Nodes.FirstOrDefault(n => n.Type == type);
             if (targetNode != null)
             {
-                // Find the ScrollViewer
-                var scrollViewer = FindVisualChild<ScrollViewer>(this);
-                if (scrollViewer != null)
-                {
-                    // Center the node
-                    double x = targetNode.UiX * vm.ZoomScale;
-                    double y = targetNode.UiY * vm.ZoomScale;
-                    
-                    double viewportWidth = scrollViewer.ViewportWidth;
-                    double viewportHeight = scrollViewer.ViewportHeight;
-                    
-                    scrollViewer.ScrollToHorizontalOffset(x - viewportWidth / 2 + (targetNode.Width * vm.ZoomScale / 2));
-                    scrollViewer.ScrollToVerticalOffset(y - viewportHeight / 2 + (targetNode.Height * vm.ZoomScale / 2));
-                }
+                double x = targetNode.UiX * vm.ZoomScale;
+                double y = targetNode.UiY * vm.ZoomScale;
+
+                double viewportWidth = GraphScrollViewer.ViewportWidth;
+                double viewportHeight = GraphScrollViewer.ViewportHeight;
+                double targetX = x - viewportWidth / 2 + (targetNode.Width * vm.ZoomScale / 2);
+                double targetY = y - viewportHeight / 2 + (targetNode.Height * vm.ZoomScale / 2);
+
+                _ = AnimateScrollToAsync(GraphScrollViewer, targetX, targetY);
             }
         }
+    }
+
+    private async Task AnimateScrollToAsync(ScrollViewer scrollViewer, double targetX, double targetY)
+    {
+        _scrollAnimationCts?.Cancel();
+        _scrollAnimationCts = new CancellationTokenSource();
+        var token = _scrollAnimationCts.Token;
+
+        double startX = scrollViewer.HorizontalOffset;
+        double startY = scrollViewer.VerticalOffset;
+        double endX = Math.Max(0, Math.Min(targetX, scrollViewer.ScrollableWidth));
+        double endY = Math.Max(0, Math.Min(targetY, scrollViewer.ScrollableHeight));
+        const double durationMs = 320;
+        var start = DateTime.UtcNow;
+
+        try
+        {
+            while (true)
+            {
+                token.ThrowIfCancellationRequested();
+                double elapsed = (DateTime.UtcNow - start).TotalMilliseconds;
+                double progress = Math.Min(1.0, elapsed / durationMs);
+                double eased = 1 - Math.Pow(1 - progress, 3);
+
+                scrollViewer.ScrollToHorizontalOffset(startX + ((endX - startX) * eased));
+                scrollViewer.ScrollToVerticalOffset(startY + ((endY - startY) * eased));
+
+                if (progress >= 1.0)
+                {
+                    break;
+                }
+
+                await Task.Delay(16, token);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private async Task AnimateGraphLibraryAsync(bool collapse)
+    {
+        if (_isClosing)
+        {
+            return;
+        }
+
+        _graphLibraryAnimationCts?.Cancel();
+        _graphLibraryAnimationCts = new CancellationTokenSource();
+        var token = _graphLibraryAnimationCts.Token;
+
+        const double expandedWidth = 220;
+        const double durationMs = 240;
+        double startWidth = GraphLibraryColumn.ActualWidth > 0 ? GraphLibraryColumn.ActualWidth : GraphLibraryColumn.Width.Value;
+        double endWidth = collapse ? 0 : expandedWidth;
+        double startOpacity = GraphLibraryPanel.Opacity;
+        double endOpacity = collapse ? 0 : 1;
+        var start = DateTime.UtcNow;
+
+        if (!collapse)
+        {
+            if (_isClosing)
+            {
+                return;
+            }
+
+            GraphLibraryPanel.Visibility = Visibility.Visible;
+        }
+
+        try
+        {
+            while (true)
+            {
+                token.ThrowIfCancellationRequested();
+                if (_isClosing)
+                {
+                    return;
+                }
+
+                double progress = Math.Min(1.0, (DateTime.UtcNow - start).TotalMilliseconds / durationMs);
+                double eased = EaseOutCubic(progress);
+
+                GraphLibraryColumn.Width = new GridLength(startWidth + ((endWidth - startWidth) * eased));
+                GraphLibraryPanel.Opacity = startOpacity + ((endOpacity - startOpacity) * eased);
+
+                if (progress >= 1.0)
+                {
+                    break;
+                }
+
+                await Task.Delay(16, token);
+            }
+
+            GraphLibraryColumn.Width = new GridLength(endWidth);
+            GraphLibraryPanel.Opacity = endOpacity;
+            if (!_isClosing)
+            {
+                GraphLibraryPanel.Visibility = collapse ? Visibility.Collapsed : Visibility.Visible;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private async Task AnimatePreviewPanelAsync(bool collapse)
+    {
+        if (_isClosing)
+        {
+            return;
+        }
+
+        _previewAnimationCts?.Cancel();
+        _previewAnimationCts = new CancellationTokenSource();
+        var token = _previewAnimationCts.Token;
+
+        const double expandedWidth = 300;
+        const double expandedHeight = 260;
+        const double collapsedWidth = 38;
+        const double collapsedHeight = 34;
+        const double durationMs = 220;
+        double startWidth = double.IsNaN(PreviewPanel.Width) ? PreviewPanel.ActualWidth : PreviewPanel.Width;
+        double startHeight = double.IsNaN(PreviewPanel.Height) ? PreviewPanel.ActualHeight : PreviewPanel.Height;
+        double endWidth = collapse ? collapsedWidth : expandedWidth;
+        double endHeight = collapse ? collapsedHeight : expandedHeight;
+        double startOpacity = PreviewPanel.Opacity;
+        double endOpacity = collapse ? 0 : 1;
+        var start = DateTime.UtcNow;
+
+        if (!collapse)
+        {
+            if (_isClosing)
+            {
+                return;
+            }
+
+            PreviewPanel.Visibility = Visibility.Visible;
+        }
+
+        try
+        {
+            while (true)
+            {
+                token.ThrowIfCancellationRequested();
+                if (_isClosing)
+                {
+                    return;
+                }
+
+                double progress = Math.Min(1.0, (DateTime.UtcNow - start).TotalMilliseconds / durationMs);
+                double eased = EaseOutCubic(progress);
+
+                PreviewPanel.Width = startWidth + ((endWidth - startWidth) * eased);
+                PreviewPanel.Height = startHeight + ((endHeight - startHeight) * eased);
+                PreviewPanel.Opacity = startOpacity + ((endOpacity - startOpacity) * eased);
+
+                if (progress >= 1.0)
+                {
+                    break;
+                }
+
+                await Task.Delay(16, token);
+            }
+
+            PreviewPanel.Width = endWidth;
+            PreviewPanel.Height = endHeight;
+            PreviewPanel.Opacity = endOpacity;
+            if (!_isClosing)
+            {
+                PreviewPanel.Visibility = collapse ? Visibility.Collapsed : Visibility.Visible;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private static double EaseOutCubic(double progress)
+    {
+        return 1 - Math.Pow(1 - progress, 3);
     }
     
     private static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
@@ -337,10 +581,7 @@ public partial class NodeGraphControl : UserControl
         }
         else if ((Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift)
         {
-            var scrollViewer = FindVisualChild<ScrollViewer>(this);
-            if (scrollViewer == null) return;
-
-            scrollViewer.ScrollToHorizontalOffset(scrollViewer.HorizontalOffset - e.Delta);
+            GraphScrollViewer.ScrollToHorizontalOffset(GraphScrollViewer.HorizontalOffset - e.Delta);
             e.Handled = true;
         }
     }

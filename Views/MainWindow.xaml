@@ -14,6 +14,7 @@
         WindowStartupLocation="Manual"
         Left="100"
         Top="50"
+        Closing="MainWindow_Closing"
         Background="{StaticResource AppBackgroundBrush}"
         Foreground="{StaticResource AppTextBrush}">
 
@@ -53,7 +54,7 @@
             </Grid>
         </Border>
 
-        <TabControl Grid.Row="1">
+        <TabControl Grid.Row="1" SelectedIndex="{Binding SelectedMainTabIndex, Mode=TwoWay}">
             <TabItem Header="Generator">
                 <Grid Margin="0,8,0,0">
                     <Grid.ColumnDefinitions>
@@ -234,7 +235,7 @@
 
             <TabItem Header="Node Graph">
                 <Grid DataContext="{Binding NodeGraphViewModel}" Margin="0,8,0,0">
-                    <controls:NodeGraphControl />
+                    <controls:NodeGraphControl x:Name="NodeGraphControlView" />
                 </Grid>
             </TabItem>
 
@@ -297,6 +298,7 @@
                            Height="32"
                            MinWidth="150"
                            FontWeight="SemiBold"
+                           ToolTip="Generates the active tab. Generator creates one image; Node Graph runs from Begin."
                            Margin="0,0,8,0" />
             </StatusBarItem>
             <StatusBarItem>

@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.ComponentModel;
 using ImageGen.Helpers;
 using ImageGen.Models.Api;
 using ImageGen.ViewModels;
@@ -134,6 +135,22 @@ public partial class MainWindow : Window
                     ViewModel.LoadExifImage(filePath);
                 }
             }
+        }
+    }
+
+    private void MainWindow_Closing(object? sender, CancelEventArgs e)
+    {
+        if (ViewModel == null)
+        {
+            return;
+        }
+
+        bool canClose = ViewModel.ConfirmClose();
+        e.Cancel = !canClose;
+
+        if (canClose)
+        {
+            NodeGraphControlView.PrepareForClose();
         }
     }
 }

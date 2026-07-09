@@ -1,6 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
@@ -12,6 +13,9 @@ using ImageGen.Services.Interfaces;
 using ImageGen.Views;
 using Application = System.Windows.Application;
 using MessageBox = System.Windows.MessageBox;
+using MessageBoxButton = System.Windows.MessageBoxButton;
+using MessageBoxImage = System.Windows.MessageBoxImage;
+using MessageBoxResult = System.Windows.MessageBoxResult;
 using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
 using SaveFileDialog = Microsoft.Win32.SaveFileDialog;
 
@@ -48,10 +52,19 @@ public class NodeGraphViewModel : INotifyPropertyChanged
     private double _selectionHeight;
 
     private ObservableCollection<TagSuggestion> _tagSuggestions = new();
+    private GraphWorkflowItem? _selectedGraphWorkflow;
+    private string? _currentGraphFilePath;
+    private string _graphSearchQuery = string.Empty;
+    private bool _isGraphDirty;
+    private bool _isGraphLibraryCollapsed;
+    private bool _isPreviewPanelCollapsed;
+    private bool _suppressGraphDirty;
+    private readonly string _graphLibraryDirectory;
 
     public ObservableCollection<GenerationNode> Nodes { get; } = new();
     public ObservableCollection<ConnectionViewModel> Connections { get; } = new();
     public ObservableCollection<string> CharacterPresetPaths { get; } = new();
+    public ObservableCollection<GraphWorkflowItem> GraphWorkflows { get; } = new();
 
     public ObservableCollection<TagSuggestion> TagSuggestions
     {
@@ -60,6 +73,95 @@ public class NodeGraphViewModel : INotifyPropertyChanged
         {
             _tagSuggestions = value;
             OnPropertyChanged();
+        }
+    }
+
+    public GraphWorkflowItem? SelectedGraphWorkflow
+    {
+        get => _selectedGraphWorkflow;
+        set
+        {
+            if (_selectedGraphWorkflow != value)
+            {
+                _selectedGraphWorkflow = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public string? CurrentGraphFilePath
+    {
+        get => _currentGraphFilePath;
+        set
+        {
+            if (_currentGraphFilePath != value)
+            {
+                _currentGraphFilePath = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CurrentGraphDisplayName));
+                RefreshGraphCurrentMarkers();
+            }
+        }
+    }
+
+    public string CurrentGraphDisplayName =>
+        string.IsNullOrWhiteSpace(CurrentGraphFilePath)
+            ? "Untitled graph"
+            : Path.GetFileNameWithoutExtension(CurrentGraphFilePath);
+
+    public string GraphSearchQuery
+    {
+        get => _graphSearchQuery;
+        set
+        {
+            if (_graphSearchQuery != value)
+            {
+                _graphSearchQuery = value;
+                OnPropertyChanged();
+                RefreshGraphWorkflows();
+            }
+        }
+    }
+
+    public bool IsGraphDirty
+    {
+        get => _isGraphDirty;
+        set
+        {
+            if (_isGraphDirty != value)
+            {
+                _isGraphDirty = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(GraphDirtyIndicator));
+            }
+        }
+    }
+
+    public string GraphDirtyIndicator => IsGraphDirty ? "Modified" : "Saved";
+
+    public bool IsPreviewPanelCollapsed
+    {
+        get => _isPreviewPanelCollapsed;
+        set
+        {
+            if (_isPreviewPanelCollapsed != value)
+            {
+                _isPreviewPanelCollapsed = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public bool IsGraphLibraryCollapsed
+    {
+        get => _isGraphLibraryCollapsed;
+        set
+        {
+            if (_isGraphLibraryCollapsed != value)
+            {
+                _isGraphLibraryCollapsed = value;
+                OnPropertyChanged();
+            }
         }
     }
 
@@ -86,6 +188,13 @@ public class NodeGraphViewModel : INotifyPropertyChanged
     public ICommand ClearCharacterPresetCommand { get; }
     public ICommand SaveGraphCommand { get; }
     public ICommand LoadGraphCommand { get; }
+    public ICommand RefreshGraphWorkflowsCommand { get; }
+    public ICommand SaveCurrentGraphCommand { get; }
+    public ICommand SaveGraphAsCommand { get; }
+    public ICommand LoadGraphWorkflowCommand { get; }
+    public ICommand OpenGraphLibraryCommand { get; }
+    public ICommand ToggleGraphLibraryCommand { get; }
+    public ICommand TogglePreviewPanelCommand { get; }
     public ICommand RefreshPresetsCommand { get; }
     public ICommand ToggleCollapseCommand { get; }
     public ICommand ZoomInCommand { get; }
@@ -112,6 +221,8 @@ public class NodeGraphViewModel : INotifyPropertyChanged
         _presetService = presetService;
         _tagSuggestionService = new TagSuggestionService(_novelAiService);
         _imageGenerationWorkflow = imageGenerationWorkflow;
+        _graphLibraryDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Graphs");
+        Directory.CreateDirectory(_graphLibraryDirectory);
 
         AddNodeCommand = new RelayCommand(ExecuteAddNode);
         AddBaseNodeCommand = new RelayCommand(ExecuteAddBaseNode);
@@ -136,6 +247,13 @@ public class NodeGraphViewModel : INotifyPropertyChanged
         ClearCharacterPresetCommand = new RelayCommand(ExecuteClearCharacterPreset, CanExecuteNodePresetAction);
         SaveGraphCommand = new RelayCommand(ExecuteSaveGraph);
         LoadGraphCommand = new RelayCommand(ExecuteLoadGraph);
+        RefreshGraphWorkflowsCommand = new RelayCommand(_ => RefreshGraphWorkflows());
+        SaveCurrentGraphCommand = new RelayCommand(ExecuteSaveCurrentGraph);
+        SaveGraphAsCommand = new RelayCommand(ExecuteSaveGraphAs);
+        LoadGraphWorkflowCommand = new RelayCommand(ExecuteLoadGraphWorkflow);
+        OpenGraphLibraryCommand = new RelayCommand(ExecuteOpenGraphLibrary);
+        ToggleGraphLibraryCommand = new RelayCommand(_ => IsGraphLibraryCollapsed = !IsGraphLibraryCollapsed);
+        TogglePreviewPanelCommand = new RelayCommand(_ => IsPreviewPanelCollapsed = !IsPreviewPanelCollapsed);
         RefreshPresetsCommand = new RelayCommand(_ => LoadPresets());
         ToggleCollapseCommand = new RelayCommand(ExecuteToggleCollapse);
         ZoomInCommand = new RelayCommand(_ => ZoomScale = Math.Min(3.0, ZoomScale + 0.1));
@@ -153,8 +271,12 @@ public class NodeGraphViewModel : INotifyPropertyChanged
         Nodes.CollectionChanged += Nodes_CollectionChanged;
 
         // Add initial nodes
+        _suppressGraphDirty = true;
         InitializePermanentNodes();
+        _suppressGraphDirty = false;
+        IsGraphDirty = false;
         LoadPresets();
+        RefreshGraphWorkflows();
     }
 
     private void LoadPresets()
@@ -212,6 +334,9 @@ public class NodeGraphViewModel : INotifyPropertyChanged
                 node.PropertyChanged -= Node_PropertyChanged;
             }
         }
+
+        MarkGraphDirty();
+        CommandManager.InvalidateRequerySuggested();
     }
 
     private void Node_PropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -219,11 +344,156 @@ public class NodeGraphViewModel : INotifyPropertyChanged
         if (e.PropertyName == nameof(GenerationNode.NextNode) || e.PropertyName == nameof(GenerationNode.NextNodes))
         {
             UpdateConnections();
+            MarkGraphDirty();
         }
         else if (e.PropertyName == nameof(GenerationNode.PresetName))
         {
             CommandManager.InvalidateRequerySuggested();
+            MarkGraphDirty();
         }
+        else if (e.PropertyName is not nameof(GenerationNode.IsSelected)
+                 and not nameof(GenerationNode.Width)
+                 and not nameof(GenerationNode.Height))
+        {
+            MarkGraphDirty();
+        }
+    }
+
+    private void MarkGraphDirty()
+    {
+        if (_suppressGraphDirty)
+        {
+            return;
+        }
+
+        IsGraphDirty = true;
+    }
+
+    private void RefreshGraphWorkflows()
+    {
+        Directory.CreateDirectory(_graphLibraryDirectory);
+
+        var files = Directory
+            .EnumerateFiles(_graphLibraryDirectory, "*.json", SearchOption.TopDirectoryOnly)
+            .Select(path => new FileInfo(path))
+            .OrderByDescending(file => file.LastWriteTime)
+            .Where(file => string.IsNullOrWhiteSpace(GraphSearchQuery)
+                           || Path.GetFileNameWithoutExtension(file.Name)
+                               .Contains(GraphSearchQuery, StringComparison.OrdinalIgnoreCase))
+            .Select(file => new GraphWorkflowItem
+            {
+                FilePath = file.FullName,
+                DisplayName = Path.GetFileNameWithoutExtension(file.Name),
+                LastModified = file.LastWriteTime,
+                IsCurrent = IsSamePath(file.FullName, CurrentGraphFilePath)
+            })
+            .ToList();
+
+        GraphWorkflows.Clear();
+        foreach (var item in files)
+        {
+            GraphWorkflows.Add(item);
+        }
+
+        SelectedGraphWorkflow = GraphWorkflows.FirstOrDefault(item => item.IsCurrent);
+    }
+
+    private void RefreshGraphCurrentMarkers()
+    {
+        foreach (var item in GraphWorkflows)
+        {
+            item.IsCurrent = IsSamePath(item.FilePath, CurrentGraphFilePath);
+        }
+
+        SelectedGraphWorkflow = GraphWorkflows.FirstOrDefault(item => item.IsCurrent);
+    }
+
+    private static bool IsSamePath(string? left, string? right)
+    {
+        if (string.IsNullOrWhiteSpace(left) || string.IsNullOrWhiteSpace(right))
+        {
+            return false;
+        }
+
+        return string.Equals(
+            Path.GetFullPath(left),
+            Path.GetFullPath(right),
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    private string GetDefaultGraphFilePath()
+    {
+        var basePath = Path.Combine(_graphLibraryDirectory, "graph_layout.json");
+        if (!File.Exists(basePath) || IsSamePath(basePath, CurrentGraphFilePath))
+        {
+            return basePath;
+        }
+
+        var index = 1;
+        string candidate;
+        do
+        {
+            candidate = Path.Combine(_graphLibraryDirectory, $"graph_layout_{index}.json");
+            index++;
+        }
+        while (File.Exists(candidate));
+
+        return candidate;
+    }
+
+    private async Task<bool> ConfirmDiscardUnsavedChangesAsync()
+    {
+        if (!IsGraphDirty)
+        {
+            return true;
+        }
+
+        var result = MessageBox.Show(
+            "Current graph has unsaved changes. Save before continuing?",
+            "Unsaved Graph",
+            MessageBoxButton.YesNoCancel,
+            MessageBoxImage.Question);
+
+        if (result == MessageBoxResult.Cancel)
+        {
+            return false;
+        }
+
+        if (result == MessageBoxResult.Yes)
+        {
+            if (!await SaveCurrentGraphAsync())
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private bool ConfirmDiscardUnsavedChanges()
+    {
+        if (!IsGraphDirty)
+        {
+            return true;
+        }
+
+        var result = MessageBox.Show(
+            "Current graph has unsaved changes. Save before continuing?",
+            "Unsaved Graph",
+            MessageBoxButton.YesNoCancel,
+            MessageBoxImage.Question);
+
+        if (result == MessageBoxResult.Cancel)
+        {
+            return false;
+        }
+
+        if (result == MessageBoxResult.Yes)
+        {
+            return SaveCurrentGraph();
+        }
+
+        return true;
     }
 
     private void UpdateConnections()
@@ -868,40 +1138,141 @@ public class NodeGraphViewModel : INotifyPropertyChanged
 
     private async void ExecuteSaveGraph(object? parameter)
     {
+        await SaveGraphAsAsync();
+    }
+
+    private async void ExecuteSaveCurrentGraph(object? parameter)
+    {
+        await SaveCurrentGraphAsync();
+    }
+
+    private async void ExecuteSaveGraphAs(object? parameter)
+    {
+        await SaveGraphAsAsync();
+    }
+
+    private async Task<bool> SaveCurrentGraphAsync()
+    {
+        var filePath = CurrentGraphFilePath;
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            filePath = GetDefaultGraphFilePath();
+        }
+
+        return await SaveGraphToFileAsync(filePath);
+    }
+
+    private bool SaveCurrentGraph()
+    {
+        var filePath = CurrentGraphFilePath;
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            filePath = GetDefaultGraphFilePath();
+        }
+
+        return SaveGraphToFile(filePath);
+    }
+
+    private async Task<bool> SaveGraphAsAsync()
+    {
         var dialog = new SaveFileDialog
         {
             Filter = "JSON Files (*.json)|*.json|All Files (*.*)|*.*",
             DefaultExt = "json",
-            FileName = "graph_layout.json"
+            InitialDirectory = _graphLibraryDirectory,
+            FileName = string.IsNullOrWhiteSpace(CurrentGraphFilePath)
+                ? "graph_layout.json"
+                : Path.GetFileName(CurrentGraphFilePath)
         };
 
-        if (dialog.ShowDialog() != true) return;
+        if (dialog.ShowDialog() != true) return false;
 
+        return await SaveGraphToFileAsync(dialog.FileName);
+    }
+
+    private async Task<bool> SaveGraphToFileAsync(string fileName)
+    {
         try
         {
-            await _nodeGraphService.SaveToFileAsync(dialog.FileName, _nodeGraphService.CreateSaveData(Nodes));
-            MessageBox.Show("Graph saved successfully.");
+            await _nodeGraphService.SaveToFileAsync(fileName, _nodeGraphService.CreateSaveData(Nodes));
+            CurrentGraphFilePath = fileName;
+            IsGraphDirty = false;
+            RefreshGraphWorkflows();
+            _mainViewModel.StatusMessage = $"Graph saved: {Path.GetFileNameWithoutExtension(fileName)}";
+            return true;
         }
         catch (Exception ex)
         {
+            _mainViewModel.StatusMessage = $"Error saving graph: {ex.Message}";
             MessageBox.Show($"Error saving graph: {ex.Message}");
+            return false;
+        }
+    }
+
+    private bool SaveGraphToFile(string fileName)
+    {
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(fileName) ?? _graphLibraryDirectory);
+            var json = JsonSerializer.Serialize(
+                _nodeGraphService.CreateSaveData(Nodes),
+                new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(fileName, json);
+            CurrentGraphFilePath = fileName;
+            IsGraphDirty = false;
+            RefreshGraphWorkflows();
+            _mainViewModel.StatusMessage = $"Graph saved: {Path.GetFileNameWithoutExtension(fileName)}";
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _mainViewModel.StatusMessage = $"Error saving graph: {ex.Message}";
+            MessageBox.Show($"Error saving graph: {ex.Message}");
+            return false;
         }
     }
 
     private async void ExecuteLoadGraph(object? parameter)
     {
+        if (!await ConfirmDiscardUnsavedChangesAsync())
+        {
+            return;
+        }
+
         var dialog = new OpenFileDialog
         {
-            Filter = "JSON Files (*.json)|*.json|All Files (*.*)|*.*"
+            Filter = "JSON Files (*.json)|*.json|All Files (*.*)|*.*",
+            InitialDirectory = _graphLibraryDirectory
         };
 
         if (dialog.ShowDialog() != true) return;
 
+        await LoadGraphFromFileAsync(dialog.FileName);
+    }
+
+    private async void ExecuteLoadGraphWorkflow(object? parameter)
+    {
+        if (parameter is not GraphWorkflowItem workflow)
+        {
+            return;
+        }
+
+        if (!await ConfirmDiscardUnsavedChangesAsync())
+        {
+            return;
+        }
+
+        await LoadGraphFromFileAsync(workflow.FilePath);
+    }
+
+    private async Task LoadGraphFromFileAsync(string fileName)
+    {
         try
         {
-            var saveData = await _nodeGraphService.LoadFromFileAsync(dialog.FileName);
+            var saveData = await _nodeGraphService.LoadFromFileAsync(fileName);
 
             if (saveData == null) return;
+            _suppressGraphDirty = true;
             Nodes.Clear();
             Connections.Clear();
 
@@ -912,14 +1283,33 @@ public class NodeGraphViewModel : INotifyPropertyChanged
             }
 
             _nodeGraphService.RestoreConnections(Nodes, saveData.Connections);
+            InitializePermanentNodes();
 
             UpdateConnections();
-            MessageBox.Show("Graph loaded successfully.");
+            CurrentGraphFilePath = fileName;
+            IsGraphDirty = false;
+            RefreshGraphWorkflows();
+            _mainViewModel.StatusMessage = $"Graph loaded: {Path.GetFileNameWithoutExtension(fileName)}";
         }
         catch (Exception ex)
         {
+            _mainViewModel.StatusMessage = $"Error loading graph: {ex.Message}";
             MessageBox.Show($"Error loading graph: {ex.Message}");
         }
+        finally
+        {
+            _suppressGraphDirty = false;
+        }
+    }
+
+    private void ExecuteOpenGraphLibrary(object? parameter)
+    {
+        Directory.CreateDirectory(_graphLibraryDirectory);
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = _graphLibraryDirectory,
+            UseShellExecute = true
+        });
     }
 
     private void ExecuteToggleCollapse(object? parameter)
@@ -956,7 +1346,10 @@ public class NodeGraphViewModel : INotifyPropertyChanged
 
     private bool CanExecuteGenerateChain(object? parameter)
     {
-        return !IsGeneratingChain && !_mainViewModel.IsGenerating && !string.IsNullOrWhiteSpace(_mainViewModel.ApiToken);
+        return !IsGeneratingChain
+               && !_mainViewModel.IsGenerating
+               && !string.IsNullOrWhiteSpace(_mainViewModel.ApiToken)
+               && Nodes.Any(n => n.Type == NodeType.Begin);
     }
 
     private async void ExecuteGenerateChain(object? parameter)
@@ -971,8 +1364,19 @@ public class NodeGraphViewModel : INotifyPropertyChanged
 
         if (startNode == null)
         {
-             MessageBox.Show("No starting node found. Please add a Begin node or select a start node.");
-             return;
+            _mainViewModel.StatusMessage = "Cannot generate graph: Begin node is missing.";
+            MessageBox.Show("No starting node found. Please add a Begin node or select a start node.");
+            return;
+        }
+
+        var missingGraphNode = Nodes.FirstOrDefault(n =>
+            n.Type == NodeType.Graph
+            && (string.IsNullOrWhiteSpace(n.BasePrompt) || !File.Exists(n.BasePrompt)));
+
+        if (missingGraphNode != null)
+        {
+            _mainViewModel.StatusMessage = $"Cannot generate graph: sub-graph file is missing for {missingGraphNode.Title}.";
+            return;
         }
 
         IsGeneratingChain = true;
@@ -1183,7 +1587,23 @@ public class NodeGraphViewModel : INotifyPropertyChanged
 
     private void ExecuteGoToBeginNode(object? parameter)
     {
+        if (!Nodes.Any(n => n.Type == NodeType.Begin))
+        {
+            _mainViewModel.StatusMessage = "Begin node is missing.";
+            return;
+        }
+
         RequestBringIntoView?.Invoke(this, NodeType.Begin);
+    }
+
+    public async Task<bool> ConfirmCloseAsync()
+    {
+        return await ConfirmDiscardUnsavedChangesAsync();
+    }
+
+    public bool ConfirmClose()
+    {
+        return ConfirmDiscardUnsavedChanges();
     }
 
     public event EventHandler<NodeType>? RequestBringIntoView;
