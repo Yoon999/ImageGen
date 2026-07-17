@@ -468,7 +468,7 @@
                     </Grid.ColumnDefinitions>
 
                     <Border Grid.Column="0" Style="{StaticResource PanelBorderStyle}">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ui:DynamicScrollViewer VerticalScrollBarVisibility="Auto">
                             <StackPanel>
                                 <ui:TextBlock Text="Tool" Style="{StaticResource SectionLabelStyle}" />
                                 <ComboBox ItemsSource="{Binding Tools}" SelectedItem="{Binding SelectedTool}" Margin="0,0,0,8" />
@@ -532,7 +532,7 @@
                                         HorizontalAlignment="Stretch"
                                         Margin="0" />
                             </StackPanel>
-                        </ScrollViewer>
+                        </ui:DynamicScrollViewer>
                     </Border>
 
                     <GridSplitter Grid.Column="1" Background="{StaticResource AppBorderBrush}" Width="6" HorizontalAlignment="Center" Margin="8,0" />
