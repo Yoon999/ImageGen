@@ -31,7 +31,7 @@
         <vm:MainViewModel />
     </Window.DataContext>
 
-    <Grid Margin="10" Background="{StaticResource AppBackgroundBrush}">
+    <Grid Margin="8" Background="{StaticResource AppBackgroundBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -104,10 +104,12 @@
 
                                             <Grid Margin="0,2,0,6">
                                                 <ui:TextBlock Text="Character Prompts" FontWeight="SemiBold" VerticalAlignment="Center" />
-                                                <ui:Button Content="Add Character"
+                                                <ui:Button Icon="{ui:SymbolIcon Symbol=PersonAdd24}"
                                                            Command="{Binding AddCharacterCommand}"
+                                                           Style="{StaticResource IconButtonStyle}"
                                                            HorizontalAlignment="Right"
-                                                           Padding="8,3" />
+                                                           Margin="0"
+                                                           ToolTip="Add character prompt" />
                                             </Grid>
 
                                             <ItemsControl ItemsSource="{Binding CharacterPrompts}">
@@ -178,16 +180,46 @@
                                             <ComboBox ItemsSource="{Binding Samplers}" SelectedItem="{Binding SelectedSampler}" DockPanel.Dock="Right" />
                                         </DockPanel>
 
+                                        <ui:TextBlock Text="Advanced" FontWeight="SemiBold" Margin="0,6,0,6" />
+
+                                        <DockPanel Margin="0,0,0,6">
+                                            <ui:TextBlock Text="Model" Width="78" Foreground="{StaticResource AppMutedTextBrush}" VerticalAlignment="Center" />
+                                            <ComboBox ItemsSource="{Binding Models}" SelectedItem="{Binding SelectedModel}" />
+                                        </DockPanel>
+
+                                        <DockPanel Margin="0,0,0,6">
+                                            <ui:TextBlock Text="Scheduler" Width="78" Foreground="{StaticResource AppMutedTextBrush}" VerticalAlignment="Center" />
+                                            <ComboBox ItemsSource="{Binding Schedulers}" SelectedItem="{Binding SelectedScheduler}" />
+                                        </DockPanel>
+
+                                        <DockPanel Margin="0,0,0,6">
+                                            <ui:TextBlock Text="SMEA" Width="78" Foreground="{StaticResource AppMutedTextBrush}" VerticalAlignment="Center" />
+                                            <ComboBox ItemsSource="{Binding SmeaModes}" SelectedItem="{Binding SmeaMode}" />
+                                        </DockPanel>
+
+                                        <DockPanel Margin="0,0,0,6">
+                                            <ui:TextBlock Text="Uncond" Width="62" Foreground="{StaticResource AppMutedTextBrush}" />
+                                            <ui:TextBox Text="{Binding UncondScale, StringFormat=N2}" Width="58" DockPanel.Dock="Right" TextAlignment="Center" />
+                                            <Slider Minimum="0.0" Maximum="1.5" Value="{Binding UncondScale}" TickFrequency="0.05" IsSnapToTickEnabled="True" />
+                                        </DockPanel>
+
+                                        <WrapPanel Margin="0,0,0,8">
+                                            <CheckBox Content="Decrisper" IsChecked="{Binding Decrisper}" Margin="0,0,10,4" />
+                                            <CheckBox Content="Variety" IsChecked="{Binding Variety}" Margin="0,0,10,4" />
+                                        </WrapPanel>
+
                                         <ui:TextBlock Text="Seed" Foreground="{StaticResource AppMutedTextBrush}" Margin="0,3,0,4" />
                                         <DockPanel Margin="0,0,0,10">
                                             <CheckBox Content="Random" IsChecked="{Binding IsRandomSeed}" VerticalAlignment="Center" Margin="0,0,8,0" />
-                                            <ui:Button Content="Randomize"
+                                            <ui:Button Icon="{ui:SymbolIcon Symbol=ArrowShuffle24}"
                                                        Command="{Binding RandomizeSeedCommand}"
-                                                       Height="30"
+                                                       Style="{StaticResource IconButtonStyle}"
                                                        Margin="0,0,5,0"
                                                        ToolTip="Randomize Seed" />
                                             <ui:TextBox Text="{Binding Seed, UpdateSourceTrigger=PropertyChanged}"
                                                         Height="30"
+                                                        FontSize="12"
+                                                        TextAlignment="Right"
                                                         IsEnabled="{Binding IsRandomSeed, Converter={StaticResource InverseBoolConverter}}" />
                                         </DockPanel>
 
@@ -198,12 +230,186 @@
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
                                             <ui:TextBox Text="{Binding SaveDirectory}" VerticalAlignment="Center" Margin="0,0,6,0" />
-                                            <Button Grid.Column="1"
-                                                    Content="Browse"
-                                                    Command="{Binding SelectFolderCommand}"
-                                                    Style="{StaticResource ToolbarButtonStyle}"
-                                                    Margin="0" />
+                                            <ui:Button Grid.Column="1"
+                                                       Icon="{ui:SymbolIcon Symbol=FolderOpen24}"
+                                                       Command="{Binding SelectFolderCommand}"
+                                                       Style="{StaticResource IconButtonStyle}"
+                                                       Margin="0"
+                                                       ToolTip="Select save directory" />
                                         </Grid>
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </TabItem>
+
+                            <TabItem Header="Image Input">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,6,0,0">
+                                    <StackPanel>
+                                        <ui:TextBlock Text="Mode" Style="{StaticResource SectionLabelStyle}" />
+                                        <ComboBox ItemsSource="{Binding GenerationModes}"
+                                                  SelectedItem="{Binding GenerationMode}"
+                                                  Margin="0,0,0,8" />
+
+                                        <Grid Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <ui:TextBox Text="{Binding SourceImagePath}" IsReadOnly="True" Margin="0,0,6,0" />
+                                            <ui:Button Grid.Column="1"
+                                                       Icon="{ui:SymbolIcon Symbol=Image24}"
+                                                       Command="{Binding BrowseSourceImageCommand}"
+                                                       Style="{StaticResource IconButtonStyle}"
+                                                       Margin="0"
+                                                       ToolTip="Select source image" />
+                                        </Grid>
+
+                                        <Border Height="130"
+                                                AllowDrop="True"
+                                                Drop="SourceImage_Drop"
+                                                Background="{StaticResource AppSurfaceAltBrush}"
+                                                BorderBrush="{StaticResource AppBorderBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="6"
+                                                Margin="0,0,0,8">
+                                            <Image Source="{Binding SourceImagePreview}" Stretch="Uniform" />
+                                        </Border>
+
+                                        <DockPanel Margin="0,0,0,6">
+                                            <ui:TextBlock Text="Strength" Width="72" Foreground="{StaticResource AppMutedTextBrush}" />
+                                            <ui:TextBox Text="{Binding ImageStrength, StringFormat=N2}" Width="58" DockPanel.Dock="Right" TextAlignment="Center" />
+                                            <Slider Minimum="0.01" Maximum="0.99" Value="{Binding ImageStrength}" TickFrequency="0.01" />
+                                        </DockPanel>
+
+                                        <DockPanel Margin="0,0,0,10">
+                                            <ui:TextBlock Text="Noise" Width="72" Foreground="{StaticResource AppMutedTextBrush}" />
+                                            <ui:TextBox Text="{Binding ImageNoise, StringFormat=N2}" Width="58" DockPanel.Dock="Right" TextAlignment="Center" />
+                                            <Slider Minimum="0.0" Maximum="0.99" Value="{Binding ImageNoise}" TickFrequency="0.02" />
+                                        </DockPanel>
+
+                                        <ui:TextBlock Text="Inpaint Mask" Style="{StaticResource SectionLabelStyle}" />
+                                        <Grid Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <ui:TextBox Text="{Binding MaskImagePath}" IsReadOnly="True" Margin="0,0,6,0" />
+                                            <ui:Button Grid.Column="1"
+                                                       Icon="{ui:SymbolIcon Symbol=ImageEdit24}"
+                                                       Command="{Binding BrowseMaskImageCommand}"
+                                                       Style="{StaticResource IconButtonStyle}"
+                                                       Margin="0"
+                                                       ToolTip="Select inpaint mask" />
+                                        </Grid>
+
+                                        <Border Height="110"
+                                                AllowDrop="True"
+                                                Drop="MaskImage_Drop"
+                                                Background="{StaticResource AppSurfaceAltBrush}"
+                                                BorderBrush="{StaticResource AppBorderBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="6"
+                                                Margin="0,0,0,8">
+                                            <Image Source="{Binding MaskImagePreview}" Stretch="Uniform" />
+                                        </Border>
+
+                                        <CheckBox Content="Add original image" IsChecked="{Binding AddOriginalImage}" />
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </TabItem>
+
+                            <TabItem Header="References">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,6,0,0">
+                                    <StackPanel>
+                                        <Grid Margin="0,0,0,6">
+                                            <ui:TextBlock Text="Vibe Transfer" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                            <ui:Button Icon="{ui:SymbolIcon Symbol=ImageAdd24}"
+                                                       Command="{Binding AddVibeReferenceCommand}"
+                                                       Style="{StaticResource IconButtonStyle}"
+                                                       HorizontalAlignment="Right"
+                                                       Margin="0"
+                                                       ToolTip="Add vibe reference image" />
+                                        </Grid>
+
+                                        <ItemsControl ItemsSource="{Binding VibeReferences}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Background="{StaticResource AppSurfaceAltBrush}"
+                                                            BorderBrush="{StaticResource AppBorderBrush}"
+                                                            BorderThickness="1"
+                                                            CornerRadius="6"
+                                                            Padding="6"
+                                                            Margin="0,0,0,6">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="70" />
+                                                                <ColumnDefinition Width="*" />
+                                                                <ColumnDefinition Width="Auto" />
+                                                            </Grid.ColumnDefinitions>
+                                                            <Image Source="{Binding Preview}" Stretch="Uniform" Width="64" Height="64" />
+                                                            <StackPanel Grid.Column="1" Margin="8,0">
+                                                                <TextBlock Text="{Binding FilePath}" Foreground="{StaticResource AppMutedTextBrush}" TextTrimming="CharacterEllipsis" />
+                                                                <DockPanel Margin="0,4,0,0">
+                                                                    <TextBlock Text="Info" Width="44" Foreground="{StaticResource AppMutedTextBrush}" />
+                                                                    <Slider Minimum="0.01" Maximum="1.0" Value="{Binding InformationExtracted}" />
+                                                                </DockPanel>
+                                                                <DockPanel>
+                                                                    <TextBlock Text="Strength" Width="44" Foreground="{StaticResource AppMutedTextBrush}" />
+                                                                    <Slider Minimum="0.01" Maximum="1.0" Value="{Binding Strength}" />
+                                                                </DockPanel>
+                                                            </StackPanel>
+                                                            <ui:Button Grid.Column="2"
+                                                                       Icon="{ui:SymbolIcon Symbol=Delete24}"
+                                                                       Command="{Binding DataContext.RemoveVibeReferenceCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                       CommandParameter="{Binding}"
+                                                                       Style="{StaticResource IconButtonStyle}"
+                                                                       Margin="0"
+                                                                       ToolTip="Remove vibe reference" />
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+
+                                        <ui:TextBlock Text="Character Reference" FontWeight="SemiBold" Margin="0,8,0,6" />
+                                        <Grid Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <ui:TextBox 
+                                                Text="{Binding CharacterReferencePath}" 
+                                                IsReadOnly="True"
+                                                VerticalAlignment="Center" />
+                                            <ui:Button Grid.Column="1"
+                                                       Icon="{ui:SymbolIcon Symbol=Image24}"
+                                                       Command="{Binding BrowseCharacterReferenceCommand}"
+                                                       Style="{StaticResource IconButtonStyle}"
+                                                       ToolTip="Select character reference image" />
+                                            <ui:Button Grid.Column="2"
+                                                       Icon="{ui:SymbolIcon Symbol=Dismiss24}"
+                                                       Command="{Binding ClearCharacterReferenceCommand}"
+                                                       Style="{StaticResource IconButtonStyle}"
+                                                       Margin="0"
+                                                       ToolTip="Clear character reference" />
+                                        </Grid>
+
+                                        <Border Height="130"
+                                                AllowDrop="True"
+                                                Drop="CharacterReference_Drop"
+                                                Background="{StaticResource AppSurfaceAltBrush}"
+                                                BorderBrush="{StaticResource AppBorderBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="6"
+                                                Margin="0,0,0,8">
+                                            <Image Source="{Binding CharacterReferencePreview}" Stretch="Uniform" />
+                                        </Border>
+                                        <CheckBox Content="Style aware" IsChecked="{Binding CharacterReferenceStyleAware}" Margin="0,0,0,6" />
+                                        <DockPanel>
+                                            <ui:TextBlock Text="Fidelity" Width="64" Foreground="{StaticResource AppMutedTextBrush}" />
+                                            <ui:TextBox Text="{Binding CharacterReferenceFidelity, StringFormat=N2}" Width="58" DockPanel.Dock="Right" TextAlignment="Center" />
+                                            <Slider Minimum="0.0" Maximum="1.0" Value="{Binding CharacterReferenceFidelity}" TickFrequency="0.01" />
+                                        </DockPanel>
                                     </StackPanel>
                                 </ScrollViewer>
                             </TabItem>
@@ -228,6 +434,20 @@
                                        Margin="8"
                                        Padding="10,5"
                                        Visibility="{Binding GeneratedImage, Converter={StaticResource NullToVisibilityConverter}}" />
+                            <StackPanel Orientation="Horizontal"
+                                        HorizontalAlignment="Left"
+                                        VerticalAlignment="Bottom"
+                                        Margin="8">
+                                <Border Width="58" Height="58" Background="{StaticResource AppSurfaceAltBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" Margin="0,0,6,0">
+                                    <Image Source="{Binding SourceImagePreview}" Stretch="Uniform" />
+                                </Border>
+                                <Border Width="58" Height="58" Background="{StaticResource AppSurfaceAltBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" Margin="0,0,6,0">
+                                    <Image Source="{Binding MaskImagePreview}" Stretch="Uniform" />
+                                </Border>
+                                <Border Width="58" Height="58" Background="{StaticResource AppSurfaceAltBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" Margin="0,0,6,0">
+                                    <Image Source="{Binding CharacterReferencePreview}" Stretch="Uniform" />
+                                </Border>
+                            </StackPanel>
                         </Grid>
                     </Border>
                 </Grid>
@@ -236,6 +456,102 @@
             <TabItem Header="Node Graph">
                 <Grid DataContext="{Binding NodeGraphViewModel}" Margin="0,8,0,0">
                     <controls:NodeGraphControl x:Name="NodeGraphControlView" />
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Director Tools">
+                <Grid DataContext="{Binding DirectorToolsViewModel}" Margin="0,8,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="360" MinWidth="280" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Style="{StaticResource PanelBorderStyle}">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <ui:TextBlock Text="Tool" Style="{StaticResource SectionLabelStyle}" />
+                                <ComboBox ItemsSource="{Binding Tools}" SelectedItem="{Binding SelectedTool}" Margin="0,0,0,8" />
+
+                                <ui:TextBlock Text="Input Image" Style="{StaticResource SectionLabelStyle}" />
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <ui:TextBox Text="{Binding InputImagePath}" Margin="0,0,6,0" />
+                                    <Button Grid.Column="1"
+                                            Content="Browse"
+                                            Command="{Binding BrowseInputImageCommand}"
+                                            Style="{StaticResource ToolbarButtonStyle}"
+                                            Margin="0" />
+                                </Grid>
+
+                                <Border Height="180"
+                                        AllowDrop="True"
+                                        Drop="DirectorInput_Drop"
+                                        Background="{StaticResource AppSurfaceAltBrush}"
+                                        BorderBrush="{StaticResource AppBorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="6"
+                                        Margin="0,0,0,8">
+                                    <Image Source="{Binding InputPreview}" Stretch="Uniform" />
+                                </Border>
+
+                                <WrapPanel Margin="0,0,0,8">
+                                    <CheckBox Content="Ignore errors" IsChecked="{Binding IgnoreErrors}" Margin="0,0,10,4" />
+                                </WrapPanel>
+
+                                <ui:TextBlock Text="Colorize / Emotion Options" FontWeight="SemiBold" Margin="0,6,0,6" />
+                                <DockPanel Margin="0,0,0,6">
+                                    <ui:TextBlock Text="Defry" Width="64" Foreground="{StaticResource AppMutedTextBrush}" />
+                                    <ui:TextBox Text="{Binding Defry}" Width="58" DockPanel.Dock="Right" TextAlignment="Center" />
+                                    <Slider Minimum="0" Maximum="5" Value="{Binding Defry}" TickFrequency="1" IsSnapToTickEnabled="True" />
+                                </DockPanel>
+                                <DockPanel Margin="0,0,0,6">
+                                    <ui:TextBlock Text="Mood" Width="64" Foreground="{StaticResource AppMutedTextBrush}" VerticalAlignment="Center" />
+                                    <ComboBox ItemsSource="{Binding Moods}" SelectedItem="{Binding SelectedMood}" />
+                                </DockPanel>
+                                <DockPanel Margin="0,0,0,6">
+                                    <ui:TextBlock Text="Strength" Width="64" Foreground="{StaticResource AppMutedTextBrush}" VerticalAlignment="Center" />
+                                    <ComboBox ItemsSource="{Binding EmotionStrengths}" SelectedItem="{Binding SelectedEmotionStrength}" />
+                                </DockPanel>
+                                <ui:TextBlock Text="Prompt" Style="{StaticResource SectionLabelStyle}" />
+                                <ui:TextBox Text="{Binding Prompt}"
+                                            TextAlignment="Left"
+                                            TextWrapping="Wrap"
+                                            AcceptsReturn="True"
+                                            MinHeight="90"
+                                            ClearButtonEnabled="False"
+                                            Margin="0,0,0,8" />
+
+                                <Button Content="Run Tool"
+                                        Command="{Binding RunToolCommand}"
+                                        Style="{StaticResource ToolbarButtonStyle}"
+                                        Background="{StaticResource AppSuccessBrush}"
+                                        HorizontalAlignment="Stretch"
+                                        Margin="0" />
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+
+                    <GridSplitter Grid.Column="1" Background="{StaticResource AppBorderBrush}" Width="6" HorizontalAlignment="Center" Margin="8,0" />
+
+                    <Border Grid.Column="2" Style="{StaticResource PanelBorderStyle}" Padding="0">
+                        <Grid>
+                            <Image Source="{Binding ResultImage}" Stretch="Uniform" />
+                            <ui:TextBlock Text="Director tool result"
+                                          Foreground="{StaticResource AppMutedTextBrush}"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          FontSize="18"
+                                          Visibility="{Binding ResultImage, Converter={StaticResource NullToVisibilityConverter}, ConverterParameter=Inverse}" />
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="8">
+                                <Button Content="Copy" Command="{Binding CopyResultCommand}" Style="{StaticResource ToolbarButtonStyle}" />
+                                <Button Content="Open Folder" Command="{Binding OpenSaveDirectoryCommand}" Style="{StaticResource ToolbarButtonStyle}" Margin="0" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
                 </Grid>
             </TabItem>
 
@@ -290,7 +606,7 @@
             </TabItem>
         </TabControl>
 
-        <StatusBar Grid.Row="2" Margin="0,8,0,0" Background="{StaticResource AppSurfaceBrush}">
+        <StatusBar Grid.Row="2" Padding="2" Margin="0,8, 0, 0" Background="{StaticResource AppSurfaceBrush}">
             <StatusBarItem>
                 <ui:Button Content="Generate Image"
                            Appearance="Primary"
@@ -299,22 +615,31 @@
                            MinWidth="150"
                            FontWeight="SemiBold"
                            ToolTip="Generates the active tab. Generator creates one image; Node Graph runs from Begin."
-                           Margin="0,0,8,0" />
+                           Margin="0,0,2,0" />
             </StatusBarItem>
             <StatusBarItem>
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,0">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,0">
                     <ui:TextBlock Text="Anlas"
                                   Foreground="{StaticResource AppMutedTextBrush}"
                                   VerticalAlignment="Center"
-                                  Margin="0,0,5,0" />
+                                  Margin="0,0,2,0" />
                     <ui:TextBlock Text="{Binding AnlasDisplay}"
                                   FontWeight="SemiBold"
                                   VerticalAlignment="Center"
-                                  Margin="0,0,6,0" />
-                    <ui:Button Content="Refresh"
-                               Command="{Binding RefreshAnlasCommand}"
-                               Height="28"
-                               Padding="8,2" />
+                                  Margin="0,0,4,0" />
+                    <ui:TextBlock Text="Last cost"
+                                  Foreground="{StaticResource AppMutedTextBrush}"
+                                  VerticalAlignment="Center"
+                                  Margin="8,0,2,0" />
+                    <ui:TextBlock Text="{Binding LastAnlasCostDisplay}"
+                                  FontWeight="SemiBold"
+                                  VerticalAlignment="Center"
+                                  Margin="0,0,4,0" />
+                    <ui:Button Icon="{ui:SymbolIcon Symbol=ArrowClockwise32}"
+                               Style="{StaticResource IconButtonStyle}"
+                               HorizontalAlignment="Right"
+                               Margin="8, 0, 0, 0"
+                               Command="{Binding RefreshAnlasCommand}" />
                 </StackPanel>
             </StatusBarItem>
             <StatusBarItem>

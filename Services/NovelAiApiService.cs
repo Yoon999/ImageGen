@@ -82,6 +82,31 @@ public class NovelAiApiService : INovelAiService
         }
     }
 
+    public async Task<byte[]> AugmentImageAsync(AugmentImageRequest request, string accessToken)
+    {
+        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync("/ai/augment-image", request);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                var errorMessage = $"API Error: {response.StatusCode} - {errorContent}";
+                Logger.LogError(errorMessage);
+                throw new HttpRequestException(errorMessage);
+            }
+
+            return await response.Content.ReadAsByteArrayAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError("Exception in AugmentImageAsync", ex);
+            throw;
+        }
+    }
+
     public async Task<List<TagSuggestion>> SuggestTagsAsync(string prompt, string model, string accessToken)
     {
         _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
@@ -127,7 +152,7 @@ public class NovelAiApiService : INovelAiService
 
             var result = await response.Content.ReadFromJsonAsync<UserDataResponse>();
             var steps = result?.Subscription?.TrainingStepsLeft;
-            return (steps?.FixedTrainingStepsLeft ?? 0); // + (steps?.PurchasedTrainingSteps ?? 0);
+            return (steps?.FixedTrainingStepsLeft ?? 0) + (steps?.PurchasedTrainingSteps ?? 0);
         }
         catch (Exception ex)
         {

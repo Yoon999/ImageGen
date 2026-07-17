@@ -29,12 +29,53 @@ public class RequestParameters
     public double cfg_rescale { get; set; } = 0.0;
     public string noise_schedule { get; set; } = "karras";
     public bool qualityToggle { get; set; } = true;
+    public bool legacy { get; set; } = false;
+    public bool legacy_v3_extend { get; set; } = false;
+    public double uncond_scale { get; set; } = 1.0;
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? skip_cfg_above_sigma { get; set; }
     
     [JsonPropertyName("uc")]
     public string uc { get; set; } = string.Empty; // Negative Prompt
+    public string negative_prompt { get; set; } = string.Empty;
+    public string prompt { get; set; } = string.Empty;
     public bool dynamic_thresholding { get; set; } = false;
     public bool deliberate_euler_ancestral_bug { get; set; } = false;
     public bool prefer_brownian { get; set; } = true;
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? image { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? mask { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? strength { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? noise { get; set; }
+
+    public bool add_original_image { get; set; } = false;
+
+    public List<string> reference_image_multiple { get; set; } = new();
+    public List<double> reference_information_extracted_multiple { get; set; } = new();
+    public List<double> reference_strength_multiple { get; set; } = new();
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<string>? director_reference_images { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<DirectorReferenceDescription>? director_reference_descriptions { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<double>? director_reference_strength_values { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<double>? director_reference_secondary_strength_values { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<double>? director_reference_information_extracted { get; set; }
 
     // V4 관련 파라미터
     [JsonPropertyName("v4_prompt")]
@@ -42,6 +83,21 @@ public class RequestParameters
 
     [JsonPropertyName("v4_negative_prompt")]
     public V4ConditionInput? V4NegativePrompt { get; set; }
+}
+
+public class DirectorReferenceDescription
+{
+    [JsonPropertyName("caption")]
+    public V4ExternalCaption Caption { get; set; } = new V4ExternalCaption();
+
+    [JsonPropertyName("use_coords")]
+    public bool UseCoords { get; set; }
+
+    [JsonPropertyName("use_order")]
+    public bool UseOrder { get; set; }
+
+    [JsonPropertyName("legacy_uc")]
+    public bool LegacyUc { get; set; }
 }
 
 public class V4ConditionInput

@@ -20,6 +20,8 @@ public interface INovelAiService
     /// <returns>이미지 데이터 스트림 (중간 결과 및 최종 결과)</returns>
     IAsyncEnumerable<byte[]> GenerateImageStreamAsync(GenerationRequest request, string accessToken);
 
+    Task<byte[]> AugmentImageAsync(AugmentImageRequest request, string accessToken);
+
     /// <summary>
     /// 입력된 프롬프트를 기반으로 태그를 추천받습니다.
     /// </summary>

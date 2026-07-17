@@ -37,35 +37,35 @@
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
 
-                        <Button Grid.Column="0"
-                                Content="Load"
-                                Command="{Binding OpenPresetWindowCommand}"
-                                Style="{StaticResource ToolbarButtonStyle}"
-                                ToolTip="Load preset" />
+                        <ui:Button Grid.Column="0"
+                                   Icon="{ui:SymbolIcon Symbol=FolderOpen24}"
+                                   Command="{Binding OpenPresetWindowCommand}"
+                                   Style="{StaticResource IconButtonStyle}"
+                                   ToolTip="Load preset" />
 
-                        <Button Grid.Column="1"
-                                Content="Save"
-                                Command="{Binding OpenSavePresetWindowCommand}"
-                                Style="{StaticResource ToolbarButtonStyle}"
-                                ToolTip="Save as new preset" />
+                        <ui:Button Grid.Column="1"
+                                   Icon="{ui:SymbolIcon Symbol=DocumentAdd24}"
+                                   Command="{Binding OpenSavePresetWindowCommand}"
+                                   Style="{StaticResource IconButtonStyle}"
+                                   ToolTip="Save as new preset" />
 
                         <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
-                            <Button Content="Clear"
-                                    Command="{Binding ClearPresetCommand}"
-                                    Style="{StaticResource ToolbarButtonStyle}"
-                                    ToolTip="Clear selected preset" />
+                            <ui:Button Icon="{ui:SymbolIcon Symbol=Eraser24}"
+                                       Command="{Binding ClearPresetCommand}"
+                                       Style="{StaticResource IconButtonStyle}"
+                                       ToolTip="Clear selected preset" />
 
-                            <Button Content="Update"
-                                    Command="{Binding UpdatePresetCommand}"
-                                    Style="{StaticResource ToolbarButtonStyle}"
-                                    ToolTip="Update selected preset" />
+                            <ui:Button Icon="{ui:SymbolIcon Symbol=SaveEdit24}"
+                                       Command="{Binding UpdatePresetCommand}"
+                                       Style="{StaticResource IconButtonStyle}"
+                                       ToolTip="Update selected preset" />
 
-                            <Button Content="Delete"
-                                    Command="{Binding DeletePresetCommand}"
-                                    Style="{StaticResource ToolbarButtonStyle}"
-                                    Background="{StaticResource AppDangerBrush}"
-                                    Margin="0"
-                                    ToolTip="Delete selected preset" />
+                            <ui:Button Icon="{ui:SymbolIcon Symbol=Delete24}"
+                                       Command="{Binding DeletePresetCommand}"
+                                       Style="{StaticResource IconButtonStyle}"
+                                       Background="{StaticResource AppDangerBrush}"
+                                       Margin="0"
+                                       ToolTip="Delete selected preset" />
                         </StackPanel>
                     </Grid>
 
@@ -75,15 +75,15 @@
                                ToolTip="{Binding SelectedPresetDisplay}" />
                 </StackPanel>
 
-                <Button Grid.Column="1"
-                        Content="Remove"
-                        Command="{Binding DataContext.RemoveCharacterCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                        CommandParameter="{Binding}"
-                        Style="{StaticResource ToolbarButtonStyle}"
-                        Background="{StaticResource AppDangerBrush}"
-                        Margin="8,0,0,0"
-                        VerticalAlignment="Top"
-                        ToolTip="Remove character prompt from layout" />
+                <ui:Button Grid.Column="1"
+                           Icon="{ui:SymbolIcon Symbol=PersonSubtract24}"
+                           Command="{Binding DataContext.RemoveCharacterCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                           CommandParameter="{Binding}"
+                           Style="{StaticResource IconButtonStyle}"
+                           Background="{StaticResource AppDangerBrush}"
+                           Margin="8,0,0,0"
+                           VerticalAlignment="Top"
+                           ToolTip="Remove character prompt from layout" />
             </Grid>
 
             <TabControl Grid.Row="1" Height="126" Margin="0,0,0,8">

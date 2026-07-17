@@ -123,19 +123,65 @@ public partial class MainWindow : Window
     {
         if (ViewModel == null) return;
 
-        if (e.Data.GetDataPresent(DataFormats.FileDrop))
+        var filePath = GetDroppedImagePath(e);
+        if (filePath != null)
         {
-            string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
-            if (files.Length > 0)
-            {
-                string filePath = files[0];
-                string ext = System.IO.Path.GetExtension(filePath).ToLower();
-                if (ext is ".png" or ".jpg" or ".jpeg" or ".webp")
-                {
-                    ViewModel.LoadExifImage(filePath);
-                }
-            }
+            ViewModel.LoadExifImage(filePath);
         }
+    }
+
+    private void SourceImage_Drop(object sender, DragEventArgs e)
+    {
+        var filePath = GetDroppedImagePath(e);
+        if (filePath != null)
+        {
+            ViewModel?.LoadSourceImage(filePath);
+        }
+    }
+
+    private void MaskImage_Drop(object sender, DragEventArgs e)
+    {
+        var filePath = GetDroppedImagePath(e);
+        if (filePath != null)
+        {
+            ViewModel?.LoadMaskImage(filePath);
+        }
+    }
+
+    private void CharacterReference_Drop(object sender, DragEventArgs e)
+    {
+        var filePath = GetDroppedImagePath(e);
+        if (filePath != null)
+        {
+            ViewModel?.LoadCharacterReference(filePath);
+        }
+    }
+
+    private void DirectorInput_Drop(object sender, DragEventArgs e)
+    {
+        var filePath = GetDroppedImagePath(e);
+        if (filePath != null)
+        {
+            ViewModel?.DirectorToolsViewModel.LoadInputImage(filePath);
+        }
+    }
+
+    private static string? GetDroppedImagePath(DragEventArgs e)
+    {
+        if (!e.Data.GetDataPresent(DataFormats.FileDrop))
+        {
+            return null;
+        }
+
+        var files = (string[])e.Data.GetData(DataFormats.FileDrop);
+        if (files.Length == 0)
+        {
+            return null;
+        }
+
+        var filePath = files[0];
+        var ext = System.IO.Path.GetExtension(filePath).ToLowerInvariant();
+        return ext is ".png" or ".jpg" or ".jpeg" or ".webp" ? filePath : null;
     }
 
     private void MainWindow_Closing(object? sender, CancelEventArgs e)

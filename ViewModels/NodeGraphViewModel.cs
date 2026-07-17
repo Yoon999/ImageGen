@@ -1524,13 +1524,15 @@ public class NodeGraphViewModel : INotifyPropertyChanged
             currentNode,
             incomingNodes,
             _mainViewModel.IsRandomSeed);
+        _mainViewModel.ApplySharedGeneratorOptions(nodeRequest);
 
-        await _imageGenerationWorkflow.GenerateAndSaveAsync(
+        var result = await _imageGenerationWorkflow.GenerateAndSaveWithCostAsync(
             nodeRequest,
             _mainViewModel.ApiToken,
             _mainViewModel.SaveDirectory,
             "chain",
             bitmap => _mainViewModel.GeneratedImage = bitmap);
+        _mainViewModel.LastAnlasCost = result.AnlasCost;
 
     }
 

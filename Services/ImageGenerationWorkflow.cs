@@ -25,35 +25,75 @@ public class ImageGenerationWorkflow
         string filePrefix,
         Action<BitmapImage> updatePreview)
     {
+        var result = await GenerateAndSaveWithCostAsync(request, accessToken, saveDirectory, filePrefix, updatePreview);
+        return result.FileName;
+    }
+
+    public async Task<ImageGenerationResult> GenerateAndSaveWithCostAsync(
+        GenerationRequest request,
+        string accessToken,
+        string saveDirectory,
+        string filePrefix,
+        Action<BitmapImage> updatePreview)
+    {
         byte[]? imageData = null;
+        int? startAnlas = await TryGetAnlasAsync(accessToken);
 
-        await Task.Run(async () =>
+        if (request.action == "generate")
         {
-            var lastUpdate = DateTime.MinValue;
-            await foreach (var streamData in _novelAiService.GenerateImageStreamAsync(request, accessToken))
+            await Task.Run(async () =>
             {
-                imageData = streamData;
-                var now = DateTime.Now;
-                if ((now - lastUpdate).TotalMilliseconds < 60)
+                var lastUpdate = DateTime.MinValue;
+                await foreach (var streamData in _novelAiService.GenerateImageStreamAsync(request, accessToken))
                 {
-                    continue;
-                }
+                    imageData = streamData;
+                    var now = DateTime.Now;
+                    if ((now - lastUpdate).TotalMilliseconds < 60)
+                    {
+                        continue;
+                    }
 
-                lastUpdate = now;
-                TryUpdatePreview(streamData, updatePreview);
-            }
-        });
+                    lastUpdate = now;
+                    TryUpdatePreview(streamData, updatePreview);
+                }
+            });
+        }
+        else
+        {
+            var zipData = await _novelAiService.GenerateImageAsync(request, accessToken);
+            imageData = ZipHelper.ExtractFirstImage(zipData) ?? zipData;
+        }
 
         if (imageData == null)
         {
-            return null;
+            return new ImageGenerationResult(null, null);
         }
 
         TryUpdatePreview(imageData, updatePreview);
 
         var fileName = $"{filePrefix}_{DateTime.Now:yyyyMMdd_HHmmss}.png";
         await _imageService.SaveImageAsync(imageData, saveDirectory, fileName);
-        return fileName;
+        int? endAnlas = await TryGetAnlasAsync(accessToken);
+        return new ImageGenerationResult(fileName, CalculateCost(startAnlas, endAnlas));
+    }
+
+    public async Task<ImageGenerationResult> AugmentAndSaveAsync(
+        AugmentImageRequest request,
+        string accessToken,
+        string saveDirectory,
+        string filePrefix,
+        Action<BitmapImage> updatePreview)
+    {
+        int? startAnlas = await TryGetAnlasAsync(accessToken);
+        var zipData = await _novelAiService.AugmentImageAsync(request, accessToken);
+        var imageData = ZipHelper.ExtractFirstImage(zipData) ?? zipData;
+
+        TryUpdatePreview(imageData, updatePreview);
+
+        var fileName = $"{filePrefix}_{DateTime.Now:yyyyMMdd_HHmmss}.png";
+        await _imageService.SaveImageAsync(imageData, saveDirectory, fileName);
+        int? endAnlas = await TryGetAnlasAsync(accessToken);
+        return new ImageGenerationResult(fileName, CalculateCost(startAnlas, endAnlas));
     }
 
     private void TryUpdatePreview(byte[] imageData, Action<BitmapImage> updatePreview)
@@ -80,4 +120,29 @@ public class ImageGenerationWorkflow
 
         dispatcher.Invoke(action);
     }
+
+    private async Task<int?> TryGetAnlasAsync(string accessToken)
+    {
+        try
+        {
+            return await _novelAiService.GetAnlasAsync(accessToken);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError("Failed to read anlas for generation cost", ex);
+            return null;
+        }
+    }
+
+    private static int? CalculateCost(int? startAnlas, int? endAnlas)
+    {
+        if (!startAnlas.HasValue || !endAnlas.HasValue)
+        {
+            return null;
+        }
+
+        return Math.Max(0, startAnlas.Value - endAnlas.Value);
+    }
 }
+
+public record ImageGenerationResult(string? FileName, int? AnlasCost);
