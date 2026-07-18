@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:ImageGen.ViewModels"
+        xmlns:models="clr-namespace:ImageGen.Models"
         xmlns:helpers="clr-namespace:ImageGen.Helpers"
         xmlns:controls="clr-namespace:ImageGen.Views.Controls"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
@@ -15,6 +16,7 @@
         Left="100"
         Top="50"
         Closing="MainWindow_Closing"
+        PreviewKeyDown="MainWindow_PreviewKeyDown"
         Background="{StaticResource AppBackgroundBrush}"
         Foreground="{StaticResource AppTextBrush}">
 
@@ -64,7 +66,7 @@
                     </Grid.ColumnDefinitions>
 
                     <Border Grid.Column="0" Style="{StaticResource PanelBorderStyle}">
-                        <TabControl>
+                        <TabControl SelectedIndex="{Binding SelectedGeneratorTabIndex, Mode=TwoWay}">
                             <TabItem Header="Prompt">
                                 <Grid Margin="0,6,0,0">
                                     <Grid.RowDefinitions>
@@ -253,14 +255,20 @@
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
                                             <ui:TextBox Text="{Binding SourceImagePath}" IsReadOnly="True" Margin="0,0,6,0" />
                                             <ui:Button Grid.Column="1"
                                                        Icon="{ui:SymbolIcon Symbol=Image24}"
                                                        Command="{Binding BrowseSourceImageCommand}"
                                                        Style="{StaticResource IconButtonStyle}"
-                                                       Margin="0"
                                                        ToolTip="Select source image" />
+                                            <ui:Button Grid.Column="2"
+                                                       Icon="{ui:SymbolIcon Symbol=Dismiss24}"
+                                                       Command="{Binding ClearSourceImageCommand}"
+                                                       Style="{StaticResource IconButtonStyle}"
+                                                       Margin="0"
+                                                       ToolTip="Clear source image" />
                                         </Grid>
 
                                         <Border Height="130"
@@ -413,7 +421,8 @@
                                             <ui:TextBox 
                                                 Text="{Binding CharacterReferencePath}" 
                                                 IsReadOnly="True"
-                                                VerticalAlignment="Center" />
+                                                VerticalAlignment="Center"
+                                                Margin="0,0,6,0" />
                                             <ui:Button Grid.Column="1"
                                                        Icon="{ui:SymbolIcon Symbol=Image24}"
                                                        Command="{Binding BrowseCharacterReferenceCommand}"
@@ -679,5 +688,99 @@
                 <ui:TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource AppMutedTextBrush}" />
             </StatusBarItem>
         </StatusBar>
+
+        <Grid Grid.RowSpan="3" Panel.ZIndex="1000">
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsImagePasteOverlayOpen}" Value="True">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
+
+            <Border Background="#B3000000"
+                    MouseLeftButtonDown="ImagePasteBackdrop_MouseLeftButtonDown" />
+
+            <Border Width="720"
+                    MaxWidth="720"
+                    MaxHeight="680"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Background="{StaticResource AppSurfaceBrush}"
+                    BorderBrush="{StaticResource AppBorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="12"
+                    Margin="24">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Margin="0,0,0,10">
+                        <StackPanel>
+                            <ui:TextBlock Text="Use pasted image" FontSize="17" FontWeight="SemiBold" />
+                            <ui:TextBlock Text="Choose where this image should be applied."
+                                          Foreground="{StaticResource AppMutedTextBrush}"
+                                          Margin="0,2,40,0" />
+                        </StackPanel>
+                        <ui:Button Icon="{ui:SymbolIcon Symbol=Dismiss24}"
+                                   Command="{Binding DismissPastedImageCommand}"
+                                   Style="{StaticResource IconButtonStyle}"
+                                   HorizontalAlignment="Right"
+                                   VerticalAlignment="Top"
+                                   Margin="0"
+                                   ToolTip="Close" />
+                    </Grid>
+
+                    <Border Grid.Row="1"
+                            MinHeight="260"
+                            Background="{StaticResource AppBackgroundBrush}"
+                            BorderBrush="{StaticResource AppBorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Padding="6"
+                            Margin="0,0,0,12">
+                        <Image Source="{Binding PendingPastedImage}" Stretch="Uniform" />
+                    </Border>
+
+                    <UniformGrid Grid.Row="2" Columns="4">
+                        <ui:Button Content="Img2Img"
+                                   Icon="{ui:SymbolIcon Symbol=Image24}"
+                                   Command="{Binding ApplyPastedImageCommand}"
+                                   CommandParameter="{x:Static models:PastedImageDestination.Img2Img}"
+                                   Style="{StaticResource ToolbarButtonStyle}"
+                                   Margin="0,0,6,0"
+                                   ToolTip="Use as the Img2Img source image" />
+                        <ui:Button Content="Inpaint"
+                                   Icon="{ui:SymbolIcon Symbol=DrawImage24}"
+                                   Command="{Binding ApplyPastedImageCommand}"
+                                   CommandParameter="{x:Static models:PastedImageDestination.Inpaint}"
+                                   Style="{StaticResource ToolbarButtonStyle}"
+                                   Margin="0,0,6,0"
+                                   ToolTip="Use as the Inpaint source image" />
+                        <ui:Button Content="Vibe Transfer"
+                                   Icon="{ui:SymbolIcon Symbol=ImageAdd24}"
+                                   Command="{Binding ApplyPastedImageCommand}"
+                                   CommandParameter="{x:Static models:PastedImageDestination.VibeTransfer}"
+                                   Style="{StaticResource ToolbarButtonStyle}"
+                                   Margin="0,0,6,0"
+                                   ToolTip="Add to Vibe Transfer references" />
+                        <ui:Button Content="Character"
+                                   Icon="{ui:SymbolIcon Symbol=PersonAdd24}"
+                                   Command="{Binding ApplyPastedImageCommand}"
+                                   CommandParameter="{x:Static models:PastedImageDestination.CharacterReference}"
+                                   Style="{StaticResource ToolbarButtonStyle}"
+                                   Margin="0"
+                                   ToolTip="Use as the Character Reference image" />
+                    </UniformGrid>
+                </Grid>
+            </Border>
+        </Grid>
     </Grid>
 </Window>

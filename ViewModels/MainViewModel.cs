@@ -29,6 +29,7 @@ public class MainViewModel : INotifyPropertyChanged
     private readonly TagSuggestionService _tagSuggestionService;
     private readonly ImageGenerationWorkflow _imageGenerationWorkflow;
     private readonly ImageEncodingService _imageEncodingService;
+    private readonly ClipboardImageCacheService _clipboardImageCacheService;
 
     private string _prompt = string.Empty;
     private string _apiToken = string.Empty;
@@ -58,6 +59,9 @@ public class MainViewModel : INotifyPropertyChanged
     private BitmapImage? _characterReferencePreview;
     private bool _characterReferenceStyleAware = true;
     private double _characterReferenceFidelity = 1.0;
+    private BitmapSource? _pendingPastedImage;
+    private bool _isImagePasteOverlayOpen;
+    private int _selectedGeneratorTabIndex;
 
     private ObservableCollection<TagSuggestion> _tagSuggestions = new();
     private TagSuggestion? _selectedSuggestion;
@@ -125,6 +129,7 @@ public class MainViewModel : INotifyPropertyChanged
         _characterPresetService = new CharacterPresetService();
         _tagSuggestionService = new TagSuggestionService(_novelAiService);
         _imageEncodingService = new ImageEncodingService();
+        _clipboardImageCacheService = new ClipboardImageCacheService();
         _imageGenerationWorkflow = new ImageGenerationWorkflow(_novelAiService, _imageService);
         DirectorToolsViewModel = new DirectorToolsViewModel(this, _imageGenerationWorkflow, _imageEncodingService);
 
@@ -179,6 +184,7 @@ public class MainViewModel : INotifyPropertyChanged
         }
 
         VibeReferences.CollectionChanged += VibeReferences_CollectionChanged;
+        _clipboardImageCacheService.CleanupOrphans(GetReferencedImagePaths());
 
         if (settings.CharacterPrompts != null)
         {
@@ -224,12 +230,15 @@ public class MainViewModel : INotifyPropertyChanged
         RefreshAnlasCommand = new RelayCommand(ExecuteRefreshAnlas, CanExecuteRefreshAnlas);
         OpenSaveDirectoryCommand = new RelayCommand(ExecuteOpenSaveDirectory);
         BrowseSourceImageCommand = new RelayCommand(ExecuteBrowseSourceImage);
+        ClearSourceImageCommand = new RelayCommand(_ => ClearSourceImage(), _ => !string.IsNullOrWhiteSpace(SourceImagePath));
         OpenMaskEditorCommand = new RelayCommand(ExecuteOpenMaskEditor, CanOpenMaskEditor);
         ClearMaskCommand = new RelayCommand(_ => ClearInpaintMask(), _ => HasInpaintMask);
         BrowseCharacterReferenceCommand = new RelayCommand(ExecuteBrowseCharacterReference);
         AddVibeReferenceCommand = new RelayCommand(ExecuteAddVibeReference);
         RemoveVibeReferenceCommand = new RelayCommand(ExecuteRemoveVibeReference);
         ClearCharacterReferenceCommand = new RelayCommand(_ => ClearCharacterReference());
+        ApplyPastedImageCommand = new RelayCommand(ExecuteApplyPastedImage, parameter => parameter is PastedImageDestination && PendingPastedImage != null);
+        DismissPastedImageCommand = new RelayCommand(_ => DismissPastedImage());
     }
 
     private void CharacterPrompts_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -372,6 +381,40 @@ public class MainViewModel : INotifyPropertyChanged
                 OnPropertyChanged();
                 CommandManager.InvalidateRequerySuggested();
             }
+        }
+    }
+
+    public int SelectedGeneratorTabIndex
+    {
+        get => _selectedGeneratorTabIndex;
+        set
+        {
+            if (_selectedGeneratorTabIndex == value) return;
+            _selectedGeneratorTabIndex = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public BitmapSource? PendingPastedImage
+    {
+        get => _pendingPastedImage;
+        private set
+        {
+            if (ReferenceEquals(_pendingPastedImage, value)) return;
+            _pendingPastedImage = value;
+            OnPropertyChanged();
+            CommandManager.InvalidateRequerySuggested();
+        }
+    }
+
+    public bool IsImagePasteOverlayOpen
+    {
+        get => _isImagePasteOverlayOpen;
+        private set
+        {
+            if (_isImagePasteOverlayOpen == value) return;
+            _isImagePasteOverlayOpen = value;
+            OnPropertyChanged();
         }
     }
 
@@ -735,12 +778,15 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand RefreshAnlasCommand { get; }
     public ICommand OpenSaveDirectoryCommand { get; }
     public ICommand BrowseSourceImageCommand { get; }
+    public ICommand ClearSourceImageCommand { get; }
     public ICommand OpenMaskEditorCommand { get; }
     public ICommand ClearMaskCommand { get; }
     public ICommand BrowseCharacterReferenceCommand { get; }
     public ICommand AddVibeReferenceCommand { get; }
     public ICommand RemoveVibeReferenceCommand { get; }
     public ICommand ClearCharacterReferenceCommand { get; }
+    public ICommand ApplyPastedImageCommand { get; }
+    public ICommand DismissPastedImageCommand { get; }
 
     private bool CanExecuteGenerate(object? parameter)
     {
@@ -868,8 +914,20 @@ public class MainViewModel : INotifyPropertyChanged
 
     public void LoadSourceImage(string path)
     {
+        BitmapImage preview = _imageEncodingService.LoadPreview(path);
+        string previousPath = SourceImagePath;
         SourceImagePath = path;
-        SourceImagePreview = _imageEncodingService.LoadPreview(path);
+        SourceImagePreview = preview;
+        ReleaseManagedImageIfUnused(previousPath);
+    }
+
+    private void ClearSourceImage()
+    {
+        string previousPath = SourceImagePath;
+        SourceImagePath = string.Empty;
+        SourceImagePreview = null;
+        ReleaseManagedImageIfUnused(previousPath);
+        StatusMessage = "Source image cleared";
     }
 
     private bool CanOpenMaskEditor(object? parameter)
@@ -922,33 +980,150 @@ public class MainViewModel : INotifyPropertyChanged
 
     public void LoadCharacterReference(string path)
     {
+        BitmapImage preview = _imageEncodingService.LoadPreview(path);
+        string previousPath = CharacterReferencePath;
         CharacterReferencePath = path;
-        CharacterReferencePreview = _imageEncodingService.LoadPreview(path);
+        CharacterReferencePreview = preview;
+        ReleaseManagedImageIfUnused(previousPath);
     }
 
     private void ExecuteAddVibeReference(object? parameter)
     {
         var path = SelectImageFile();
         if (path == null) return;
-        VibeReferences.Add(new VibeReferenceImage
-        {
-            FilePath = path,
-            Preview = _imageEncodingService.LoadPreview(path)
-        });
+        AddVibeReference(path);
     }
 
     private void ExecuteRemoveVibeReference(object? parameter)
     {
         if (parameter is VibeReferenceImage reference)
         {
+            string previousPath = reference.FilePath;
             VibeReferences.Remove(reference);
+            ReleaseManagedImageIfUnused(previousPath);
         }
     }
 
     private void ClearCharacterReference()
     {
+        string previousPath = CharacterReferencePath;
         CharacterReferencePath = string.Empty;
         CharacterReferencePreview = null;
+        ReleaseManagedImageIfUnused(previousPath);
+    }
+
+    private void AddVibeReference(string path)
+    {
+        VibeReferences.Add(new VibeReferenceImage
+        {
+            FilePath = path,
+            Preview = _imageEncodingService.LoadPreview(path),
+            InformationExtracted = 1.0,
+            Strength = 0.6
+        });
+    }
+
+    public void ShowPastedImage(BitmapSource image)
+    {
+        BitmapSource preview = image;
+        if (!preview.IsFrozen)
+        {
+            if (preview.CanFreeze)
+            {
+                preview.Freeze();
+            }
+            else
+            {
+                preview = BitmapFrame.Create(preview);
+                preview.Freeze();
+            }
+        }
+
+        PendingPastedImage = preview;
+        IsImagePasteOverlayOpen = true;
+        StatusMessage = "Choose where to use the pasted image";
+    }
+
+    private void ExecuteApplyPastedImage(object? parameter)
+    {
+        if (parameter is not PastedImageDestination destination || PendingPastedImage == null) return;
+
+        string? savedPath = null;
+        try
+        {
+            savedPath = _clipboardImageCacheService.Save(PendingPastedImage);
+            switch (destination)
+            {
+                case PastedImageDestination.Img2Img:
+                    LoadSourceImage(savedPath);
+                    GenerationMode = "Img2Img";
+                    SelectedGeneratorTabIndex = 2;
+                    StatusMessage = "Pasted image set as Img2Img source";
+                    break;
+                case PastedImageDestination.Inpaint:
+                    LoadSourceImage(savedPath);
+                    GenerationMode = "Inpaint";
+                    SelectedGeneratorTabIndex = 2;
+                    StatusMessage = "Pasted image set as Inpaint source";
+                    break;
+                case PastedImageDestination.VibeTransfer:
+                    AddVibeReference(savedPath);
+                    SelectedGeneratorTabIndex = 3;
+                    StatusMessage = "Pasted image added to Vibe Transfer";
+                    break;
+                case PastedImageDestination.CharacterReference:
+                    LoadCharacterReference(savedPath);
+                    SelectedGeneratorTabIndex = 3;
+                    StatusMessage = "Pasted image set as Character Reference";
+                    break;
+            }
+
+            PendingPastedImage = null;
+            IsImagePasteOverlayOpen = false;
+        }
+        catch (Exception ex)
+        {
+            ReleaseManagedImageIfUnused(savedPath);
+            StatusMessage = $"Failed to use pasted image: {ex.Message}";
+            Logger.LogError("Failed to apply pasted image", ex);
+        }
+    }
+
+    private void DismissPastedImage()
+    {
+        PendingPastedImage = null;
+        IsImagePasteOverlayOpen = false;
+        StatusMessage = "Pasted image dismissed";
+    }
+
+    private IEnumerable<string?> GetReferencedImagePaths()
+    {
+        yield return SourceImagePath;
+        yield return CharacterReferencePath;
+        foreach (VibeReferenceImage reference in VibeReferences)
+        {
+            yield return reference.FilePath;
+        }
+    }
+
+    private void ReleaseManagedImageIfUnused(string? filePath)
+    {
+        if (!_clipboardImageCacheService.IsManagedPath(filePath)) return;
+        if (GetReferencedImagePaths().Any(path => PathsEqual(path, filePath))) return;
+        _clipboardImageCacheService.DeleteIfManaged(filePath);
+    }
+
+    private static bool PathsEqual(string? left, string? right)
+    {
+        if (string.IsNullOrWhiteSpace(left) || string.IsNullOrWhiteSpace(right)) return false;
+        try
+        {
+            return string.Equals(Path.GetFullPath(left), Path.GetFullPath(right), StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
+        }
     }
 
     private static string? SelectImageFile()
