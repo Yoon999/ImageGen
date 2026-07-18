@@ -417,7 +417,7 @@
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
 
-                                        <ui:TextBlock Text="Character Reference" FontWeight="SemiBold" Margin="0,8,0,6" />
+                                        <ui:TextBlock Text="Precise Reference" FontWeight="SemiBold" Margin="0,8,0,6" />
                                         <Grid Margin="0,0,0,8">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
@@ -425,38 +425,47 @@
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
                                             <ui:TextBox 
-                                                Text="{Binding CharacterReferencePath}" 
+                                                Text="{Binding PreciseReferencePath}"
                                                 IsReadOnly="True"
                                                 VerticalAlignment="Center"
                                                 Margin="0,0,6,0" />
                                             <ui:Button Grid.Column="1"
                                                        Icon="{ui:SymbolIcon Symbol=Image24}"
-                                                       Command="{Binding BrowseCharacterReferenceCommand}"
+                                                       Command="{Binding BrowsePreciseReferenceCommand}"
                                                        Style="{StaticResource IconButtonStyle}"
-                                                       ToolTip="Select character reference image" />
+                                                       ToolTip="Select precise reference image" />
                                             <ui:Button Grid.Column="2"
                                                        Icon="{ui:SymbolIcon Symbol=Dismiss24}"
-                                                       Command="{Binding ClearCharacterReferenceCommand}"
+                                                       Command="{Binding ClearPreciseReferenceCommand}"
                                                        Style="{StaticResource IconButtonStyle}"
                                                        Margin="0"
-                                                       ToolTip="Clear character reference" />
+                                                       ToolTip="Clear precise reference" />
                                         </Grid>
 
                                         <Border Height="130"
                                                 AllowDrop="True"
-                                                Drop="CharacterReference_Drop"
+                                                Drop="PreciseReference_Drop"
                                                 Background="{StaticResource AppSurfaceAltBrush}"
                                                 BorderBrush="{StaticResource AppBorderBrush}"
                                                 BorderThickness="1"
                                                 CornerRadius="6"
                                                 Margin="0,0,0,8">
-                                            <Image Source="{Binding CharacterReferencePreview}" Stretch="Uniform" />
+                                            <Image Source="{Binding PreciseReferencePreview}" Stretch="Uniform" />
                                         </Border>
-                                        <CheckBox Content="Style aware" IsChecked="{Binding CharacterReferenceStyleAware}" Margin="0,0,0,6" />
+                                        <DockPanel Margin="0,0,0,6">
+                                            <ui:TextBlock Text="Type" Width="64" Foreground="{StaticResource AppMutedTextBrush}" VerticalAlignment="Center" />
+                                            <ComboBox ItemsSource="{Binding PreciseReferenceTypes}"
+                                                      SelectedItem="{Binding PreciseReferenceType}" />
+                                        </DockPanel>
+                                        <DockPanel Margin="0,0,0,6">
+                                            <ui:TextBlock Text="Strength" Width="64" Foreground="{StaticResource AppMutedTextBrush}" />
+                                            <ui:TextBox Text="{Binding PreciseReferenceStrength, StringFormat=N2}" Width="58" DockPanel.Dock="Right" TextAlignment="Center" />
+                                            <Slider Minimum="0.0" Maximum="1.0" Value="{Binding PreciseReferenceStrength}" TickFrequency="0.01" />
+                                        </DockPanel>
                                         <DockPanel>
                                             <ui:TextBlock Text="Fidelity" Width="64" Foreground="{StaticResource AppMutedTextBrush}" />
-                                            <ui:TextBox Text="{Binding CharacterReferenceFidelity, StringFormat=N2}" Width="58" DockPanel.Dock="Right" TextAlignment="Center" />
-                                            <Slider Minimum="0.0" Maximum="1.0" Value="{Binding CharacterReferenceFidelity}" TickFrequency="0.01" />
+                                            <ui:TextBox Text="{Binding PreciseReferenceFidelity, StringFormat=N2}" Width="58" DockPanel.Dock="Right" TextAlignment="Center" />
+                                            <Slider Minimum="0.0" Maximum="1.0" Value="{Binding PreciseReferenceFidelity}" TickFrequency="0.01" />
                                         </DockPanel>
                                     </StackPanel>
                                 </ScrollViewer>
@@ -493,7 +502,7 @@
                                     <Image Source="{Binding InpaintMaskPreview}" Stretch="Uniform" />
                                 </Border>
                                 <Border Width="58" Height="58" Background="{StaticResource AppSurfaceAltBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" Margin="0,0,6,0">
-                                    <Image Source="{Binding CharacterReferencePreview}" Stretch="Uniform" />
+                                    <Image Source="{Binding PreciseReferencePreview}" Stretch="Uniform" />
                                 </Border>
                             </StackPanel>
                         </Grid>
@@ -816,13 +825,13 @@
                                    Style="{StaticResource ToolbarButtonStyle}"
                                    Margin="0,0,6,0"
                                    ToolTip="Add to Vibe Transfer references" />
-                        <ui:Button Content="Character"
+                        <ui:Button Content="Precise"
                                    Icon="{ui:SymbolIcon Symbol=PersonAdd24}"
                                    Command="{Binding ApplyPastedImageCommand}"
-                                   CommandParameter="{x:Static models:PastedImageDestination.CharacterReference}"
+                                   CommandParameter="{x:Static models:PastedImageDestination.PreciseReference}"
                                    Style="{StaticResource ToolbarButtonStyle}"
                                    Margin="0"
-                                   ToolTip="Use as the Character Reference image" />
+                                   ToolTip="Use as the Precise Reference image" />
                     </UniformGrid>
                 </Grid>
             </Border>

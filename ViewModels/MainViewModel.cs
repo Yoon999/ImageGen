@@ -56,10 +56,11 @@ public class MainViewModel : INotifyPropertyChanged
     private double _imageStrength = 0.7;
     private double _imageNoise;
     private bool _addOriginalImage = true;
-    private string _characterReferencePath = string.Empty;
-    private BitmapImage? _characterReferencePreview;
-    private bool _characterReferenceStyleAware = true;
-    private double _characterReferenceFidelity = 1.0;
+    private string _preciseReferencePath = string.Empty;
+    private BitmapImage? _preciseReferencePreview;
+    private string _preciseReferenceType = "character";
+    private double _preciseReferenceStrength = 1.0;
+    private double _preciseReferenceFidelity = 1.0;
     private BitmapSource? _pendingPastedImage;
     private bool _isImagePasteOverlayOpen;
     private int _selectedGeneratorTabIndex;
@@ -118,6 +119,13 @@ public class MainViewModel : INotifyPropertyChanged
         "Inpaint"
     };
 
+    public IReadOnlyList<string> PreciseReferenceTypes { get; } = new[]
+    {
+        "character",
+        "character&style",
+        "style"
+    };
+
     public ObservableCollection<VibeReferenceImage> VibeReferences { get; } = new();
 
     // Node Graph ViewModel
@@ -169,10 +177,18 @@ public class MainViewModel : INotifyPropertyChanged
         _sourceImagePreview = LoadSavedPreview(_sourceImagePath);
 
         var referenceSettings = settings.References ?? new ReferenceSettings();
-        _characterReferencePath = referenceSettings.CharacterReferencePath;
-        _characterReferenceStyleAware = referenceSettings.CharacterReferenceStyleAware;
-        _characterReferenceFidelity = referenceSettings.CharacterReferenceFidelity;
-        _characterReferencePreview = LoadSavedPreview(_characterReferencePath);
+        _preciseReferencePath = referenceSettings.PreciseReferencePath
+                                ?? referenceSettings.CharacterReferencePath
+                                ?? string.Empty;
+        _preciseReferenceType = NormalizePreciseReferenceType(
+            referenceSettings.PreciseReferenceType
+            ?? (referenceSettings.CharacterReferenceStyleAware == true ? "character&style" : "character"));
+        _preciseReferenceStrength = ClampUnit(referenceSettings.PreciseReferenceStrength ?? 1.0);
+        _preciseReferenceFidelity = ClampUnit(
+            referenceSettings.PreciseReferenceFidelity
+            ?? referenceSettings.CharacterReferenceFidelity
+            ?? 1.0);
+        _preciseReferencePreview = LoadSavedPreview(_preciseReferencePath);
 
         foreach (var savedReference in referenceSettings.VibeReferences ?? new List<VibeReferenceSettings>())
         {
@@ -237,10 +253,10 @@ public class MainViewModel : INotifyPropertyChanged
         ClearSourceImageCommand = new RelayCommand(_ => ClearSourceImage(), _ => !string.IsNullOrWhiteSpace(SourceImagePath));
         OpenMaskEditorCommand = new RelayCommand(ExecuteOpenMaskEditor, CanOpenMaskEditor);
         ClearMaskCommand = new RelayCommand(_ => ClearInpaintMask(), _ => HasInpaintMask);
-        BrowseCharacterReferenceCommand = new RelayCommand(ExecuteBrowseCharacterReference);
+        BrowsePreciseReferenceCommand = new RelayCommand(ExecuteBrowsePreciseReference);
         AddVibeReferenceCommand = new RelayCommand(ExecuteAddVibeReference);
         RemoveVibeReferenceCommand = new RelayCommand(ExecuteRemoveVibeReference);
-        ClearCharacterReferenceCommand = new RelayCommand(_ => ClearCharacterReference());
+        ClearPreciseReferenceCommand = new RelayCommand(_ => ClearPreciseReference());
         ApplyPastedImageCommand = new RelayCommand(ExecuteApplyPastedImage, parameter => parameter is PastedImageDestination && PendingPastedImage != null);
         DismissPastedImageCommand = new RelayCommand(_ => DismissPastedImage());
         RunUpdateCommand = new RelayCommand(_ => RunUpdate(), _ => IsUpdateAvailable);
@@ -672,43 +688,58 @@ public class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    public string CharacterReferencePath
+    public string PreciseReferencePath
     {
-        get => _characterReferencePath;
+        get => _preciseReferencePath;
         set
         {
-            if (_characterReferencePath == value) return;
-            _characterReferencePath = value;
+            if (_preciseReferencePath == value) return;
+            _preciseReferencePath = value;
             OnPropertyChanged();
             SaveCurrentSettings();
         }
     }
 
-    public BitmapImage? CharacterReferencePreview
+    public BitmapImage? PreciseReferencePreview
     {
-        get => _characterReferencePreview;
-        set { _characterReferencePreview = value; OnPropertyChanged(); }
+        get => _preciseReferencePreview;
+        set { _preciseReferencePreview = value; OnPropertyChanged(); }
     }
 
-    public bool CharacterReferenceStyleAware
+    public string PreciseReferenceType
     {
-        get => _characterReferenceStyleAware;
+        get => _preciseReferenceType;
         set
         {
-            if (_characterReferenceStyleAware == value) return;
-            _characterReferenceStyleAware = value;
+            string normalized = NormalizePreciseReferenceType(value);
+            if (_preciseReferenceType == normalized) return;
+            _preciseReferenceType = normalized;
             OnPropertyChanged();
             SaveCurrentSettings();
         }
     }
 
-    public double CharacterReferenceFidelity
+    public double PreciseReferenceStrength
     {
-        get => _characterReferenceFidelity;
+        get => _preciseReferenceStrength;
         set
         {
-            if (_characterReferenceFidelity == value) return;
-            _characterReferenceFidelity = value;
+            double clamped = ClampUnit(value);
+            if (_preciseReferenceStrength == clamped) return;
+            _preciseReferenceStrength = clamped;
+            OnPropertyChanged();
+            SaveCurrentSettings();
+        }
+    }
+
+    public double PreciseReferenceFidelity
+    {
+        get => _preciseReferenceFidelity;
+        set
+        {
+            double clamped = ClampUnit(value);
+            if (_preciseReferenceFidelity == clamped) return;
+            _preciseReferenceFidelity = clamped;
             OnPropertyChanged();
             SaveCurrentSettings();
         }
@@ -805,10 +836,10 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand ClearSourceImageCommand { get; }
     public ICommand OpenMaskEditorCommand { get; }
     public ICommand ClearMaskCommand { get; }
-    public ICommand BrowseCharacterReferenceCommand { get; }
+    public ICommand BrowsePreciseReferenceCommand { get; }
     public ICommand AddVibeReferenceCommand { get; }
     public ICommand RemoveVibeReferenceCommand { get; }
-    public ICommand ClearCharacterReferenceCommand { get; }
+    public ICommand ClearPreciseReferenceCommand { get; }
     public ICommand ApplyPastedImageCommand { get; }
     public ICommand DismissPastedImageCommand { get; }
     public ICommand RunUpdateCommand { get; }
@@ -999,19 +1030,19 @@ public class MainViewModel : INotifyPropertyChanged
         StatusMessage = "Inpaint mask cleared";
     }
 
-    private void ExecuteBrowseCharacterReference(object? parameter)
+    private void ExecuteBrowsePreciseReference(object? parameter)
     {
         var path = SelectImageFile();
         if (path == null) return;
-        LoadCharacterReference(path);
+        LoadPreciseReference(path);
     }
 
-    public void LoadCharacterReference(string path)
+    public void LoadPreciseReference(string path)
     {
         BitmapImage preview = _imageEncodingService.LoadPreview(path);
-        string previousPath = CharacterReferencePath;
-        CharacterReferencePath = path;
-        CharacterReferencePreview = preview;
+        string previousPath = PreciseReferencePath;
+        PreciseReferencePath = path;
+        PreciseReferencePreview = preview;
         ReleaseManagedImageIfUnused(previousPath);
     }
 
@@ -1032,11 +1063,11 @@ public class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    private void ClearCharacterReference()
+    private void ClearPreciseReference()
     {
-        string previousPath = CharacterReferencePath;
-        CharacterReferencePath = string.Empty;
-        CharacterReferencePreview = null;
+        string previousPath = PreciseReferencePath;
+        PreciseReferencePath = string.Empty;
+        PreciseReferencePreview = null;
         ReleaseManagedImageIfUnused(previousPath);
     }
 
@@ -1099,10 +1130,10 @@ public class MainViewModel : INotifyPropertyChanged
                     SelectedGeneratorTabIndex = 3;
                     StatusMessage = "Pasted image added to Vibe Transfer";
                     break;
-                case PastedImageDestination.CharacterReference:
-                    LoadCharacterReference(savedPath);
+                case PastedImageDestination.PreciseReference:
+                    LoadPreciseReference(savedPath);
                     SelectedGeneratorTabIndex = 3;
-                    StatusMessage = "Pasted image set as Character Reference";
+                    StatusMessage = "Pasted image set as Precise Reference";
                     break;
             }
 
@@ -1144,7 +1175,7 @@ public class MainViewModel : INotifyPropertyChanged
     private IEnumerable<string?> GetReferencedImagePaths()
     {
         yield return SourceImagePath;
-        yield return CharacterReferencePath;
+        yield return PreciseReferencePath;
         yield return DirectorToolsViewModel.InputImagePath;
         foreach (VibeReferenceImage reference in VibeReferences)
         {
@@ -1327,9 +1358,10 @@ public class MainViewModel : INotifyPropertyChanged
                     InformationExtracted = reference.InformationExtracted,
                     Strength = reference.Strength
                 }).ToList(),
-                CharacterReferencePath = CharacterReferencePath,
-                CharacterReferenceStyleAware = CharacterReferenceStyleAware,
-                CharacterReferenceFidelity = CharacterReferenceFidelity
+                PreciseReferencePath = PreciseReferencePath,
+                PreciseReferenceType = PreciseReferenceType,
+                PreciseReferenceStrength = PreciseReferenceStrength,
+                PreciseReferenceFidelity = PreciseReferenceFidelity
             }
         };
         _settingsService.SaveSettings(settings);
@@ -1435,7 +1467,7 @@ public class MainViewModel : INotifyPropertyChanged
                 IsRandomSeed);
 
             ApplyGeneratorOptions(request);
-
+            
             Request = GenerationRequestBuilder.Clone(request);
             ClearVolatileRequestData(Request);
             Request.model = uiModel;
@@ -1446,7 +1478,7 @@ public class MainViewModel : INotifyPropertyChanged
             string currentRequestJson = JsonSerializer.Serialize(Request)
                                         + SourceImagePath
                                         + InpaintMask?.RevisionId
-                                        + CharacterReferencePath
+                                        + PreciseReferencePath
                                         + string.Join("|", VibeReferences.Select(r => r.FilePath));
             if (!IsRandomSeed && currentRequestJson == _lastRequestJson)
             {
@@ -1563,10 +1595,10 @@ public class MainViewModel : INotifyPropertyChanged
             request.parameters.reference_strength_multiple.Add(reference.Strength);
         }
 
-        if (File.Exists(CharacterReferencePath))
+        if (File.Exists(PreciseReferencePath))
         {
-            var referenceImage = _imageEncodingService.EncodeCharacterReferenceFile(
-                CharacterReferencePath,
+            var referenceImage = _imageEncodingService.EncodePreciseReferenceFile(
+                PreciseReferencePath,
                 out _,
                 out _);
             request.parameters.director_reference_images = new List<string> { referenceImage };
@@ -1579,12 +1611,13 @@ public class MainViewModel : INotifyPropertyChanged
                     LegacyUc = false,
                     Caption = new V4ExternalCaption
                     {
-                        BaseCaption = CharacterReferenceStyleAware ? "character&style" : "character"
+                        BaseCaption = PreciseReferenceType,
+                        CharCaptions = new List<V4ExternalCharacterCaption>()
                     }
                 }
             };
-            request.parameters.director_reference_strength_values = new List<double> { 1.0 };
-            request.parameters.director_reference_secondary_strength_values = new List<double> { 1.0 - CharacterReferenceFidelity };
+            request.parameters.director_reference_strength_values = new List<double> { PreciseReferenceStrength };
+            request.parameters.director_reference_secondary_strength_values = new List<double> { 1.0 - PreciseReferenceFidelity };
             request.parameters.director_reference_information_extracted = new List<double> { 1.0 };
         }
     }
@@ -1640,6 +1673,18 @@ public class MainViewModel : INotifyPropertyChanged
     private static double CalculateSkipCfgAboveSigma(int width, int height)
     {
         return Math.Sqrt(width * height / 1011712d) * 19d;
+    }
+
+    private static string NormalizePreciseReferenceType(string? value)
+    {
+        return value is "character" or "character&style" or "style"
+            ? value
+            : "character";
+    }
+
+    private static double ClampUnit(double value)
+    {
+        return double.IsFinite(value) ? Math.Clamp(value, 0.0, 1.0) : 1.0;
     }
 
     public async Task<bool> ConfirmCloseAsync()

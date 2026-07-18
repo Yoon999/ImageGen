@@ -1,5 +1,6 @@
 using ImageGen.Models.Api;
 using ImageGen.ViewModels;
+using System.Text.Json.Serialization;
 
 namespace ImageGen.Models;
 
@@ -36,9 +37,19 @@ public class ImageInputSettings
 public class ReferenceSettings
 {
     public List<VibeReferenceSettings> VibeReferences { get; set; } = new List<VibeReferenceSettings>();
-    public string CharacterReferencePath { get; set; } = string.Empty;
-    public bool CharacterReferenceStyleAware { get; set; } = true;
-    public double CharacterReferenceFidelity { get; set; } = 1.0;
+    public string? PreciseReferencePath { get; set; }
+    public string? PreciseReferenceType { get; set; }
+    public double? PreciseReferenceStrength { get; set; }
+    public double? PreciseReferenceFidelity { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? CharacterReferencePath { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? CharacterReferenceStyleAware { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? CharacterReferenceFidelity { get; set; }
 }
 
 public class VibeReferenceSettings

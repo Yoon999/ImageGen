@@ -308,12 +308,12 @@ public partial class MainWindow : Window
         }
     }
 
-    private void CharacterReference_Drop(object sender, DragEventArgs e)
+    private void PreciseReference_Drop(object sender, DragEventArgs e)
     {
         var filePath = GetDroppedImagePath(e);
         if (filePath != null)
         {
-            ViewModel?.LoadCharacterReference(filePath);
+            ViewModel?.LoadPreciseReference(filePath);
         }
     }
 

@@ -9,7 +9,7 @@ namespace ImageGen.Services;
 
 public class ImageEncodingService
 {
-    private static readonly (int Width, int Height)[] CharacterReferenceCanvases =
+    private static readonly (int Width, int Height)[] PreciseReferenceCanvases =
     {
         (1024, 1536),
         (1536, 1024),
@@ -84,10 +84,10 @@ public class ImageEncodingService
             document.FeatherSize);
     }
 
-    public string EncodeCharacterReferenceFile(string filePath, out int canvasWidth, out int canvasHeight)
+    public string EncodePreciseReferenceFile(string filePath, out int canvasWidth, out int canvasHeight)
     {
         var source = LoadBitmap(filePath);
-        (canvasWidth, canvasHeight) = ChooseCharacterReferenceCanvas(source.PixelWidth, source.PixelHeight);
+        (canvasWidth, canvasHeight) = ChoosePreciseReferenceCanvas(source.PixelWidth, source.PixelHeight);
         var scale = Math.Min((double)canvasWidth / source.PixelWidth, (double)canvasHeight / source.PixelHeight);
         var imageWidth = Math.Max(1, (int)(source.PixelWidth * scale));
         var imageHeight = Math.Max(1, (int)(source.PixelHeight * scale));
@@ -146,10 +146,10 @@ public class ImageEncodingService
         return Convert.ToBase64String(stream.ToArray());
     }
 
-    private static (int Width, int Height) ChooseCharacterReferenceCanvas(int width, int height)
+    private static (int Width, int Height) ChoosePreciseReferenceCanvas(int width, int height)
     {
         var aspect = (double)width / height;
-        return CharacterReferenceCanvases
+        return PreciseReferenceCanvases
             .OrderBy(size => Math.Abs(((double)size.Width / size.Height) - aspect))
             .First();
     }
