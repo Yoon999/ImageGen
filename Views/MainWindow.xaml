@@ -543,42 +543,81 @@
                                         BorderThickness="1"
                                         CornerRadius="6"
                                         Margin="0,0,0,8">
-                                    <Image Source="{Binding InputPreview}" Stretch="Uniform" />
+                                    <Grid>
+                                        <Image Source="{Binding InputPreview}" Stretch="Uniform" />
+                                        <ui:TextBlock Text="Drag and drop an image here, or press Ctrl+V to paste"
+                                                      Foreground="{StaticResource AppMutedTextBrush}"
+                                                      HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center"
+                                                      TextAlignment="Center"
+                                                      TextWrapping="Wrap"
+                                                      Margin="12"
+                                                      Visibility="{Binding InputPreview, Converter={StaticResource NullToVisibilityConverter}, ConverterParameter=Inverse}" />
+                                    </Grid>
                                 </Border>
 
-                                <WrapPanel Margin="0,0,0,8">
-                                    <CheckBox Content="Ignore errors" IsChecked="{Binding IgnoreErrors}" Margin="0,0,10,4" />
-                                </WrapPanel>
+                                <StackPanel>
+                                    <StackPanel.Style>
+                                        <Style TargetType="StackPanel">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SelectedTool}" Value="colorize">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding SelectedTool}" Value="emotion">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </StackPanel.Style>
 
-                                <ui:TextBlock Text="Colorize / Emotion Options" FontWeight="SemiBold" Margin="0,6,0,6" />
-                                <DockPanel Margin="0,0,0,6">
-                                    <ui:TextBlock Text="Defry" Width="64" Foreground="{StaticResource AppMutedTextBrush}" />
-                                    <ui:TextBox Text="{Binding Defry}" Width="58" DockPanel.Dock="Right" TextAlignment="Center" />
-                                    <Slider Minimum="0" Maximum="5" Value="{Binding Defry}" TickFrequency="1" IsSnapToTickEnabled="True" />
-                                </DockPanel>
-                                <DockPanel Margin="0,0,0,6">
-                                    <ui:TextBlock Text="Mood" Width="64" Foreground="{StaticResource AppMutedTextBrush}" VerticalAlignment="Center" />
-                                    <ComboBox ItemsSource="{Binding Moods}" SelectedItem="{Binding SelectedMood}" />
-                                </DockPanel>
-                                <DockPanel Margin="0,0,0,6">
-                                    <ui:TextBlock Text="Strength" Width="64" Foreground="{StaticResource AppMutedTextBrush}" VerticalAlignment="Center" />
-                                    <ComboBox ItemsSource="{Binding EmotionStrengths}" SelectedItem="{Binding SelectedEmotionStrength}" />
-                                </DockPanel>
-                                <ui:TextBlock Text="Prompt" Style="{StaticResource SectionLabelStyle}" />
-                                <ui:TextBox Text="{Binding Prompt}"
-                                            TextAlignment="Left"
-                                            TextWrapping="Wrap"
-                                            AcceptsReturn="True"
-                                            MinHeight="90"
-                                            ClearButtonEnabled="False"
-                                            Margin="0,0,0,8" />
+                                    <ui:TextBlock Text="Colorize / Emotion Options" FontWeight="SemiBold" Margin="0,6,0,6" />
+                                    <DockPanel Margin="0,0,0,6">
+                                        <DockPanel.Style>
+                                            <Style TargetType="DockPanel">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding SelectedTool}" Value="colorize">
+                                                        <Setter Property="Visibility" Value="Visible" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </DockPanel.Style>
+                                        <ui:TextBlock Text="Defry" Width="64" Foreground="{StaticResource AppMutedTextBrush}" />
+                                        <ui:TextBox Text="{Binding Defry}" Width="58" DockPanel.Dock="Right" TextAlignment="Center" />
+                                        <Slider Minimum="0" Maximum="5" Value="{Binding Defry}" TickFrequency="1" IsSnapToTickEnabled="True" />
+                                    </DockPanel>
 
-                                <Button Content="Run Tool"
-                                        Command="{Binding RunToolCommand}"
-                                        Style="{StaticResource ToolbarButtonStyle}"
-                                        Background="{StaticResource AppSuccessBrush}"
-                                        HorizontalAlignment="Stretch"
-                                        Margin="0" />
+                                    <StackPanel>
+                                        <StackPanel.Style>
+                                            <Style TargetType="StackPanel">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding SelectedTool}" Value="emotion">
+                                                        <Setter Property="Visibility" Value="Visible" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </StackPanel.Style>
+                                        <DockPanel Margin="0,0,0,6">
+                                            <ui:TextBlock Text="Mood" Width="64" Foreground="{StaticResource AppMutedTextBrush}" VerticalAlignment="Center" />
+                                            <ComboBox ItemsSource="{Binding Moods}" SelectedItem="{Binding SelectedMood}" />
+                                        </DockPanel>
+                                        <DockPanel Margin="0,0,0,6">
+                                            <ui:TextBlock Text="Strength" Width="64" Foreground="{StaticResource AppMutedTextBrush}" VerticalAlignment="Center" />
+                                            <ComboBox ItemsSource="{Binding EmotionStrengths}" SelectedItem="{Binding SelectedEmotionStrength}" />
+                                        </DockPanel>
+                                    </StackPanel>
+
+                                    <ui:TextBlock Text="Prompt" Style="{StaticResource SectionLabelStyle}" />
+                                    <ui:TextBox Text="{Binding Prompt}"
+                                                TextAlignment="Left"
+                                                TextWrapping="Wrap"
+                                                AcceptsReturn="True"
+                                                MinHeight="90"
+                                                ClearButtonEnabled="False"
+                                                Margin="0,0,0,8" />
+                                </StackPanel>
                             </StackPanel>
                         </ui:DynamicScrollViewer>
                     </Border>
@@ -662,7 +701,7 @@
                            Height="32"
                            MinWidth="150"
                            FontWeight="SemiBold"
-                           ToolTip="Generates the active tab. Generator creates one image; Node Graph runs from Begin."
+                           ToolTip="Runs the active tab. Generator creates one image, Node Graph runs from Begin, and Director Tools runs the selected tool."
                            Margin="0,0,2,0" />
             </StatusBarItem>
             <StatusBarItem>

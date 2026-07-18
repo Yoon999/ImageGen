@@ -50,6 +50,28 @@ public partial class MainWindow : Window
 
         try
         {
+            if (ViewModel.SelectedMainTabIndex == 2)
+            {
+                var dataObject = Clipboard.GetDataObject();
+                string? imagePath = GetClipboardImagePath(dataObject);
+                if (imagePath != null)
+                {
+                    ViewModel.DirectorToolsViewModel.LoadInputImage(imagePath);
+                    ViewModel.StatusMessage = "Clipboard image set as Director input";
+                    e.Handled = true;
+                    return;
+                }
+
+                BitmapSource? clipboardImage = GetClipboardImage();
+                if (clipboardImage != null)
+                {
+                    ViewModel.ApplyPastedImageToDirector(clipboardImage);
+                    e.Handled = true;
+                }
+
+                return;
+            }
+
             if (ViewModel.SelectedMainTabIndex == 3)
             {
                 var dataObject = Clipboard.GetDataObject();

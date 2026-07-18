@@ -336,6 +336,7 @@ public class MainViewModel : INotifyPropertyChanged
             {
                 _apiToken = value;
                 OnPropertyChanged();
+                CommandManager.InvalidateRequerySuggested();
                 SaveCurrentSettings();
             }
         }
@@ -814,14 +815,14 @@ public class MainViewModel : INotifyPropertyChanged
 
     private bool CanExecuteGenerate(object? parameter)
     {
-        if (SelectedMainTabIndex == 1)
+        switch (SelectedMainTabIndex)
         {
-            return NodeGraphViewModel.GenerateChainCommand.CanExecute(null);
-        }
-
-        if (SelectedMainTabIndex == 2)
-        {
-            return false;
+            case 1:
+                return NodeGraphViewModel.GenerateChainCommand.CanExecute(null);
+            case 2:
+                return DirectorToolsViewModel.RunToolCommand.CanExecute(null);
+            case 3:
+                return false;
         }
 
         if (GenerationMode == "Img2Img" && !File.Exists(SourceImagePath))
@@ -1123,17 +1124,35 @@ public class MainViewModel : INotifyPropertyChanged
         StatusMessage = "Pasted image dismissed";
     }
 
+    public void ApplyPastedImageToDirector(BitmapSource image)
+    {
+        string? savedPath = null;
+        try
+        {
+            savedPath = _clipboardImageCacheService.Save(image);
+            DirectorToolsViewModel.LoadInputImage(savedPath);
+            StatusMessage = "Pasted image set as Director input";
+        }
+        catch (Exception ex)
+        {
+            ReleaseManagedImageIfUnused(savedPath);
+            StatusMessage = $"Failed to set Director input: {ex.Message}";
+            Logger.LogError("Failed to apply pasted Director input", ex);
+        }
+    }
+
     private IEnumerable<string?> GetReferencedImagePaths()
     {
         yield return SourceImagePath;
         yield return CharacterReferencePath;
+        yield return DirectorToolsViewModel.InputImagePath;
         foreach (VibeReferenceImage reference in VibeReferences)
         {
             yield return reference.FilePath;
         }
     }
 
-    private void ReleaseManagedImageIfUnused(string? filePath)
+    internal void ReleaseManagedImageIfUnused(string? filePath)
     {
         if (!_clipboardImageCacheService.IsManagedPath(filePath)) return;
         if (GetReferencedImagePaths().Any(path => PathsEqual(path, filePath))) return;
@@ -1338,15 +1357,16 @@ public class MainViewModel : INotifyPropertyChanged
     {
         _ = RefreshUpdateStatusAsync();
 
-        if (SelectedMainTabIndex == 1)
+        switch (SelectedMainTabIndex)
         {
-            NodeGraphViewModel.GenerateChainCommand.Execute(null);
-            return;
-        }
-
-        if (SelectedMainTabIndex == 2)
-        {
-            return;
+            case 1:
+                NodeGraphViewModel.GenerateChainCommand.Execute(null);
+                return;
+            case 2:
+                DirectorToolsViewModel.RunToolCommand.Execute(null);
+                return;
+            case 3:
+                return;
         }
 
         await ExecuteGenerateRefactored();

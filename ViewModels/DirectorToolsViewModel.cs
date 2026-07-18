@@ -22,7 +22,6 @@ public class DirectorToolsViewModel : INotifyPropertyChanged
     private string _inputImagePath = string.Empty;
     private BitmapImage? _inputPreview;
     private BitmapImage? _resultImage;
-    private bool _ignoreErrors;
     private int _defry;
     private string _prompt = string.Empty;
     private string _selectedMood = "neutral";
@@ -76,7 +75,13 @@ public class DirectorToolsViewModel : INotifyPropertyChanged
     public string InputImagePath
     {
         get => _inputImagePath;
-        set { _inputImagePath = value; OnPropertyChanged(); }
+        set
+        {
+            if (_inputImagePath == value) return;
+            _inputImagePath = value;
+            OnPropertyChanged();
+            CommandManager.InvalidateRequerySuggested();
+        }
     }
 
     public BitmapImage? InputPreview
@@ -94,12 +99,6 @@ public class DirectorToolsViewModel : INotifyPropertyChanged
             OnPropertyChanged();
             CommandManager.InvalidateRequerySuggested();
         }
-    }
-
-    public bool IgnoreErrors
-    {
-        get => _ignoreErrors;
-        set { _ignoreErrors = value; OnPropertyChanged(); }
     }
 
     public int Defry
@@ -144,8 +143,11 @@ public class DirectorToolsViewModel : INotifyPropertyChanged
 
     public void LoadInputImage(string filePath)
     {
+        BitmapImage preview = _imageEncodingService.LoadPreview(filePath);
+        string previousPath = InputImagePath;
         InputImagePath = filePath;
-        InputPreview = _imageEncodingService.LoadPreview(filePath);
+        InputPreview = preview;
+        _mainViewModel.ReleaseManagedImageIfUnused(previousPath);
     }
 
     private void ExecuteBrowseInputImage(object? parameter)
