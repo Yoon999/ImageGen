@@ -30,6 +30,7 @@ public class MainViewModel : INotifyPropertyChanged
     private readonly ImageGenerationWorkflow _imageGenerationWorkflow;
     private readonly ImageEncodingService _imageEncodingService;
     private readonly ClipboardImageCacheService _clipboardImageCacheService;
+    private readonly UpdateService _updateService;
 
     private string _prompt = string.Empty;
     private string _apiToken = string.Empty;
@@ -62,6 +63,8 @@ public class MainViewModel : INotifyPropertyChanged
     private BitmapSource? _pendingPastedImage;
     private bool _isImagePasteOverlayOpen;
     private int _selectedGeneratorTabIndex;
+    private bool _isUpdateAvailable;
+    private bool _isCheckingForUpdate;
 
     private ObservableCollection<TagSuggestion> _tagSuggestions = new();
     private TagSuggestion? _selectedSuggestion;
@@ -130,6 +133,7 @@ public class MainViewModel : INotifyPropertyChanged
         _tagSuggestionService = new TagSuggestionService(_novelAiService);
         _imageEncodingService = new ImageEncodingService();
         _clipboardImageCacheService = new ClipboardImageCacheService();
+        _updateService = new UpdateService();
         _imageGenerationWorkflow = new ImageGenerationWorkflow(_novelAiService, _imageService);
         DirectorToolsViewModel = new DirectorToolsViewModel(this, _imageGenerationWorkflow, _imageEncodingService);
 
@@ -239,6 +243,8 @@ public class MainViewModel : INotifyPropertyChanged
         ClearCharacterReferenceCommand = new RelayCommand(_ => ClearCharacterReference());
         ApplyPastedImageCommand = new RelayCommand(ExecuteApplyPastedImage, parameter => parameter is PastedImageDestination && PendingPastedImage != null);
         DismissPastedImageCommand = new RelayCommand(_ => DismissPastedImage());
+        RunUpdateCommand = new RelayCommand(_ => RunUpdate(), _ => IsUpdateAvailable);
+        _ = RefreshUpdateStatusAsync();
     }
 
     private void CharacterPrompts_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -417,6 +423,23 @@ public class MainViewModel : INotifyPropertyChanged
             OnPropertyChanged();
         }
     }
+
+    public bool IsUpdateAvailable
+    {
+        get => _isUpdateAvailable;
+        private set
+        {
+            if (_isUpdateAvailable == value) return;
+            _isUpdateAvailable = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(UpdateStatusText));
+            CommandManager.InvalidateRequerySuggested();
+        }
+    }
+
+    public string UpdateStatusText => IsUpdateAvailable
+        ? "Update available — click to run build.bat"
+        : string.Empty;
 
     public int? AnlasBalance
     {
@@ -787,6 +810,7 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand ClearCharacterReferenceCommand { get; }
     public ICommand ApplyPastedImageCommand { get; }
     public ICommand DismissPastedImageCommand { get; }
+    public ICommand RunUpdateCommand { get; }
 
     private bool CanExecuteGenerate(object? parameter)
     {
@@ -1312,6 +1336,8 @@ public class MainViewModel : INotifyPropertyChanged
 
     private async void ExecuteGenerate(object? parameter)
     {
+        _ = RefreshUpdateStatusAsync();
+
         if (SelectedMainTabIndex == 1)
         {
             NodeGraphViewModel.GenerateChainCommand.Execute(null);
@@ -1324,6 +1350,48 @@ public class MainViewModel : INotifyPropertyChanged
         }
 
         await ExecuteGenerateRefactored();
+    }
+
+    private async Task RefreshUpdateStatusAsync()
+    {
+        if (_isCheckingForUpdate) return;
+
+        try
+        {
+            _isCheckingForUpdate = true;
+            IsUpdateAvailable = await _updateService.IsUpdateAvailableAsync();
+        }
+        catch (Exception ex)
+        {
+            IsUpdateAvailable = false;
+            Logger.LogError("Failed to check for updates", ex);
+        }
+        finally
+        {
+            _isCheckingForUpdate = false;
+        }
+    }
+
+    private void RunUpdate()
+    {
+        string? buildScriptPath = _updateService.BuildScriptPath;
+        if (string.IsNullOrWhiteSpace(buildScriptPath) || !File.Exists(buildScriptPath)) return;
+
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = buildScriptPath,
+                WorkingDirectory = Path.GetDirectoryName(buildScriptPath)!,
+                UseShellExecute = true
+            });
+            Application.Current.Shutdown();
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Failed to start update: {ex.Message}";
+            Logger.LogError("Failed to start build script for update", ex);
+        }
     }
 
     private async Task ExecuteGenerateRefactored()

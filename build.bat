@@ -38,7 +38,7 @@ if /i "%update_choice%"=="Y" (
         git pull
     ) else (
         echo [INFO] Pulling from %GIT_URL%...
-        git pull %GIT_URL%
+        git pull %GIT_URL% main
     )
 
     if %errorlevel% neq 0 (
