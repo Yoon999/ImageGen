@@ -19,7 +19,7 @@ using Clipboard = System.Windows.Clipboard;
 using MessageBox = System.Windows.MessageBox;
 
 namespace ImageGen.ViewModels;
-
+// 업데이트 기능 확인용 코멘트.
 public class MainViewModel : INotifyPropertyChanged
 {
     private readonly INovelAiService _novelAiService;
@@ -1342,7 +1342,7 @@ public class MainViewModel : INotifyPropertyChanged
         {
             NodeGraphViewModel.GenerateChainCommand.Execute(null);
             return;
-        } 
+        }
 
         if (SelectedMainTabIndex == 2)
         {
