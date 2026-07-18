@@ -1342,7 +1342,7 @@ public class MainViewModel : INotifyPropertyChanged
         {
             NodeGraphViewModel.GenerateChainCommand.Execute(null);
             return;
-        }
+        } 
 
         if (SelectedMainTabIndex == 2)
         {
