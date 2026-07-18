@@ -13,6 +13,7 @@ using ImageGen.Models;
 using ImageGen.Models.Api;
 using ImageGen.Services;
 using ImageGen.Services.Interfaces;
+using ImageGen.Views;
 using Application = System.Windows.Application;
 using Clipboard = System.Windows.Clipboard;
 using MessageBox = System.Windows.MessageBox;
@@ -48,9 +49,8 @@ public class MainViewModel : INotifyPropertyChanged
     private string _smeaMode = "none";
     private bool _variety;
     private string _sourceImagePath = string.Empty;
-    private string _maskImagePath = string.Empty;
     private BitmapImage? _sourceImagePreview;
-    private BitmapImage? _maskImagePreview;
+    private InpaintMaskDocument? _inpaintMask;
     private double _imageStrength = 0.7;
     private double _imageNoise;
     private bool _addOriginalImage = true;
@@ -154,12 +154,10 @@ public class MainViewModel : INotifyPropertyChanged
             ? imageInputSettings.GenerationMode
             : "Text2Image";
         _sourceImagePath = imageInputSettings.SourceImagePath;
-        _maskImagePath = imageInputSettings.MaskImagePath;
         _imageStrength = imageInputSettings.Strength;
         _imageNoise = imageInputSettings.Noise;
         _addOriginalImage = imageInputSettings.AddOriginalImage;
         _sourceImagePreview = LoadSavedPreview(_sourceImagePath);
-        _maskImagePreview = LoadSavedPreview(_maskImagePath);
 
         var referenceSettings = settings.References ?? new ReferenceSettings();
         _characterReferencePath = referenceSettings.CharacterReferencePath;
@@ -226,7 +224,8 @@ public class MainViewModel : INotifyPropertyChanged
         RefreshAnlasCommand = new RelayCommand(ExecuteRefreshAnlas, CanExecuteRefreshAnlas);
         OpenSaveDirectoryCommand = new RelayCommand(ExecuteOpenSaveDirectory);
         BrowseSourceImageCommand = new RelayCommand(ExecuteBrowseSourceImage);
-        BrowseMaskImageCommand = new RelayCommand(ExecuteBrowseMaskImage);
+        OpenMaskEditorCommand = new RelayCommand(ExecuteOpenMaskEditor, CanOpenMaskEditor);
+        ClearMaskCommand = new RelayCommand(_ => ClearInpaintMask(), _ => HasInpaintMask);
         BrowseCharacterReferenceCommand = new RelayCommand(ExecuteBrowseCharacterReference);
         AddVibeReferenceCommand = new RelayCommand(ExecuteAddVibeReference);
         RemoveVibeReferenceCommand = new RelayCommand(ExecuteRemoveVibeReference);
@@ -538,20 +537,8 @@ public class MainViewModel : INotifyPropertyChanged
         set
         {
             if (_sourceImagePath == value) return;
+            ClearInpaintMask();
             _sourceImagePath = value;
-            OnPropertyChanged();
-            CommandManager.InvalidateRequerySuggested();
-            SaveCurrentSettings();
-        }
-    }
-
-    public string MaskImagePath
-    {
-        get => _maskImagePath;
-        set
-        {
-            if (_maskImagePath == value) return;
-            _maskImagePath = value;
             OnPropertyChanged();
             CommandManager.InvalidateRequerySuggested();
             SaveCurrentSettings();
@@ -564,11 +551,23 @@ public class MainViewModel : INotifyPropertyChanged
         set { _sourceImagePreview = value; OnPropertyChanged(); }
     }
 
-    public BitmapImage? MaskImagePreview
+    public InpaintMaskDocument? InpaintMask
     {
-        get => _maskImagePreview;
-        set { _maskImagePreview = value; OnPropertyChanged(); }
+        get => _inpaintMask;
+        private set
+        {
+            _inpaintMask = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(InpaintMaskPreview));
+            OnPropertyChanged(nameof(HasInpaintMask));
+            OnPropertyChanged(nameof(InpaintMaskStatus));
+            CommandManager.InvalidateRequerySuggested();
+        }
     }
+
+    public BitmapSource? InpaintMaskPreview => InpaintMask?.Preview;
+    public bool HasInpaintMask => InpaintMask?.HasMask == true;
+    public string InpaintMaskStatus => HasInpaintMask ? "Mask ready" : "Mask not created";
 
     public double ImageStrength
     {
@@ -736,7 +735,8 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand RefreshAnlasCommand { get; }
     public ICommand OpenSaveDirectoryCommand { get; }
     public ICommand BrowseSourceImageCommand { get; }
-    public ICommand BrowseMaskImageCommand { get; }
+    public ICommand OpenMaskEditorCommand { get; }
+    public ICommand ClearMaskCommand { get; }
     public ICommand BrowseCharacterReferenceCommand { get; }
     public ICommand AddVibeReferenceCommand { get; }
     public ICommand RemoveVibeReferenceCommand { get; }
@@ -759,7 +759,7 @@ public class MainViewModel : INotifyPropertyChanged
             return false;
         }
 
-        if (GenerationMode == "Inpaint" && (!File.Exists(SourceImagePath) || !File.Exists(MaskImagePath)))
+        if (GenerationMode == "Inpaint" && (!File.Exists(SourceImagePath) || !HasInpaintMask))
         {
             return false;
         }
@@ -872,17 +872,45 @@ public class MainViewModel : INotifyPropertyChanged
         SourceImagePreview = _imageEncodingService.LoadPreview(path);
     }
 
-    private void ExecuteBrowseMaskImage(object? parameter)
+    private bool CanOpenMaskEditor(object? parameter)
     {
-        var path = SelectImageFile();
-        if (path == null) return;
-        LoadMaskImage(path);
+        return File.Exists(SourceImagePath);
     }
 
-    public void LoadMaskImage(string path)
+    private void ExecuteOpenMaskEditor(object? parameter)
     {
-        MaskImagePath = path;
-        MaskImagePreview = _imageEncodingService.LoadPreview(path);
+        if (!CanOpenMaskEditor(parameter)) return;
+
+        try
+        {
+            var sourceImage = _imageEncodingService.LoadImage(SourceImagePath);
+            var window = new InpaintMaskEditorWindow(
+                SourceImagePath,
+                sourceImage,
+                InpaintMask,
+                _imageEncodingService)
+            {
+                Owner = Application.Current.MainWindow
+            };
+
+            if (window.ShowDialog() == true && window.ResultDocument != null)
+            {
+                InpaintMask = window.ResultDocument;
+                StatusMessage = "Inpaint mask updated";
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Failed to open mask editor: {ex.Message}";
+            Logger.LogError("Failed to open inpaint mask editor", ex);
+        }
+    }
+
+    private void ClearInpaintMask()
+    {
+        if (InpaintMask == null) return;
+        InpaintMask = null;
+        StatusMessage = "Inpaint mask cleared";
     }
 
     private void ExecuteBrowseCharacterReference(object? parameter)
@@ -1034,7 +1062,6 @@ public class MainViewModel : INotifyPropertyChanged
             {
                 GenerationMode = GenerationMode,
                 SourceImagePath = SourceImagePath,
-                MaskImagePath = MaskImagePath,
                 Strength = ImageStrength,
                 Noise = ImageNoise,
                 AddOriginalImage = AddOriginalImage
@@ -1120,7 +1147,7 @@ public class MainViewModel : INotifyPropertyChanged
 
             string currentRequestJson = JsonSerializer.Serialize(Request)
                                         + SourceImagePath
-                                        + MaskImagePath
+                                        + InpaintMask?.RevisionId
                                         + CharacterReferencePath
                                         + string.Join("|", VibeReferences.Select(r => r.FilePath));
             if (!IsRandomSeed && currentRequestJson == _lastRequestJson)
@@ -1180,8 +1207,7 @@ public class MainViewModel : INotifyPropertyChanged
         ApplySharedGeneratorOptions(request);
         request.parameters.image = null;
         request.parameters.mask = null;
-        request.parameters.strength = null;
-        request.parameters.noise = null;
+        request.parameters.img2img = null;
         request.parameters.reference_image_multiple.Clear();
         request.parameters.reference_information_extracted_multiple.Clear();
         request.parameters.reference_strength_multiple.Clear();
@@ -1204,14 +1230,20 @@ public class MainViewModel : INotifyPropertyChanged
                 SourceImagePath,
                 request.parameters.width,
                 request.parameters.height);
-            request.parameters.strength = ImageStrength;
-            request.parameters.noise = request.action == "img2img" ? ImageNoise : null;
+            request.parameters.img2img = new Img2ImgParameters
+            {
+                strength = ImageStrength,
+                begin_from_sigma = null,
+                noise = request.action == "img2img" ? ImageNoise : 0,
+                extra_noise_seed = null,
+                color_correct = true
+            };
         }
 
         if (request.action == "infill")
         {
-            request.parameters.mask = _imageEncodingService.EncodeMaskFile(
-                MaskImagePath,
+            request.parameters.mask = _imageEncodingService.EncodeInpaintMask(
+                InpaintMask ?? throw new InvalidOperationException("Create an inpaint mask before generating."),
                 request.parameters.width,
                 request.parameters.height,
                 request.model.Contains("nai-diffusion-4", StringComparison.OrdinalIgnoreCase));
@@ -1270,8 +1302,7 @@ public class MainViewModel : INotifyPropertyChanged
             : null;
         request.parameters.image = null;
         request.parameters.mask = null;
-        request.parameters.strength = null;
-        request.parameters.noise = null;
+        request.parameters.img2img = null;
         request.parameters.reference_image_multiple.Clear();
         request.parameters.reference_information_extracted_multiple.Clear();
         request.parameters.reference_strength_multiple.Clear();
@@ -1297,6 +1328,7 @@ public class MainViewModel : INotifyPropertyChanged
     {
         request.parameters.image = null;
         request.parameters.mask = null;
+        request.parameters.img2img = null;
         request.parameters.reference_image_multiple.Clear();
         request.parameters.reference_information_extracted_multiple.Clear();
         request.parameters.reference_strength_multiple.Clear();

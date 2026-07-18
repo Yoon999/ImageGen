@@ -286,30 +286,63 @@
                                             <Slider Minimum="0.0" Maximum="0.99" Value="{Binding ImageNoise}" TickFrequency="0.02" />
                                         </DockPanel>
 
-                                        <ui:TextBlock Text="Inpaint Mask" Style="{StaticResource SectionLabelStyle}" />
-                                        <Grid Margin="0,0,0,8">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <ui:TextBox Text="{Binding MaskImagePath}" IsReadOnly="True" Margin="0,0,6,0" />
-                                            <ui:Button Grid.Column="1"
-                                                       Icon="{ui:SymbolIcon Symbol=ImageEdit24}"
-                                                       Command="{Binding BrowseMaskImageCommand}"
-                                                       Style="{StaticResource IconButtonStyle}"
-                                                       Margin="0"
-                                                       ToolTip="Select inpaint mask" />
-                                        </Grid>
-
-                                        <Border Height="110"
-                                                AllowDrop="True"
-                                                Drop="MaskImage_Drop"
-                                                Background="{StaticResource AppSurfaceAltBrush}"
+                                        <Border Background="{StaticResource AppSurfaceAltBrush}"
                                                 BorderBrush="{StaticResource AppBorderBrush}"
                                                 BorderThickness="1"
                                                 CornerRadius="6"
+                                                Padding="6"
                                                 Margin="0,0,0,8">
-                                            <Image Source="{Binding MaskImagePreview}" Stretch="Uniform" />
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding GenerationMode}" Value="Inpaint">
+                                                            <Setter Property="Visibility" Value="Visible" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto" />
+                                                    <RowDefinition Height="130" />
+                                                </Grid.RowDefinitions>
+
+                                                <Grid Margin="0,0,0,6">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel VerticalAlignment="Center">
+                                                        <ui:TextBlock Text="Inpaint Mask" FontWeight="SemiBold" />
+                                                        <ui:TextBlock Text="{Binding InpaintMaskStatus}"
+                                                                      FontSize="11"
+                                                                      Foreground="{StaticResource AppMutedTextBrush}" />
+                                                    </StackPanel>
+                                                    <ui:Button Grid.Column="1"
+                                                               Icon="{ui:SymbolIcon Symbol=DrawImage24}"
+                                                               Command="{Binding OpenMaskEditorCommand}"
+                                                               Style="{StaticResource IconButtonStyle}"
+                                                               ToolTip="Edit mask on the source image. Select a source image first if disabled."
+                                                               ToolTipService.ShowOnDisabled="True" />
+                                                    <ui:Button Grid.Column="2"
+                                                               Icon="{ui:SymbolIcon Symbol=Delete24}"
+                                                               Command="{Binding ClearMaskCommand}"
+                                                               Style="{StaticResource IconButtonStyle}"
+                                                               Margin="0"
+                                                               ToolTip="Clear inpaint mask" />
+                                                </Grid>
+
+                                                <Grid Grid.Row="1" Background="#10151F">
+                                                    <Image Source="{Binding InpaintMaskPreview}" Stretch="Uniform" />
+                                                    <ui:TextBlock Text="Open the editor to paint a mask"
+                                                                  HorizontalAlignment="Center"
+                                                                  VerticalAlignment="Center"
+                                                                  Foreground="{StaticResource AppMutedTextBrush}"
+                                                                  Visibility="{Binding InpaintMaskPreview, Converter={StaticResource NullToVisibilityConverter}, ConverterParameter=Inverse}" />
+                                                </Grid>
+                                            </Grid>
                                         </Border>
 
                                         <CheckBox Content="Add original image" IsChecked="{Binding AddOriginalImage}" />
@@ -442,7 +475,7 @@
                                     <Image Source="{Binding SourceImagePreview}" Stretch="Uniform" />
                                 </Border>
                                 <Border Width="58" Height="58" Background="{StaticResource AppSurfaceAltBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" Margin="0,0,6,0">
-                                    <Image Source="{Binding MaskImagePreview}" Stretch="Uniform" />
+                                    <Image Source="{Binding InpaintMaskPreview}" Stretch="Uniform" />
                                 </Border>
                                 <Border Width="58" Height="58" Background="{StaticResource AppSurfaceAltBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" Margin="0,0,6,0">
                                     <Image Source="{Binding CharacterReferencePreview}" Stretch="Uniform" />

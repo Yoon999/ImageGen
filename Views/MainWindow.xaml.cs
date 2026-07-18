@@ -139,15 +139,6 @@ public partial class MainWindow : Window
         }
     }
 
-    private void MaskImage_Drop(object sender, DragEventArgs e)
-    {
-        var filePath = GetDroppedImagePath(e);
-        if (filePath != null)
-        {
-            ViewModel?.LoadMaskImage(filePath);
-        }
-    }
-
     private void CharacterReference_Drop(object sender, DragEventArgs e)
     {
         var filePath = GetDroppedImagePath(e);

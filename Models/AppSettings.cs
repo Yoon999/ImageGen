@@ -28,7 +28,6 @@ public class ImageInputSettings
 {
     public string GenerationMode { get; set; } = "Text2Image";
     public string SourceImagePath { get; set; } = string.Empty;
-    public string MaskImagePath { get; set; } = string.Empty;
     public double Strength { get; set; } = 0.7;
     public double Noise { get; set; }
     public bool AddOriginalImage { get; set; } = true;

@@ -51,10 +51,7 @@ public class RequestParameters
     public string? mask { get; set; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public double? strength { get; set; }
-
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public double? noise { get; set; }
+    public Img2ImgParameters? img2img { get; set; }
 
     public bool add_original_image { get; set; } = false;
 
@@ -83,6 +80,15 @@ public class RequestParameters
 
     [JsonPropertyName("v4_negative_prompt")]
     public V4ConditionInput? V4NegativePrompt { get; set; }
+}
+
+public class Img2ImgParameters
+{
+    public double strength { get; set; } = 0.7;
+    public double? begin_from_sigma { get; set; }
+    public double noise { get; set; }
+    public long? extra_noise_seed { get; set; }
+    public bool color_correct { get; set; } = true;
 }
 
 public class DirectorReferenceDescription

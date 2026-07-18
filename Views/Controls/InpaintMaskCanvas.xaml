@@ -1,0 +1,40 @@
+<UserControl x:Class="ImageGen.Views.Controls.InpaintMaskCanvas"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Focusable="True"
+             Background="Transparent">
+    <Grid x:Name="Viewport"
+          ClipToBounds="True"
+          Background="#10151F"
+          PreviewMouseDown="Viewport_PreviewMouseDown"
+          PreviewMouseUp="Viewport_PreviewMouseUp"
+          PreviewMouseMove="Viewport_PreviewMouseMove"
+          PreviewMouseWheel="Viewport_PreviewMouseWheel"
+          MouseLeave="Viewport_MouseLeave"
+          SizeChanged="Viewport_SizeChanged">
+        <Canvas x:Name="SurfaceHost">
+            <Canvas.RenderTransform>
+                <TransformGroup>
+                    <ScaleTransform x:Name="SurfaceScale" />
+                    <TranslateTransform x:Name="SurfaceTranslate" />
+                </TransformGroup>
+            </Canvas.RenderTransform>
+
+            <Grid x:Name="ImageSurface">
+                <Image x:Name="SourceImage" Stretch="Fill" IsHitTestVisible="False" />
+                <InkCanvas x:Name="MaskInkCanvas"
+                           Background="Transparent"
+                           Opacity="0.47"
+                           EditingMode="Ink" />
+            </Grid>
+        </Canvas>
+
+        <Canvas IsHitTestVisible="False">
+            <Ellipse x:Name="BrushCursor"
+                     Visibility="Collapsed"
+                     Fill="Transparent"
+                     Stroke="#FFFF5252"
+                     StrokeThickness="1.5" />
+        </Canvas>
+    </Grid>
+</UserControl>

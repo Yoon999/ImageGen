@@ -1,0 +1,130 @@
+<Window x:Class="ImageGen.Views.InpaintMaskEditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:ImageGen.Views.Controls"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        Title="Edit Inpaint Mask"
+        Width="1100"
+        Height="800"
+        MinWidth="720"
+        MinHeight="540"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource AppBackgroundBrush}"
+        Foreground="{StaticResource AppTextBrush}"
+        PreviewKeyDown="Window_PreviewKeyDown">
+    <Grid Margin="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Style="{StaticResource PanelBorderStyle}" Padding="6" Margin="0,0,0,8">
+            <DockPanel LastChildFill="True">
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                    <ui:Button x:Name="BrushButton"
+                               Content="Brush"
+                               Icon="{ui:SymbolIcon Symbol=PaintBrush24}"
+                               Click="BrushButton_Click"
+                               ToolTip="Brush (B)" />
+                    <ui:Button x:Name="EraserButton"
+                               Content="Eraser"
+                               Icon="{ui:SymbolIcon Symbol=Eraser24}"
+                               Click="EraserButton_Click"
+                               ToolTip="Eraser (E)" />
+                    <Separator Margin="4,0,8,0" />
+                    <ui:Button x:Name="UndoButton"
+                               Icon="{ui:SymbolIcon Symbol=ArrowUndo24}"
+                               Click="UndoButton_Click"
+                               Style="{StaticResource IconButtonStyle}"
+                               ToolTip="Undo (Ctrl+Z)" />
+                    <ui:Button x:Name="RedoButton"
+                               Icon="{ui:SymbolIcon Symbol=ArrowRedo24}"
+                               Click="RedoButton_Click"
+                               Style="{StaticResource IconButtonStyle}"
+                               ToolTip="Redo (Ctrl+Y)" />
+                    <ui:Button x:Name="ClearButton"
+                               Icon="{ui:SymbolIcon Symbol=Delete24}"
+                               Click="ClearButton_Click"
+                               Style="{StaticResource IconButtonStyle}"
+                               ToolTip="Clear all mask strokes" />
+                    <Separator Margin="4,0,8,0" />
+                    <ui:Button Icon="{ui:SymbolIcon Symbol=ZoomOut24}"
+                               Click="ZoomOutButton_Click"
+                               Style="{StaticResource IconButtonStyle}"
+                               ToolTip="Zoom out" />
+                    <ui:Button Icon="{ui:SymbolIcon Symbol=ZoomIn24}"
+                               Click="ZoomInButton_Click"
+                               Style="{StaticResource IconButtonStyle}"
+                               ToolTip="Zoom in" />
+                    <ui:Button Icon="{ui:SymbolIcon Symbol=ZoomFit24}"
+                               Click="FitButton_Click"
+                               Style="{StaticResource IconButtonStyle}"
+                               ToolTip="Fit image to view (Ctrl+0)" />
+                </StackPanel>
+
+                <StackPanel Margin="14,0,4,0" VerticalAlignment="Center">
+                    <DockPanel>
+                        <ui:TextBlock Text="Brush size" Width="72" VerticalAlignment="Center" Foreground="{StaticResource AppMutedTextBrush}" />
+                        <ui:TextBlock x:Name="BrushSizeText" Width="62" DockPanel.Dock="Right" TextAlignment="Right" VerticalAlignment="Center" />
+                        <Slider x:Name="BrushSizeSlider"
+                                Minimum="8"
+                                Maximum="512"
+                                ValueChanged="BrushSizeSlider_ValueChanged" />
+                    </DockPanel>
+                    <DockPanel Margin="0,4,0,0">
+                        <CheckBox x:Name="FeatherCheckBox"
+                                  Content="Feather"
+                                  Width="72"
+                                  IsChecked="True"
+                                  VerticalAlignment="Center"
+                                  Checked="FeatherControl_Changed"
+                                  Unchecked="FeatherControl_Changed" />
+                        <ui:TextBlock x:Name="FeatherSizeText" Width="62" DockPanel.Dock="Right" TextAlignment="Right" VerticalAlignment="Center" />
+                        <Slider x:Name="FeatherSizeSlider"
+                                Minimum="1"
+                                Maximum="64"
+                                Value="12"
+                                IsEnabled="{Binding IsChecked, ElementName=FeatherCheckBox}"
+                                ValueChanged="FeatherControl_Changed" />
+                    </DockPanel>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <Border Grid.Row="1"
+                Background="#10151F"
+                BorderBrush="{StaticResource AppBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="6"
+                ClipToBounds="True">
+            <controls:InpaintMaskCanvas x:Name="MaskCanvas" />
+        </Border>
+
+        <Grid Grid.Row="2" Margin="0,8,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <ui:TextBlock x:Name="ZoomText" Foreground="{StaticResource AppMutedTextBrush}" Margin="0,0,12,0" />
+                <ui:TextBlock x:Name="ResolutionText" Foreground="{StaticResource AppMutedTextBrush}" Margin="0,0,12,0" />
+                <ui:TextBlock x:Name="MaskStatusText" Foreground="{StaticResource AppMutedTextBrush}" />
+                <ui:TextBlock Text="Ctrl+Wheel zoom, Space+drag pan"
+                              Foreground="{StaticResource AppMutedTextBrush}"
+                              Margin="16,0,0,0" />
+            </StackPanel>
+
+            <ui:Button Grid.Column="1" Content="Cancel" Click="CancelButton_Click" MinWidth="88" />
+            <ui:Button Grid.Column="2"
+                       x:Name="ApplyButton"
+                       Content="Apply"
+                       Click="ApplyButton_Click"
+                       Appearance="Primary"
+                       MinWidth="88"
+                       Margin="6,0,0,0" />
+        </Grid>
+    </Grid>
+</Window>
