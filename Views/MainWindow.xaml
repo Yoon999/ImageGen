@@ -56,7 +56,7 @@
                               Margin="8,0,0,0">
                     <Hyperlink Command="{Binding RunUpdateCommand}"
                                IsEnabled="{Binding IsUpdateAvailable}">
-                        <Run Text="{Binding UpdateStatusText}" />
+                        <Run Text="{Binding UpdateStatusText, Mode=OneWay}" />
                     </Hyperlink>
                 </ui:TextBlock>
             </Grid>
