@@ -14,6 +14,7 @@ using TextBox = System.Windows.Controls.TextBox;
 using Clipboard = System.Windows.Clipboard;
 using BitmapImage = System.Windows.Media.Imaging.BitmapImage;
 using BitmapSource = System.Windows.Media.Imaging.BitmapSource;
+using ClipboardDataObject = System.Windows.IDataObject;
 
 namespace ImageGen.Views;
 
@@ -41,8 +42,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (ViewModel.SelectedMainTabIndex != 0
-            || e.Key != Key.V
+        if (e.Key != Key.V
             || (Keyboard.Modifiers & ModifierKeys.Control) != ModifierKeys.Control)
         {
             return;
@@ -50,6 +50,37 @@ public partial class MainWindow : Window
 
         try
         {
+            if (ViewModel.SelectedMainTabIndex == 3)
+            {
+                var dataObject = Clipboard.GetDataObject();
+                string? imagePath = GetClipboardImagePath(dataObject);
+                if (imagePath != null)
+                {
+                    ViewModel.LoadExifImage(imagePath);
+                    e.Handled = true;
+                    return;
+                }
+
+                byte[]? encodedImage = GetClipboardEncodedImage(dataObject);
+                if (encodedImage != null)
+                {
+                    ViewModel.LoadExifImage(encodedImage);
+                    e.Handled = true;
+                    return;
+                }
+
+                BitmapSource? clipboardImage = GetClipboardImage();
+                if (clipboardImage != null)
+                {
+                    ViewModel.LoadExifImage(clipboardImage);
+                    e.Handled = true;
+                }
+
+                return;
+            }
+
+            if (ViewModel.SelectedMainTabIndex != 0) return;
+
             BitmapSource? image = GetClipboardImage();
             if (image == null) return;
 
@@ -85,6 +116,48 @@ public partial class MainWindow : Window
         image.EndInit();
         image.Freeze();
         return image;
+    }
+
+    private static string? GetClipboardImagePath(ClipboardDataObject? dataObject)
+    {
+        if (dataObject == null || !dataObject.GetDataPresent(DataFormats.FileDrop)) return null;
+
+        return (dataObject.GetData(DataFormats.FileDrop) as string[])?
+            .FirstOrDefault(IsSupportedImagePath);
+    }
+
+    private static byte[]? GetClipboardEncodedImage(ClipboardDataObject? dataObject)
+    {
+        if (dataObject == null) return null;
+
+        foreach (string format in new[] { "PNG", "JFIF", "TIFF" })
+        {
+            if (!dataObject.GetDataPresent(format, false)) continue;
+
+            object? data = dataObject.GetData(format, false);
+            if (data is byte[] bytes && bytes.Length > 0)
+            {
+                return bytes;
+            }
+
+            if (data is Stream stream)
+            {
+                long originalPosition = stream.CanSeek ? stream.Position : 0;
+                try
+                {
+                    if (stream.CanSeek) stream.Position = 0;
+                    using var copy = new MemoryStream();
+                    stream.CopyTo(copy);
+                    if (copy.Length > 0) return copy.ToArray();
+                }
+                finally
+                {
+                    if (stream.CanSeek) stream.Position = originalPosition;
+                }
+            }
+        }
+
+        return null;
     }
 
     private static bool IsSupportedImagePath(string filePath)

@@ -608,7 +608,7 @@
                     <Border Grid.Column="0" Style="{StaticResource PanelBorderStyle}" Margin="0,0,10,0">
                         <Grid>
                             <Image Source="{Binding ExifImage}" Stretch="Uniform" />
-                            <ui:TextBlock Text="Drag and drop an image here"
+                            <ui:TextBlock Text="Drag and drop an image here, or press Ctrl+V to paste"
                                           HorizontalAlignment="Stretch"
                                           VerticalAlignment="Stretch"
                                           TextAlignment="Center"

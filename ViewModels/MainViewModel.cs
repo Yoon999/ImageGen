@@ -1204,6 +1204,38 @@ public class MainViewModel : INotifyPropertyChanged
         }
     }
 
+    public void LoadExifImage(byte[] imageData)
+    {
+        try
+        {
+            using var stream = new MemoryStream(imageData, writable: false);
+            var bitmap = new BitmapImage();
+            bitmap.BeginInit();
+            bitmap.CacheOption = BitmapCacheOption.OnLoad;
+            bitmap.StreamSource = stream;
+            bitmap.EndInit();
+            bitmap.Freeze();
+            ExifImage = bitmap;
+
+            stream.Position = 0;
+            ExifData = ExifHelper.ExtractMetadata(stream);
+        }
+        catch (Exception ex)
+        {
+            ExifData = $"Error loading image: {ex.Message}";
+            Logger.LogError("Error loading pasted EXIF image", ex);
+        }
+    }
+
+    public void LoadExifImage(BitmapSource image)
+    {
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(image));
+        using var stream = new MemoryStream();
+        encoder.Save(stream);
+        LoadExifImage(stream.ToArray());
+    }
+
     public long Seed
     {
         get => Request.parameters.seed;

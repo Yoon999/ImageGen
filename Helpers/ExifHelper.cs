@@ -22,28 +22,7 @@ public static class ExifHelper
         try
         {
             using var image = Image.FromFile(filePath);
-
-            if (image.PropertyIdList.Contains(ExifUserCommentId))
-            {
-                var propertyItem = image.GetPropertyItem(ExifUserCommentId);
-                if (propertyItem?.Value == null)
-                    return string.Empty;
-
-                var data = propertyItem.Value;
-
-                string metadata;
-                // UserComment는 보통 처음 8바이트에 인코딩 헤더를 포함합니다.
-                string header = data.Length > 8 ? Encoding.ASCII.GetString(data, 0, 8) : string.Empty;
-
-                if (header.StartsWith("ASCII"))
-                    metadata = Encoding.ASCII.GetString(data, 8, data.Length - 8).Trim('\0');
-                else if (header.StartsWith("UNICODE"))
-                    metadata = Encoding.Unicode.GetString(data, 8, data.Length - 8).Trim('\0');
-                else
-                    metadata = Encoding.UTF8.GetString(data).Trim('\0');
-
-                return ParseNaiPrompt(metadata);
-            }
+            return ExtractMetadata(image);
         }
         catch
         {
@@ -51,6 +30,41 @@ public static class ExifHelper
         }
 
         return string.Empty;
+    }
+
+    public static string ExtractMetadata(Stream stream)
+    {
+        try
+        {
+            using var image = Image.FromStream(stream, useEmbeddedColorManagement: false, validateImageData: true);
+            return ExtractMetadata(image);
+        }
+        catch
+        {
+            return string.Empty;
+        }
+    }
+
+    private static string ExtractMetadata(Image image)
+    {
+        if (!image.PropertyIdList.Contains(ExifUserCommentId)) return string.Empty;
+
+        var propertyItem = image.GetPropertyItem(ExifUserCommentId);
+        if (propertyItem?.Value == null) return string.Empty;
+
+        var data = propertyItem.Value;
+        string metadata;
+        // UserComment는 보통 처음 8바이트에 인코딩 헤더를 포함합니다.
+        string header = data.Length > 8 ? Encoding.ASCII.GetString(data, 0, 8) : string.Empty;
+
+        if (header.StartsWith("ASCII"))
+            metadata = Encoding.ASCII.GetString(data, 8, data.Length - 8).Trim('\0');
+        else if (header.StartsWith("UNICODE"))
+            metadata = Encoding.Unicode.GetString(data, 8, data.Length - 8).Trim('\0');
+        else
+            metadata = Encoding.UTF8.GetString(data).Trim('\0');
+
+        return ParseNaiPrompt(metadata);
     }
 
     private static string ParseNaiPrompt(string json)
