@@ -3,9 +3,10 @@ using System.Windows.Controls;
 using System.Windows.Ink;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Effects;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using System.Windows.Threading;
+using ImageGen.Services;
 using InkCanvas = System.Windows.Controls.InkCanvas;
 using MouseEventArgs = System.Windows.Input.MouseEventArgs;
 using Point = System.Windows.Point;
@@ -22,7 +23,9 @@ public partial class InpaintMaskCanvas : UserControl
     private readonly List<StrokeCollection> _redoHistory = new();
     private bool _isEraser;
     private bool _isPanning;
+    private bool _isEditingMask;
     private bool _isRestoringHistory;
+    private bool _overlayRefreshPending;
     private bool _hasFitted;
     private Point _lastPanPoint;
     private double _fitScale = 1;
@@ -44,6 +47,9 @@ public partial class InpaintMaskCanvas : UserControl
 
     public int ImagePixelWidth { get; private set; }
     public int ImagePixelHeight { get; private set; }
+    public int RequestPixelWidth { get; private set; }
+    public int RequestPixelHeight { get; private set; }
+    public bool IsV4Mask { get; private set; }
     public bool HasMask => MaskInkCanvas.Strokes.Count > 0;
     public bool CanUndo => _undoHistory.Count > 0;
     public bool CanRedo => _redoHistory.Count > 0;
@@ -68,10 +74,16 @@ public partial class InpaintMaskCanvas : UserControl
         BitmapSource source,
         StrokeCollection? strokes = null,
         bool featherEnabled = true,
-        double featherSize = 12)
+        double featherSize = 12,
+        int? requestPixelWidth = null,
+        int? requestPixelHeight = null,
+        bool isV4Mask = true)
     {
         ImagePixelWidth = source.PixelWidth;
         ImagePixelHeight = source.PixelHeight;
+        RequestPixelWidth = requestPixelWidth ?? ImagePixelWidth;
+        RequestPixelHeight = requestPixelHeight ?? ImagePixelHeight;
+        IsV4Mask = isV4Mask;
         SourceImage.Source = source;
         ImageSurface.Width = ImagePixelWidth;
         ImageSurface.Height = ImagePixelHeight;
@@ -86,6 +98,7 @@ public partial class InpaintMaskCanvas : UserControl
         _redoHistory.Clear();
         BrushSize = Math.Clamp(Math.Min(ImagePixelWidth, ImagePixelHeight) * 0.04, 16, 128);
         _hasFitted = false;
+        RefreshRenderedOverlay();
         Dispatcher.BeginInvoke(FitToViewport);
         RaiseStateChanged();
     }
@@ -106,14 +119,7 @@ public partial class InpaintMaskCanvas : UserControl
     {
         _featherEnabled = enabled;
         _featherSize = Math.Clamp(size, 1, 64);
-        MaskInkCanvas.Effect = enabled
-            ? new BlurEffect
-            {
-                Radius = _featherSize,
-                KernelType = KernelType.Gaussian,
-                RenderingBias = RenderingBias.Quality
-            }
-            : null;
+        ScheduleRenderedOverlayRefresh();
     }
 
     public void Undo()
@@ -203,18 +209,21 @@ public partial class InpaintMaskCanvas : UserControl
         MaskInkCanvas.Strokes = strokes;
         MaskInkCanvas.Strokes.StrokesChanged += Strokes_StrokesChanged;
         _isRestoringHistory = false;
+        ScheduleRenderedOverlayRefresh();
     }
 
     private void Strokes_StrokesChanged(object? sender, StrokeCollectionChangedEventArgs e)
     {
         if (!_isRestoringHistory)
         {
+            ScheduleRenderedOverlayRefresh();
             MaskChanged?.Invoke(this, EventArgs.Empty);
         }
     }
 
     private void RaiseStateChanged()
     {
+        ScheduleRenderedOverlayRefresh();
         MaskChanged?.Invoke(this, EventArgs.Empty);
         HistoryChanged?.Invoke(this, EventArgs.Empty);
     }
@@ -237,17 +246,29 @@ public partial class InpaintMaskCanvas : UserControl
 
         if (e.ChangedButton == MouseButton.Left)
         {
+            _isEditingMask = true;
+            RenderedMaskOverlay.Visibility = Visibility.Collapsed;
+            MaskInkCanvas.Opacity = 0.47;
             PushUndoState();
         }
     }
 
     private void Viewport_PreviewMouseUp(object sender, MouseButtonEventArgs e)
     {
-        if (!_isPanning) return;
-        _isPanning = false;
-        Viewport.ReleaseMouseCapture();
-        ApplyDrawingSettings();
-        e.Handled = true;
+        if (_isPanning)
+        {
+            _isPanning = false;
+            Viewport.ReleaseMouseCapture();
+            ApplyDrawingSettings();
+            e.Handled = true;
+            return;
+        }
+
+        if (e.ChangedButton == MouseButton.Left)
+        {
+            _isEditingMask = false;
+            ScheduleRenderedOverlayRefresh();
+        }
     }
 
     private void Viewport_PreviewMouseMove(object sender, MouseEventArgs e)
@@ -337,5 +358,49 @@ public partial class InpaintMaskCanvas : UserControl
         {
             FitToViewport();
         }
+    }
+
+    private void ScheduleRenderedOverlayRefresh()
+    {
+        if (_isEditingMask || _overlayRefreshPending || ImagePixelWidth <= 0 || ImagePixelHeight <= 0)
+        {
+            return;
+        }
+
+        _overlayRefreshPending = true;
+        Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+        {
+            _overlayRefreshPending = false;
+            RefreshRenderedOverlay();
+        }));
+    }
+
+    private void RefreshRenderedOverlay()
+    {
+        if (ImagePixelWidth <= 0 || ImagePixelHeight <= 0) return;
+
+        if (!HasMask)
+        {
+            RenderedMaskOverlay.Source = null;
+        }
+        else
+        {
+            var mask = InpaintMaskRenderer.Render(
+                MaskInkCanvas.Strokes,
+                ImagePixelWidth,
+                ImagePixelHeight,
+                RequestPixelWidth,
+                RequestPixelHeight,
+                IsV4Mask,
+                FeatherEnabled,
+                FeatherSize);
+            RenderedMaskOverlay.Source = InpaintMaskRenderer.CreateColorOverlay(
+                mask,
+                Color.FromRgb(255, 55, 55),
+                0.47);
+        }
+
+        RenderedMaskOverlay.Visibility = Visibility.Visible;
+        MaskInkCanvas.Opacity = 0;
     }
 }

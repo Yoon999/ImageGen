@@ -16,7 +16,10 @@ public partial class InpaintMaskEditorWindow : Window
         string sourceImagePath,
         BitmapSource sourceImage,
         InpaintMaskDocument? existingDocument,
-        ImageEncodingService imageEncodingService)
+        ImageEncodingService imageEncodingService,
+        int requestWidth,
+        int requestHeight,
+        bool isV4)
     {
         InitializeComponent();
         _sourceImagePath = sourceImagePath;
@@ -31,7 +34,14 @@ public partial class InpaintMaskEditorWindow : Window
         var featherSize = existingDocument?.SourceImagePath == sourceImagePath
             ? existingDocument.FeatherSize
             : 12;
-        MaskCanvas.Initialize(sourceImage, strokes, featherEnabled, featherSize);
+        MaskCanvas.Initialize(
+            sourceImage,
+            strokes,
+            featherEnabled,
+            featherSize,
+            requestWidth,
+            requestHeight,
+            isV4);
         MaskCanvas.MaskChanged += MaskCanvas_StateChanged;
         MaskCanvas.ViewChanged += MaskCanvas_StateChanged;
         MaskCanvas.HistoryChanged += MaskCanvas_StateChanged;
@@ -103,7 +113,11 @@ public partial class InpaintMaskEditorWindow : Window
             MaskCanvas.GetStrokes(),
             MaskCanvas.FeatherEnabled,
             MaskCanvas.FeatherSize);
-        document.Preview = _imageEncodingService.CreateInpaintMaskPreview(document);
+        document.Preview = _imageEncodingService.CreateInpaintMaskPreview(
+            document,
+            MaskCanvas.RequestPixelWidth,
+            MaskCanvas.RequestPixelHeight,
+            MaskCanvas.IsV4Mask);
         ResultDocument = document;
         DialogResult = true;
         Close();

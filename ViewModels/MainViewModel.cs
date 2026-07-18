@@ -946,7 +946,10 @@ public class MainViewModel : INotifyPropertyChanged
                 SourceImagePath,
                 sourceImage,
                 InpaintMask,
-                _imageEncodingService)
+                _imageEncodingService,
+                Request.parameters.width,
+                Request.parameters.height,
+                Request.model.Contains("nai-diffusion-4", StringComparison.OrdinalIgnoreCase))
             {
                 Owner = Application.Current.MainWindow
             };

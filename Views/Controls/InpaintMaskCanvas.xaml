@@ -22,9 +22,10 @@
 
             <Grid x:Name="ImageSurface">
                 <Image x:Name="SourceImage" Stretch="Fill" IsHitTestVisible="False" />
+                <Image x:Name="RenderedMaskOverlay" Stretch="Fill" IsHitTestVisible="False" />
                 <InkCanvas x:Name="MaskInkCanvas"
                            Background="Transparent"
-                           Opacity="0.47"
+                           Opacity="0"
                            EditingMode="Ink" />
             </Grid>
         </Canvas>
