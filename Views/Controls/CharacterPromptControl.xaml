@@ -88,26 +88,32 @@
 
             <TabControl Grid.Row="1" Height="126" Margin="0,0,0,8">
                 <TabItem Header="Positive">
-                    <ui:TextBox Text="{Binding Prompt, UpdateSourceTrigger=PropertyChanged}"
-                                TextAlignment="Left"
-                                TextWrapping="Wrap"
-                                AcceptsReturn="True"
-                                VerticalScrollBarVisibility="Auto"
-                                ClearButtonEnabled="False"
-                                TextChanged="PromptBox_OnTextChanged"
-                                GotFocus="PromptBox_GotFocus"
-                                PreviewKeyDown="PromptBox_PreviewKeyDown" />
+                    <controls:PromptWeightHighlightDecorator Background="{StaticResource AppSurfaceRaisedBrush}">
+                        <ui:TextBox Text="{Binding Prompt, UpdateSourceTrigger=PropertyChanged}"
+                                    TextAlignment="Left"
+                                    TextWrapping="Wrap"
+                                    AcceptsReturn="True"
+                                    VerticalScrollBarVisibility="Auto"
+                                    ClearButtonEnabled="False"
+                                    Background="Transparent"
+                                    TextChanged="PromptBox_OnTextChanged"
+                                    GotFocus="PromptBox_GotFocus"
+                                    PreviewKeyDown="PromptBox_PreviewKeyDown" />
+                    </controls:PromptWeightHighlightDecorator>
                 </TabItem>
                 <TabItem Header="Negative">
-                    <ui:TextBox Text="{Binding NegativePrompt, UpdateSourceTrigger=PropertyChanged}"
-                                TextAlignment="Left"
-                                TextWrapping="Wrap"
-                                AcceptsReturn="True"
-                                VerticalScrollBarVisibility="Auto"
-                                ClearButtonEnabled="False"
-                                TextChanged="PromptBox_OnTextChanged"
-                                GotFocus="PromptBox_GotFocus"
-                                PreviewKeyDown="PromptBox_PreviewKeyDown" />
+                    <controls:PromptWeightHighlightDecorator Background="{StaticResource AppSurfaceRaisedBrush}">
+                        <ui:TextBox Text="{Binding NegativePrompt, UpdateSourceTrigger=PropertyChanged}"
+                                    TextAlignment="Left"
+                                    TextWrapping="Wrap"
+                                    AcceptsReturn="True"
+                                    VerticalScrollBarVisibility="Auto"
+                                    ClearButtonEnabled="False"
+                                    Background="Transparent"
+                                    TextChanged="PromptBox_OnTextChanged"
+                                    GotFocus="PromptBox_GotFocus"
+                                    PreviewKeyDown="PromptBox_PreviewKeyDown" />
+                    </controls:PromptWeightHighlightDecorator>
                 </TabItem>
             </TabControl>
 

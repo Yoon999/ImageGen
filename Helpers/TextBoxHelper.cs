@@ -1,5 +1,4 @@
-﻿using System.Text.RegularExpressions;
-using ImageGen.Models.Api;
+﻿using ImageGen.Models.Api;
 using TextBox = System.Windows.Controls.TextBox;
 
 namespace ImageGen.Helpers;
@@ -61,12 +60,11 @@ public static class TextBoxHelper
         int selEnd = selStart + selLen;
 
         char[] maskedChars = text.ToCharArray();
-        var weightRegex = new Regex(@"(-?\d+(?:\.\d+)?)::(.*?)::", RegexOptions.Singleline);
-        var matches = weightRegex.Matches(text);
+        var matches = PromptWeightParser.Parse(text);
 
-        foreach (Match m in matches)
+        foreach (PromptWeightSpan match in matches)
         {
-            for (int i = m.Index; i < m.Index + m.Length; i++)
+            for (int i = match.Start; i < match.Start + match.Length; i++)
             {
                 maskedChars[i] = '_'; 
             }
@@ -97,18 +95,13 @@ public static class TextBoxHelper
         
         if (string.IsNullOrEmpty(currentWord)) return;
 
-        var match = Regex.Match(currentWord, @"^(-?\d+(?:\.\d+)?)::(.+)::$", RegexOptions.Singleline);
-        
         double weight = 1.0;
         string content = currentWord;
 
-        if (match.Success)
+        if (PromptWeightParser.TryParseExact(currentWord, out PromptWeightSpan? weightedSegment))
         {
-            if (double.TryParse(match.Groups[1].Value, out double w))
-            {
-                weight = w;
-                content = match.Groups[2].Value;
-            }
+            weight = weightedSegment!.Weight;
+            content = weightedSegment.Content;
         }
         else
         {
@@ -125,7 +118,7 @@ public static class TextBoxHelper
         }
         else
         {
-            newWord = $"{weight:0.0}::{content}::";
+            newWord = $"{weight.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)}::{content}::";
         }
 
         int wordStartInSegment = originalSegment.IndexOf(currentWord);
