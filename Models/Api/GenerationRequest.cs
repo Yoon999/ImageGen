@@ -5,7 +5,7 @@ namespace ImageGen.Models.Api;
 public class GenerationRequest
 {
     public string input { get; set; } = string.Empty;
-    public string model { get; set; } = "nai-diffusion-4-5-full";
+    public string model { get; set; } = "nai-diffusion-5-full";
     public string action { get; set; } = "generate";
     public RequestParameters parameters { get; set; } = new RequestParameters();
 }

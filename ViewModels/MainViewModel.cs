@@ -94,6 +94,7 @@ public class MainViewModel : INotifyPropertyChanged
         "nai-diffusion-4-full",
         "nai-diffusion-4-5-curated",
         "nai-diffusion-4-5-full",
+        "nai-diffusion-5-full",
         "nai-diffusion-furry-3"
     };
 
@@ -1005,7 +1006,8 @@ public class MainViewModel : INotifyPropertyChanged
                 _imageEncodingService,
                 Request.parameters.width,
                 Request.parameters.height,
-                Request.model.Contains("nai-diffusion-4", StringComparison.OrdinalIgnoreCase))
+                Request.model.Contains("nai-diffusion-4", StringComparison.OrdinalIgnoreCase) ||
+                Request.model.Contains("nai-diffusion-5", StringComparison.OrdinalIgnoreCase))
             {
                 Owner = Application.Current.MainWindow
             };
@@ -1576,7 +1578,8 @@ public class MainViewModel : INotifyPropertyChanged
                 InpaintMask ?? throw new InvalidOperationException("Create an inpaint mask before generating."),
                 request.parameters.width,
                 request.parameters.height,
-                request.model.Contains("nai-diffusion-4", StringComparison.OrdinalIgnoreCase));
+                request.model.Contains("nai-diffusion-4", StringComparison.OrdinalIgnoreCase) ||
+                Request.model.Contains("nai-diffusion-5", StringComparison.OrdinalIgnoreCase));
             request.parameters.add_original_image = AddOriginalImage;
             if (!request.model.Contains("inpainting", StringComparison.OrdinalIgnoreCase)
                 && !request.model.Contains("nai-diffusion-2", StringComparison.OrdinalIgnoreCase))

@@ -148,7 +148,7 @@ public static class GenerationRequestBuilder
 
     private static bool IsV4(GenerationRequest request)
     {
-        return request.model.Contains("nai-diffusion-4", StringComparison.OrdinalIgnoreCase);
+        return request.model.Contains("nai-diffusion-4", StringComparison.OrdinalIgnoreCase) || request.model.Contains("nai-diffusion-5", StringComparison.OrdinalIgnoreCase);
     }
 
     private static void ApplyRandomSeed(GenerationRequest request, bool useRandomSeed)
