@@ -22,6 +22,8 @@ namespace ImageGen.ViewModels;
 
 public class MainViewModel : INotifyPropertyChanged
 {
+    private const int MaxGenerationCount = 100;
+
     private readonly INovelAiService _novelAiService;
     private readonly IImageService _imageService;
     private readonly SettingsService _settingsService;
@@ -67,6 +69,9 @@ public class MainViewModel : INotifyPropertyChanged
     private int _selectedGeneratorTabIndex;
     private bool _isUpdateAvailable;
     private bool _isCheckingForUpdate;
+    private int _generationCount = 1;
+    private int _generationQueueRemaining;
+    private bool _isGeneratorStopRequested;
 
     private ObservableCollection<TagSuggestion> _tagSuggestions = new();
     private TagSuggestion? _selectedSuggestion;
@@ -161,6 +166,7 @@ public class MainViewModel : INotifyPropertyChanged
             ? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Output")
             : settings.SaveDirectory;
         _prompt = settings.LastPrompt;
+        _generationCount = Math.Clamp(settings.GenerationCount, 1, MaxGenerationCount);
         Request.model = !string.IsNullOrWhiteSpace(settings.Model) && Models.Contains(settings.Model)
             ? settings.Model
             : Request.model;
@@ -246,6 +252,7 @@ public class MainViewModel : INotifyPropertyChanged
         }
 
         GenerateCommand = new RelayCommand(ExecuteGenerate, CanExecuteGenerate);
+        StopGeneratorQueueCommand = new RelayCommand(ExecuteStopGeneratorQueue, CanExecuteStopGeneratorQueue);
         SelectFolderCommand = new RelayCommand(ExecuteSelectFolder);
         RandomizeSeedCommand = new RelayCommand(ExecuteRandomizeSeed);
         LoadExifImageCommand = new RelayCommand(ExecuteLoadExifImage);
@@ -388,9 +395,39 @@ public class MainViewModel : INotifyPropertyChanged
         {
             _isGenerating = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(IsGeneratorStopAvailable));
             CommandManager.InvalidateRequerySuggested();
         }
     }
+
+    public int GenerationCount
+    {
+        get => _generationCount;
+        set
+        {
+            int clampedValue = Math.Clamp(value, 1, MaxGenerationCount);
+            if (_generationCount == clampedValue) return;
+            _generationCount = clampedValue;
+            OnPropertyChanged();
+            SaveCurrentSettings();
+        }
+    }
+
+    public int GenerationQueueRemaining
+    {
+        get => _generationQueueRemaining;
+        private set
+        {
+            if (_generationQueueRemaining == value) return;
+            _generationQueueRemaining = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsGeneratorStopAvailable));
+            CommandManager.InvalidateRequerySuggested();
+        }
+    }
+
+    public bool IsGeneratorStopAvailable =>
+        IsGenerating && GenerationQueueRemaining >= 2 && !_isGeneratorStopRequested;
 
     public string StatusMessage
     {
@@ -887,6 +924,7 @@ public class MainViewModel : INotifyPropertyChanged
     }
 
     public ICommand GenerateCommand { get; }
+    public ICommand StopGeneratorQueueCommand { get; }
     public ICommand SelectFolderCommand { get; }
     public ICommand RandomizeSeedCommand { get; }
     public ICommand LoadExifImageCommand { get; }
@@ -930,6 +968,20 @@ public class MainViewModel : INotifyPropertyChanged
         }
 
         return !string.IsNullOrWhiteSpace(ApiToken) && !string.IsNullOrWhiteSpace(Prompt) && !IsGenerating;
+    }
+
+    private bool CanExecuteStopGeneratorQueue(object? parameter)
+    {
+        return IsGeneratorStopAvailable;
+    }
+
+    private void ExecuteStopGeneratorQueue(object? parameter)
+    {
+        _isGeneratorStopRequested = true;
+        GenerationQueueRemaining = Math.Min(GenerationQueueRemaining, 1);
+        OnPropertyChanged(nameof(IsGeneratorStopAvailable));
+        CommandManager.InvalidateRequerySuggested();
+        StatusMessage = "Stop requested. Finishing the current image...";
     }
 
     private void ExecuteSelectFolder(object? parameter)
@@ -1404,6 +1456,7 @@ public class MainViewModel : INotifyPropertyChanged
             LastPrompt = Prompt,
             Model = SelectedModel,
             IsRandomSeed = IsRandomSeed,
+            GenerationCount = GenerationCount,
             LastParameters = Request.parameters,
             CharacterPrompts = CharacterPrompts.Select(cp => new CharacterPromptSettings
             {
@@ -1523,23 +1576,27 @@ public class MainViewModel : INotifyPropertyChanged
         {
             var uiModel = Request.model;
             var uiSampler = Request.parameters.sampler;
-            var request = GenerationRequestBuilder.BuildStandaloneRequest(
+            bool useRandomSeed = IsRandomSeed;
+            int requestedCount = GenerationCount;
+            var characterPrompts = CharacterPrompts.Select(cp => new CharacterPromptSettings
+            {
+                Prompt = cp.Prompt,
+                NegativePrompt = cp.NegativePrompt,
+                X = cp.X,
+                Y = cp.Y,
+                PresetPath = cp.SelectedPreset?.FullPath ?? string.Empty
+            }).ToList();
+            var firstRequest = GenerationRequestBuilder.BuildStandaloneRequest(
                 Request,
                 Prompt,
                 NegativePrompt,
-                CharacterPrompts.Select(cp => new CharacterPromptSettings
-                {
-                    Prompt = cp.Prompt,
-                    NegativePrompt = cp.NegativePrompt,
-                    X = cp.X,
-                    Y = cp.Y,
-                    PresetPath = cp.SelectedPreset?.FullPath ?? string.Empty
-                }),
-                IsRandomSeed);
+                characterPrompts,
+                useRandomSeed);
 
-            ApplyGeneratorOptions(request);
+            ApplyGeneratorOptions(firstRequest);
+            var requestTemplate = GenerationRequestBuilder.Clone(firstRequest);
             
-            Request = GenerationRequestBuilder.Clone(request);
+            Request = GenerationRequestBuilder.Clone(firstRequest);
             ClearVolatileRequestData(Request);
             Request.model = uiModel;
             Request.parameters.sampler = uiSampler;
@@ -1551,7 +1608,7 @@ public class MainViewModel : INotifyPropertyChanged
                                         + InpaintMask?.RevisionId
                                         + PreciseReferencePath
                                         + string.Join("|", VibeReferences.Select(r => r.FilePath));
-            if (!IsRandomSeed && currentRequestJson == _lastRequestJson)
+            if (!useRandomSeed && currentRequestJson == _lastRequestJson)
             {
                 var duplicateResult = MessageBox.Show(
                     "The settings are identical to the last generation. Generate anyway?",
@@ -1565,26 +1622,75 @@ public class MainViewModel : INotifyPropertyChanged
                 }
             }
 
+            _isGeneratorStopRequested = false;
+            GenerationQueueRemaining = requestedCount;
             IsGenerating = true;
-            StatusMessage = "Generating image...";
             SaveCurrentSettings();
 
-            var result = await _imageGenerationWorkflow.GenerateAndSaveWithCostAsync(
-                request,
-                ApiToken,
-                SaveDirectory,
-                "img",
-                bitmap => GeneratedImage = bitmap);
+            int completedCount = 0;
+            int totalAnlasCost = 0;
+            bool isAnlasCostAvailable = true;
+            string? lastFileName = null;
 
-            LastAnlasCost = result.AnlasCost;
-
-            if (result.FileName == null)
+            for (int imageNumber = 1; imageNumber <= requestedCount; imageNumber++)
             {
-                return;
+                var request = imageNumber == 1
+                    ? firstRequest
+                    : GenerationRequestBuilder.Clone(requestTemplate);
+                if (imageNumber > 1 && useRandomSeed)
+                {
+                    request.parameters.seed = RandomSeedService.NextSeed();
+                }
+
+                Request.parameters.seed = request.parameters.seed;
+                OnPropertyChanged(nameof(Seed));
+                StatusMessage = requestedCount == 1
+                    ? "Generating image..."
+                    : $"Generating image {imageNumber} of {requestedCount}...";
+
+                var result = await _imageGenerationWorkflow.GenerateAndSaveWithCostAsync(
+                    request,
+                    ApiToken,
+                    SaveDirectory,
+                    requestedCount == 1 ? "img" : $"img_{imageNumber:D3}",
+                    bitmap => GeneratedImage = bitmap);
+
+                if (result.AnlasCost.HasValue)
+                {
+                    totalAnlasCost += result.AnlasCost.Value;
+                }
+                else
+                {
+                    isAnlasCostAvailable = false;
+                }
+                LastAnlasCost = isAnlasCostAvailable ? totalAnlasCost : null;
+
+                if (result.FileName == null)
+                {
+                    StatusMessage = requestedCount == 1
+                        ? "Generation finished without an image."
+                        : $"Image {imageNumber} of {requestedCount} finished without an image.";
+                    return;
+                }
+
+                completedCount++;
+                lastFileName = result.FileName;
+                _lastRequestJson = currentRequestJson;
+                GenerationQueueRemaining = _isGeneratorStopRequested
+                    ? 0
+                    : requestedCount - imageNumber;
+
+                if (_isGeneratorStopRequested)
+                {
+                    break;
+                }
             }
 
-            StatusMessage = $"Saved to {result.FileName}";
-            _lastRequestJson = currentRequestJson;
+            StatusMessage = _isGeneratorStopRequested
+                ? $"Generation stopped after {completedCount} of {requestedCount} images."
+                : requestedCount == 1
+                    ? $"Saved to {lastFileName}"
+                    : $"Generated {completedCount} images. Last saved to {lastFileName}";
             await RefreshAnlasAsync(false);
         }
         catch (Exception ex)
@@ -1594,6 +1700,8 @@ public class MainViewModel : INotifyPropertyChanged
         }
         finally
         {
+            GenerationQueueRemaining = 0;
+            _isGeneratorStopRequested = false;
             IsGenerating = false;
         }
     }
@@ -1606,6 +1714,7 @@ public class MainViewModel : INotifyPropertyChanged
     private void ApplyGeneratorOptions(GenerationRequest request)
     {
         ApplySharedGeneratorOptions(request);
+        request.parameters.n_samples = 1;
         request.parameters.image = null;
         request.parameters.mask = null;
         request.parameters.img2img = null;
