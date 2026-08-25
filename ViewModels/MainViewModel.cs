@@ -1735,14 +1735,6 @@ public class MainViewModel : INotifyPropertyChanged
         request.parameters.image = null;
         request.parameters.mask = null;
         request.parameters.img2img = null;
-        request.parameters.reference_image_multiple.Clear();
-        request.parameters.reference_information_extracted_multiple.Clear();
-        request.parameters.reference_strength_multiple.Clear();
-        request.parameters.director_reference_images = null;
-        request.parameters.director_reference_descriptions = null;
-        request.parameters.director_reference_strength_values = null;
-        request.parameters.director_reference_secondary_strength_values = null;
-        request.parameters.director_reference_information_extracted = null;
 
         request.action = GenerationMode switch
         {
@@ -1782,6 +1774,20 @@ public class MainViewModel : INotifyPropertyChanged
                 request.model = $"{request.model}-inpainting";
             }
         }
+
+        ApplyReferenceOptions(request);
+    }
+
+    public void ApplyReferenceOptions(GenerationRequest request)
+    {
+        request.parameters.reference_image_multiple.Clear();
+        request.parameters.reference_information_extracted_multiple.Clear();
+        request.parameters.reference_strength_multiple.Clear();
+        request.parameters.director_reference_images = null;
+        request.parameters.director_reference_descriptions = null;
+        request.parameters.director_reference_strength_values = null;
+        request.parameters.director_reference_secondary_strength_values = null;
+        request.parameters.director_reference_information_extracted = null;
 
         foreach (var reference in VibeReferences.Where(r => File.Exists(r.FilePath)))
         {

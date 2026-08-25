@@ -1607,6 +1607,7 @@ public class NodeGraphViewModel : INotifyPropertyChanged
             incomingNodes,
             _mainViewModel.IsRandomSeed);
         _mainViewModel.ApplySharedGeneratorOptions(nodeRequest);
+        _mainViewModel.ApplyReferenceOptions(nodeRequest);
 
         var result = await _imageGenerationWorkflow.GenerateAndSaveWithCostAsync(
             nodeRequest,
