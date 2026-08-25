@@ -72,6 +72,7 @@ public class MainViewModel : INotifyPropertyChanged
     private int _generationCount = 1;
     private int _generationQueueRemaining;
     private bool _isGeneratorStopRequested;
+    private int _nodeGraphQueueCount = 1;
 
     private ObservableCollection<TagSuggestion> _tagSuggestions = new();
     private TagSuggestion? _selectedSuggestion;
@@ -167,6 +168,7 @@ public class MainViewModel : INotifyPropertyChanged
             : settings.SaveDirectory;
         _prompt = settings.LastPrompt;
         _generationCount = Math.Clamp(settings.GenerationCount, 1, MaxGenerationCount);
+        _nodeGraphQueueCount = Math.Clamp(settings.NodeGraphQueueCount, 1, MaxGenerationCount);
         Request.model = !string.IsNullOrWhiteSpace(settings.Model) && Models.Contains(settings.Model)
             ? settings.Model
             : Request.model;
@@ -428,6 +430,19 @@ public class MainViewModel : INotifyPropertyChanged
 
     public bool IsGeneratorStopAvailable =>
         IsGenerating && GenerationQueueRemaining >= 2 && !_isGeneratorStopRequested;
+
+    public int NodeGraphQueueCount
+    {
+        get => _nodeGraphQueueCount;
+        set
+        {
+            int clampedValue = Math.Clamp(value, 1, MaxGenerationCount);
+            if (_nodeGraphQueueCount == clampedValue) return;
+            _nodeGraphQueueCount = clampedValue;
+            OnPropertyChanged();
+            SaveCurrentSettings();
+        }
+    }
 
     public string StatusMessage
     {
@@ -1457,6 +1472,7 @@ public class MainViewModel : INotifyPropertyChanged
             Model = SelectedModel,
             IsRandomSeed = IsRandomSeed,
             GenerationCount = GenerationCount,
+            NodeGraphQueueCount = NodeGraphQueueCount,
             LastParameters = Request.parameters,
             CharacterPrompts = CharacterPrompts.Select(cp => new CharacterPromptSettings
             {
@@ -1670,6 +1686,7 @@ public class MainViewModel : INotifyPropertyChanged
                     StatusMessage = requestedCount == 1
                         ? "Generation finished without an image."
                         : $"Image {imageNumber} of {requestedCount} finished without an image.";
+                    await Task.Delay(200);
                     return;
                 }
 

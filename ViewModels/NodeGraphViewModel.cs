@@ -35,6 +35,7 @@ public class NodeGraphViewModel : INotifyPropertyChanged
     private GenerationNode? _connectingSource;
     private bool _isGeneratingChain;
     private bool _isStopRequested;
+    private bool _isGraphQueueItemActive;
 
     // Temporary connection line for dragging
     private double _tempX1;
@@ -1369,7 +1370,7 @@ public class NodeGraphViewModel : INotifyPropertyChanged
 
     private bool CanExecuteStopGeneration(object? parameter)
     {
-        return IsGeneratingChain && !IsStopRequested;
+        return IsGeneratingChain && _isGraphQueueItemActive && !IsStopRequested;
     }
 
     private void ExecuteStopGeneration(object? parameter)
@@ -1405,16 +1406,56 @@ public class NodeGraphViewModel : INotifyPropertyChanged
             return;
         }
 
-        IsStopRequested = false;
         IsGeneratingChain = true;
-        _mainViewModel.StatusMessage = "Starting chain generation...";
 
         try
         {
-            await ProcessNodeChain(startNode);
-            _mainViewModel.StatusMessage = IsStopRequested
-                ? "Chain generation stopped after the current image."
-                : "Chain generation complete.";
+            int queueCount = _mainViewModel.NodeGraphQueueCount;
+            int completedCount = 0;
+            int stoppedCount = 0;
+
+            for (int queueNumber = 1; queueNumber <= queueCount; queueNumber++)
+            {
+                IsStopRequested = false;
+                _isGraphQueueItemActive = true;
+                CommandManager.InvalidateRequerySuggested();
+                _mainViewModel.StatusMessage = queueCount == 1
+                    ? "Starting chain generation..."
+                    : $"Starting graph run {queueNumber} of {queueCount}...";
+
+                try
+                {
+                    await ProcessNodeChain(startNode);
+                }
+                finally
+                {
+                    _isGraphQueueItemActive = false;
+                    CommandManager.InvalidateRequerySuggested();
+                }
+
+                if (IsStopRequested)
+                {
+                    stoppedCount++;
+                }
+                else
+                {
+                    completedCount++;
+                }
+
+                if (queueNumber < queueCount)
+                {
+                    _mainViewModel.StatusMessage = IsStopRequested
+                        ? $"Graph run {queueNumber} of {queueCount} stopped. Starting the next run in 0.2 seconds..."
+                        : $"Graph run {queueNumber} of {queueCount} complete. Starting the next run in 0.2 seconds...";
+                    await Task.Delay(200);
+                }
+            }
+
+            _mainViewModel.StatusMessage = queueCount == 1
+                ? IsStopRequested
+                    ? "Chain generation stopped after the current image."
+                    : "Chain generation complete."
+                : $"Graph queue complete: {completedCount} completed, {stoppedCount} stopped.";
             await _mainViewModel.RefreshAnlasAsync(false);
         }
         catch (Exception ex)
@@ -1423,6 +1464,7 @@ public class NodeGraphViewModel : INotifyPropertyChanged
         }
         finally
         {
+            _isGraphQueueItemActive = false;
             IsGeneratingChain = false;
             IsStopRequested = false;
         }

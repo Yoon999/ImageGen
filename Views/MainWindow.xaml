@@ -717,7 +717,7 @@
                            Height="32"
                            MinWidth="150"
                            FontWeight="SemiBold"
-                           ToolTip="Runs the active tab. Generator creates the selected number of images sequentially, Node Graph runs from Begin, and Director Tools runs the selected tool."
+                           ToolTip="Runs the active tab. Generator creates the selected number of images sequentially, Node Graph runs the selected number of full graph runs, and Director Tools runs the selected tool."
                            Margin="0,0,2,0" />
             </StatusBarItem>
             <StatusBarItem>
@@ -759,6 +759,35 @@
                            ToolTip="Finish the image currently being generated, then discard the remaining Generator queue."
                            Margin="0,0,2,0" />
             </StatusBarItem>
+            <StatusBarItem>
+                <StatusBarItem.Style>
+                    <Style TargetType="StatusBarItem">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding SelectedMainTabIndex}" Value="1">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </StatusBarItem.Style>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="2,0,4,0">
+                    <ui:TextBlock Text="Graph Runs"
+                                  Foreground="{StaticResource AppMutedTextBrush}"
+                                  VerticalAlignment="Center"
+                                  Margin="0,0,5,0" />
+                    <ui:NumberBox Value="{Binding NodeGraphQueueCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                  Minimum="1"
+                                  Maximum="100"
+                                  SmallChange="1"
+                                  MaxDecimalPlaces="0"
+                                  SpinButtonPlacementMode="Compact"
+                                  ValidationMode="InvalidInputOverwritten"
+                                  ClearButtonEnabled="False"
+                                  IsEnabled="{Binding NodeGraphViewModel.IsGeneratingChain, Converter={StaticResource InverseBoolConverter}}"
+                                  Width="56"
+                                  Height="32" />
+                </StackPanel>
+            </StatusBarItem>
             <StatusBarItem Visibility="{Binding NodeGraphViewModel.IsGeneratingChain, Converter={StaticResource BoolToVisibilityConverter}}">
                 <ui:Button Content="Stop After Current"
                            Command="{Binding NodeGraphViewModel.StopGenerationCommand}"
@@ -766,7 +795,7 @@
                            MinWidth="140"
                            FontWeight="SemiBold"
                            Background="{StaticResource AppDangerBrush}"
-                           ToolTip="Finish the image currently being generated, then stop the node graph."
+                           ToolTip="Finish the image currently being generated, stop this graph run, then continue with the next queued run."
                            Margin="0,0,2,0" />
             </StatusBarItem>
             <StatusBarItem>

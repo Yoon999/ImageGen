@@ -12,6 +12,7 @@ public class AppSettings
     public string Model { get; set; } = "nai-diffusion-5-full";
     public bool IsRandomSeed { get; set; } = true; // 기본값 true
     public int GenerationCount { get; set; } = 1;
+    public int NodeGraphQueueCount { get; set; } = 1;
     public RequestParameters LastParameters { get; set; } = new RequestParameters();
     public List<CharacterPromptSettings> CharacterPrompts { get; set; } = new List<CharacterPromptSettings>();
     public ImageInputSettings ImageInput { get; set; } = new ImageInputSettings();
