@@ -1,0 +1,64 @@
+<Window x:Class="ImageGen.Views.NodeGraphPreviewWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:helpers="clr-namespace:ImageGen.Helpers"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        Title="Node Graph Preview"
+        Width="900"
+        Height="700"
+        MinWidth="420"
+        MinHeight="320"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource AppBackgroundBrush}"
+        Foreground="{StaticResource AppTextBrush}">
+
+    <Window.Resources>
+        <helpers:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
+    </Window.Resources>
+
+    <Grid Margin="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Background="{StaticResource AppSurfaceAltBrush}"
+                BorderBrush="{StaticResource AppBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                ClipToBounds="True">
+            <Grid>
+                <Image Source="{Binding GeneratedImage}"
+                       Stretch="Uniform" />
+                <ui:TextBlock Text="No image yet"
+                              Foreground="{StaticResource AppMutedTextBrush}"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center"
+                              Visibility="{Binding GeneratedImage, Converter={StaticResource NullToVisibilityConverter}, ConverterParameter=Inverse}" />
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1" Margin="0,8,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <ui:TextBlock Text="{Binding StatusMessage}"
+                          Foreground="{StaticResource AppMutedTextBrush}"
+                          VerticalAlignment="Center"
+                          TextTrimming="CharacterEllipsis"
+                          Margin="0,0,8,0" />
+            <ui:Button Grid.Column="1"
+                       Content="Copy"
+                       Command="{Binding CopyImageCommand}"
+                       Style="{StaticResource ToolbarButtonStyle}" />
+            <ui:Button Grid.Column="2"
+                       Content="Open"
+                       Command="{Binding OpenSaveDirectoryCommand}"
+                       Style="{StaticResource ToolbarButtonStyle}"
+                       Margin="0" />
+        </Grid>
+    </Grid>
+</Window>
