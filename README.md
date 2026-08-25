@@ -46,7 +46,7 @@ NovelAI Image Generation API를 데스크톱에서 편리하게 사용할 수 �
 - 그래프 확대/축소와 패널 접기
 - 워크플로를 JSON으로 저장하고 다시 불러오기
 - 저장된 그래프를 다른 그래프 안에서 재사용
-- Begin 노드부터 연결된 생성 체인 실행
+- Begin 노드부터 연결된 생성 체인 실행 및 현재 이미지 완료 후 중단
 
 ![](https://ch99.atlasimg.org/n4.PNG)
 

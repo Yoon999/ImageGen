@@ -34,6 +34,7 @@ public class NodeGraphViewModel : INotifyPropertyChanged
     private bool _isConnecting;
     private GenerationNode? _connectingSource;
     private bool _isGeneratingChain;
+    private bool _isStopRequested;
 
     // Temporary connection line for dragging
     private double _tempX1;
@@ -179,6 +180,7 @@ public class NodeGraphViewModel : INotifyPropertyChanged
     public ICommand ClearConnectionsCommand { get; }
     public ICommand DisconnectInputCommand { get; }
     public ICommand GenerateChainCommand { get; }
+    public ICommand StopGenerationCommand { get; }
     public ICommand CancelConnectionCommand { get; }
     public ICommand SaveCharacterPresetCommand { get; }
     public ICommand UpdateCharacterPresetCommand { get; }
@@ -238,6 +240,7 @@ public class NodeGraphViewModel : INotifyPropertyChanged
         ClearConnectionsCommand = new RelayCommand(ExecuteClearConnections);
         DisconnectInputCommand = new RelayCommand(ExecuteDisconnectInput);
         GenerateChainCommand = new RelayCommand(ExecuteGenerateChain, CanExecuteGenerateChain);
+        StopGenerationCommand = new RelayCommand(ExecuteStopGeneration, CanExecuteStopGeneration);
         CancelConnectionCommand = new RelayCommand(ExecuteCancelConnection);
         SaveCharacterPresetCommand = new RelayCommand(ExecuteSaveCharacterPreset);
         UpdateCharacterPresetCommand = new RelayCommand(ExecuteUpdateCharacterPreset, CanExecuteNodePresetAction);
@@ -1209,6 +1212,18 @@ public class NodeGraphViewModel : INotifyPropertyChanged
         }
     }
 
+    public bool IsStopRequested
+    {
+        get => _isStopRequested;
+        private set
+        {
+            if (_isStopRequested == value) return;
+            _isStopRequested = value;
+            OnPropertyChanged();
+            CommandManager.InvalidateRequerySuggested();
+        }
+    }
+
     private bool SaveGraphToFile(string fileName)
     {
         try
@@ -1352,6 +1367,17 @@ public class NodeGraphViewModel : INotifyPropertyChanged
                && Nodes.Any(n => n.Type == NodeType.Begin);
     }
 
+    private bool CanExecuteStopGeneration(object? parameter)
+    {
+        return IsGeneratingChain && !IsStopRequested;
+    }
+
+    private void ExecuteStopGeneration(object? parameter)
+    {
+        IsStopRequested = true;
+        _mainViewModel.StatusMessage = "Stop requested. Finishing the current image...";
+    }
+
     private async void ExecuteGenerateChain(object? parameter)
     {
         GenerationNode? startNode = parameter as GenerationNode;
@@ -1379,13 +1405,16 @@ public class NodeGraphViewModel : INotifyPropertyChanged
             return;
         }
 
+        IsStopRequested = false;
         IsGeneratingChain = true;
         _mainViewModel.StatusMessage = "Starting chain generation...";
 
         try
         {
             await ProcessNodeChain(startNode);
-            _mainViewModel.StatusMessage = "Chain generation complete.";
+            _mainViewModel.StatusMessage = IsStopRequested
+                ? "Chain generation stopped after the current image."
+                : "Chain generation complete.";
             await _mainViewModel.RefreshAnlasAsync(false);
         }
         catch (Exception ex)
@@ -1395,6 +1424,7 @@ public class NodeGraphViewModel : INotifyPropertyChanged
         finally
         {
             IsGeneratingChain = false;
+            IsStopRequested = false;
         }
     }
 
@@ -1414,6 +1444,11 @@ public class NodeGraphViewModel : INotifyPropertyChanged
 
         while (currentNode != null)
         {
+            if (IsStopRequested)
+            {
+                break;
+            }
+
             if (currentNode.Type == NodeType.End)
             {
                 if (reportEndNode)
@@ -1440,6 +1475,11 @@ public class NodeGraphViewModel : INotifyPropertyChanged
             else if (currentNode.Type == NodeType.Normal)
             {
                 await GenerateImageForNode(currentNode, contextNodes);
+            }
+
+            if (IsStopRequested)
+            {
+                break;
             }
 
             currentNode = currentNode.NextNode;

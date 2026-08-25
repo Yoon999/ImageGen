@@ -23,6 +23,7 @@
     <Window.Resources>
         <helpers:CountToBoolConverter x:Key="CountToBoolConverter" />
         <helpers:InverseBoolConverter x:Key="InverseBoolConverter" />
+        <helpers:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
         <helpers:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
         <helpers:ConnectionColorConverter x:Key="ConnectionColorConverter" />
         <helpers:NodeTypeToColorConverter x:Key="NodeTypeToColorConverter" />
@@ -717,6 +718,16 @@
                            MinWidth="150"
                            FontWeight="SemiBold"
                            ToolTip="Runs the active tab. Generator creates one image, Node Graph runs from Begin, and Director Tools runs the selected tool."
+                           Margin="0,0,2,0" />
+            </StatusBarItem>
+            <StatusBarItem Visibility="{Binding NodeGraphViewModel.IsGeneratingChain, Converter={StaticResource BoolToVisibilityConverter}}">
+                <ui:Button Content="Stop After Current"
+                           Command="{Binding NodeGraphViewModel.StopGenerationCommand}"
+                           Height="32"
+                           MinWidth="140"
+                           FontWeight="SemiBold"
+                           Background="{StaticResource AppDangerBrush}"
+                           ToolTip="Finish the image currently being generated, then stop the node graph."
                            Margin="0,0,2,0" />
             </StatusBarItem>
             <StatusBarItem>
