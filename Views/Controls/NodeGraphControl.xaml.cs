@@ -35,18 +35,6 @@ public partial class NodeGraphControl : UserControl
         InitializeComponent();
         IsVisibleChanged += NodeGraphControl_IsVisibleChanged;
         DataContextChanged += NodeGraphControl_DataContextChanged;
-        Unloaded += NodeGraphControl_Unloaded;
-    }
-
-    private void NodeGraphControl_Unloaded(object sender, RoutedEventArgs e)
-    {
-        PrepareForClose();
-
-        if (DataContext is NodeGraphViewModel vm)
-        {
-            vm.RequestBringIntoView -= Vm_RequestBringIntoView;
-            vm.PropertyChanged -= Vm_PropertyChanged;
-        }
     }
 
     public void PrepareForClose()
@@ -55,6 +43,12 @@ public partial class NodeGraphControl : UserControl
         _scrollAnimationCts?.Cancel();
         _graphLibraryAnimationCts?.Cancel();
         _previewAnimationCts?.Cancel();
+
+        if (DataContext is NodeGraphViewModel vm)
+        {
+            vm.RequestBringIntoView -= Vm_RequestBringIntoView;
+            vm.PropertyChanged -= Vm_PropertyChanged;
+        }
 
         if (_previewWindow != null)
         {
