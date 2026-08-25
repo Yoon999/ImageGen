@@ -663,6 +663,7 @@
                 </Grid>
             </ScrollViewer>
 
+            <Grid x:Name="DockedPreviewHost">
             <Border x:Name="PreviewPanel"
                     Width="300"
                     Height="260"
@@ -685,12 +686,22 @@
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="Preview"
                                    Foreground="{StaticResource AppTextBrush}"
                                    FontWeight="SemiBold"
                                    VerticalAlignment="Center" />
                         <Button Grid.Column="1"
+                                Content="Pop Out"
+                                Click="PreviewPopOutButton_Click"
+                                Height="24"
+                                Padding="6,0"
+                                FontSize="10"
+                                Style="{StaticResource ToolbarButtonStyle}"
+                                Margin="0,0,4,0"
+                                ToolTip="Open preview in a separate window" />
+                        <Button Grid.Column="2"
                                 Content="-"
                                 Command="{Binding TogglePreviewPanelCommand}"
                                 Width="28"
@@ -754,6 +765,7 @@
                     Style="{StaticResource ToolbarButtonStyle}"
                     ToolTip="Expand preview"
                     Visibility="{Binding IsPreviewPanelCollapsed, Converter={StaticResource BoolToVisibilityConverter}}" />
+            </Grid>
             </Grid>
         </Border>
 

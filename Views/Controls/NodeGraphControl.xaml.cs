@@ -6,6 +6,7 @@ using ImageGen.Helpers;
 using ImageGen.Models;
 using ImageGen.Models.Api;
 using ImageGen.ViewModels;
+using ImageGen.Views;
 using Button = System.Windows.Controls.Button;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 using MouseEventArgs = System.Windows.Input.MouseEventArgs;
@@ -26,6 +27,7 @@ public partial class NodeGraphControl : UserControl
     private CancellationTokenSource? _scrollAnimationCts;
     private CancellationTokenSource? _graphLibraryAnimationCts;
     private CancellationTokenSource? _previewAnimationCts;
+    private NodeGraphPreviewWindow? _previewWindow;
     private bool _isClosing;
 
     public NodeGraphControl()
@@ -53,6 +55,14 @@ public partial class NodeGraphControl : UserControl
         _scrollAnimationCts?.Cancel();
         _graphLibraryAnimationCts?.Cancel();
         _previewAnimationCts?.Cancel();
+
+        if (_previewWindow != null)
+        {
+            var previewWindow = _previewWindow;
+            _previewWindow = null;
+            previewWindow.Closed -= PreviewWindow_Closed;
+            previewWindow.Close();
+        }
     }
 
     private void NodeGraphControl_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -83,7 +93,10 @@ public partial class NodeGraphControl : UserControl
         }
         else if (e.PropertyName == nameof(NodeGraphViewModel.IsPreviewPanelCollapsed))
         {
-            _ = AnimatePreviewPanelAsync(vm.IsPreviewPanelCollapsed);
+            if (_previewWindow == null)
+            {
+                _ = AnimatePreviewPanelAsync(vm.IsPreviewPanelCollapsed);
+            }
         }
     }
 
@@ -105,10 +118,67 @@ public partial class NodeGraphControl : UserControl
         GraphLibraryPanel.Opacity = vm.IsGraphLibraryCollapsed ? 0 : 1;
         GraphLibraryPanel.Visibility = vm.IsGraphLibraryCollapsed ? Visibility.Collapsed : Visibility.Visible;
 
+        DockedPreviewHost.Visibility = _previewWindow == null ? Visibility.Visible : Visibility.Collapsed;
+
         PreviewPanel.Width = vm.IsPreviewPanelCollapsed ? 38 : 300;
         PreviewPanel.Height = vm.IsPreviewPanelCollapsed ? 34 : 260;
         PreviewPanel.Opacity = vm.IsPreviewPanelCollapsed ? 0 : 1;
         PreviewPanel.Visibility = vm.IsPreviewPanelCollapsed ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    private void PreviewPopOutButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_previewWindow != null)
+        {
+            _previewWindow.Activate();
+            return;
+        }
+
+        var owner = Window.GetWindow(this);
+        if (owner?.DataContext is not MainViewModel mainViewModel)
+        {
+            return;
+        }
+
+        _previewAnimationCts?.Cancel();
+        var previewWindow = new NodeGraphPreviewWindow
+        {
+            Owner = owner,
+            DataContext = mainViewModel
+        };
+        previewWindow.Closed += PreviewWindow_Closed;
+        _previewWindow = previewWindow;
+        DockedPreviewHost.Visibility = Visibility.Collapsed;
+        previewWindow.Show();
+    }
+
+    private void PreviewWindow_Closed(object? sender, EventArgs e)
+    {
+        if (sender is NodeGraphPreviewWindow previewWindow)
+        {
+            previewWindow.Closed -= PreviewWindow_Closed;
+        }
+
+        _previewWindow = null;
+        if (_isClosing)
+        {
+            return;
+        }
+
+        DockedPreviewHost.Visibility = Visibility.Visible;
+        if (DataContext is not NodeGraphViewModel vm)
+        {
+            return;
+        }
+
+        if (vm.IsPreviewPanelCollapsed)
+        {
+            vm.IsPreviewPanelCollapsed = false;
+        }
+        else
+        {
+            ApplyPanelStates(false);
+        }
     }
 
     private void Vm_RequestBringIntoView(object? sender, NodeType type)
