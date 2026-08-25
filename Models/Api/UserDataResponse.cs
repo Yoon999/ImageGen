@@ -12,6 +12,21 @@ public class SubscriptionData
 {
     [JsonPropertyName("trainingStepsLeft")]
     public TrainingStepsLeft? TrainingStepsLeft { get; set; }
+
+    [JsonPropertyName("usage")]
+    public OpusUsageData? Usage { get; set; }
+}
+
+public class OpusUsageData
+{
+    [JsonPropertyName("percent")]
+    public int Percent { get; set; }
+
+    [JsonPropertyName("isNegative")]
+    public bool IsNegative { get; set; }
+
+    [JsonPropertyName("timeUntilNextPercent")]
+    public int? TimeUntilNextPercent { get; set; }
 }
 
 public class TrainingStepsLeft

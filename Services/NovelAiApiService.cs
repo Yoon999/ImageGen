@@ -134,7 +134,7 @@ public class NovelAiApiService : INovelAiService
         }
     }
 
-    public async Task<int> GetAnlasAsync(string accessToken)
+    public async Task<UserDataResponse> GetUserDataAsync(string accessToken)
     {
         _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
@@ -150,14 +150,20 @@ public class NovelAiApiService : INovelAiService
                 throw new HttpRequestException(errorMessage);
             }
 
-            var result = await response.Content.ReadFromJsonAsync<UserDataResponse>();
-            var steps = result?.Subscription?.TrainingStepsLeft;
-            return (steps?.FixedTrainingStepsLeft ?? 0) + (steps?.PurchasedTrainingSteps ?? 0);
+            return await response.Content.ReadFromJsonAsync<UserDataResponse>()
+                   ?? throw new InvalidDataException("NovelAI returned empty user data.");
         }
         catch (Exception ex)
         {
-            Logger.LogError("Exception in GetAnlasAsync", ex);
+            Logger.LogError("Exception in GetUserDataAsync", ex);
             throw;
         }
+    }
+
+    public async Task<int> GetAnlasAsync(string accessToken)
+    {
+        var result = await GetUserDataAsync(accessToken);
+        var steps = result.Subscription?.TrainingStepsLeft;
+        return (steps?.FixedTrainingStepsLeft ?? 0) + (steps?.PurchasedTrainingSteps ?? 0);
     }
 }

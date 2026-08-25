@@ -741,7 +741,25 @@
                                Style="{StaticResource IconButtonStyle}"
                                HorizontalAlignment="Right"
                                Margin="8, 0, 0, 0"
-                               Command="{Binding RefreshAnlasCommand}" />
+                               Command="{Binding RefreshAnlasCommand}"
+                               ToolTip="Refresh Anlas and Opus generation usage" />
+                </StackPanel>
+            </StatusBarItem>
+            <StatusBarItem Visibility="{Binding OpusUsage, Converter={StaticResource NullToVisibilityConverter}}">
+                <StackPanel Width="240"
+                            Margin="6,0"
+                            ToolTip="{Binding OpusUsageRefillDisplay}">
+                    <ui:TextBlock Text="{Binding OpusUsageDisplay}"
+                                  Foreground="#FFF4A3"
+                                  FontSize="11"
+                                  FontWeight="SemiBold" />
+                    <ProgressBar Minimum="0"
+                                 Maximum="100"
+                                 Value="{Binding OpusUsageProgress, Mode=OneWay}"
+                                 Height="4"
+                                 Margin="0,3,0,0"
+                                 Foreground="#FFF4A3"
+                                 Background="{StaticResource AppBackgroundBrush}" />
                 </StackPanel>
             </StatusBarItem>
             <StatusBarItem>

@@ -31,5 +31,7 @@ public interface INovelAiService
     /// <returns>추천 태그 목록</returns>
     Task<List<TagSuggestion>> SuggestTagsAsync(string prompt, string model, string accessToken);
 
+    Task<UserDataResponse> GetUserDataAsync(string accessToken);
+
     Task<int> GetAnlasAsync(string accessToken);
 }

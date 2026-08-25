@@ -47,6 +47,7 @@ public class MainViewModel : INotifyPropertyChanged
     private int? _anlasBalance;
     private bool _isRefreshingAnlas;
     private int? _lastAnlasCost;
+    private OpusUsageData? _opusUsage;
     private string _generationMode = "Text2Image";
     private string _smeaMode = "none";
     private bool _variety;
@@ -262,6 +263,10 @@ public class MainViewModel : INotifyPropertyChanged
         DismissPastedImageCommand = new RelayCommand(_ => DismissPastedImage());
         RunUpdateCommand = new RelayCommand(_ => RunUpdate(), _ => IsUpdateAvailable);
         _ = RefreshUpdateStatusAsync();
+        if (!string.IsNullOrWhiteSpace(ApiToken))
+        {
+            _ = RefreshAnlasAsync(false);
+        }
     }
 
     private void CharacterPrompts_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -490,6 +495,60 @@ public class MainViewModel : INotifyPropertyChanged
     }
 
     public string LastAnlasCostDisplay => LastAnlasCost.HasValue ? LastAnlasCost.Value.ToString("N0") : "-";
+
+    public OpusUsageData? OpusUsage
+    {
+        get => _opusUsage;
+        private set
+        {
+            if (_opusUsage == value) return;
+            _opusUsage = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(OpusUsageDisplay));
+            OnPropertyChanged(nameof(OpusUsageProgress));
+            OnPropertyChanged(nameof(OpusUsageRefillDisplay));
+        }
+    }
+
+    public string OpusUsageDisplay
+    {
+        get
+        {
+            if (OpusUsage == null) return string.Empty;
+            int percent = OpusUsage.IsNegative ? -OpusUsage.Percent : OpusUsage.Percent;
+            return $"{percent}% of Opus Generations remaining";
+        }
+    }
+
+    public int OpusUsageProgress
+    {
+        get
+        {
+            if (OpusUsage == null || OpusUsage.IsNegative) return 0;
+            return Math.Clamp(OpusUsage.Percent, 0, 100);
+        }
+    }
+
+    public string OpusUsageRefillDisplay
+    {
+        get
+        {
+            if (OpusUsage == null) return string.Empty;
+
+            if (!OpusUsage.TimeUntilNextPercent.HasValue)
+            {
+                return "Opus generation usage is not currently refilling. V5 generations may consume Anlas when this allowance is depleted.";
+            }
+
+            var remaining = TimeSpan.FromSeconds(Math.Max(0, OpusUsage.TimeUntilNextPercent.Value));
+            string duration = remaining.TotalHours >= 1
+                ? $"{(int)remaining.TotalHours}h {remaining.Minutes}m {remaining.Seconds}s"
+                : remaining.TotalMinutes >= 1
+                    ? $"{remaining.Minutes}m {remaining.Seconds}s"
+                    : $"{remaining.Seconds}s";
+            return $"Reported next 1% refill: {duration}. V5 generations may consume Anlas when this allowance is depleted.";
+        }
+    }
 
     public bool IsRefreshingAnlas
     {
@@ -1232,24 +1291,30 @@ public class MainViewModel : INotifyPropertyChanged
             IsRefreshingAnlas = true;
             if (updateStatus)
             {
-                StatusMessage = "Refreshing anlas...";
+                StatusMessage = "Refreshing account usage...";
             }
 
-            AnlasBalance = await _novelAiService.GetAnlasAsync(ApiToken);
+            var userData = await _novelAiService.GetUserDataAsync(ApiToken);
+            var subscription = userData.Subscription;
+            var steps = subscription?.TrainingStepsLeft;
+            AnlasBalance = (steps?.FixedTrainingStepsLeft ?? 0) + (steps?.PurchasedTrainingSteps ?? 0);
+            OpusUsage = subscription?.Usage;
 
             if (updateStatus)
             {
-                StatusMessage = $"Anlas refreshed: {AnlasDisplay}";
+                StatusMessage = OpusUsage == null
+                    ? $"Account usage refreshed: Anlas {AnlasDisplay}"
+                    : $"Account usage refreshed: Anlas {AnlasDisplay}; {OpusUsageDisplay}";
             }
         }
         catch (Exception ex)
         {
             if (updateStatus)
             {
-                StatusMessage = $"Failed to refresh anlas: {ex.Message}";
+                StatusMessage = $"Failed to refresh account usage: {ex.Message}";
             }
 
-            Logger.LogError("Error refreshing anlas", ex);
+            Logger.LogError("Error refreshing account usage", ex);
         }
         finally
         {
