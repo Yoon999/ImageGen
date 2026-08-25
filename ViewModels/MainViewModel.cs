@@ -161,6 +161,9 @@ public class MainViewModel : INotifyPropertyChanged
             ? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Output")
             : settings.SaveDirectory;
         _prompt = settings.LastPrompt;
+        Request.model = !string.IsNullOrWhiteSpace(settings.Model) && Models.Contains(settings.Model)
+            ? settings.Model
+            : Request.model;
 
         if (settings.LastParameters != null)
         {
@@ -1399,6 +1402,7 @@ public class MainViewModel : INotifyPropertyChanged
             ApiToken = ApiToken,
             SaveDirectory = SaveDirectory,
             LastPrompt = Prompt,
+            Model = SelectedModel,
             IsRandomSeed = IsRandomSeed,
             LastParameters = Request.parameters,
             CharacterPrompts = CharacterPrompts.Select(cp => new CharacterPromptSettings
