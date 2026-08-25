@@ -112,7 +112,7 @@ Windows x64용 단일 실행 파일을 만들려면 저장소 루트에서 `buil
 .\build.bat
 ```
 
-스크립트는 필요할 경우 소스 업데이트 여부를 묻고, 복원 및 self-contained Release 게시를 수행합니다. 결과물은 `Release_Output/ImageGen.exe`에 생성됩니다. 직접 게시하려면 다음 명령을 사용할 수 있습니다.
+스크립트는 필요할 경우 소스 업데이트 여부를 묻고, 복원 및 self-contained Release 게시를 수행합니다. 빌드 전에 `Release_Output` 아래의 JSON 파일을 임시 백업하고 게시 후 원래 경로로 복원하므로, 앱 설정과 캐릭터 프리셋 및 Graphs 워크플로가 유지됩니다. 결과물은 `Release_Output/ImageGen.exe`에 생성됩니다. 직접 게시하려면 다음 명령을 사용할 수 있습니다.
 
 ```powershell
 dotnet publish ImageGen.csproj `
