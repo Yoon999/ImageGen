@@ -707,6 +707,102 @@
                     </Border>
                 </Grid>
             </TabItem>
+
+            <TabItem Header="Metadata Removal">
+                <Grid DataContext="{Binding MetadataRemovalViewModel}"
+                      Margin="0,8,0,0"
+                      AllowDrop="True"
+                      DragOver="MetadataRemoval_DragOver"
+                      Drop="MetadataRemoval_Drop">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0" Style="{StaticResource PanelBorderStyle}" Margin="0,0,0,8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel>
+                                <ui:TextBlock Text="Remove image metadata"
+                                              FontSize="16"
+                                              FontWeight="SemiBold" />
+                                <ui:TextBlock Text="Removes EXIF and clears the alpha-channel LSB used by NovelAI stealth metadata. Cleaned copies are saved as PNG files next to the originals."
+                                              Margin="0,5,12,0"
+                                              Foreground="{StaticResource AppMutedTextBrush}"
+                                              TextWrapping="Wrap" />
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button Content="Add Images..."
+                                        Command="{Binding AddFilesCommand}"
+                                        Style="{StaticResource ToolbarButtonStyle}" />
+                                <Button Content="Clear"
+                                        Command="{Binding ClearCommand}"
+                                        Style="{StaticResource ToolbarButtonStyle}"
+                                        Margin="0" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Row="1" Style="{StaticResource PanelBorderStyle}" Padding="0">
+                        <Grid>
+                            <DataGrid ItemsSource="{Binding Items}"
+                                      AutoGenerateColumns="False"
+                                      IsReadOnly="True"
+                                      CanUserAddRows="False"
+                                      SelectionMode="Extended"
+                                      HeadersVisibility="Column"
+                                      GridLinesVisibility="Horizontal">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="File" Binding="{Binding FileName}" Width="220" />
+                                    <DataGridTextColumn Header="Source" Binding="{Binding FilePath}" Width="*" />
+                                    <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="240" />
+                                    <DataGridTextColumn Header="Output" Binding="{Binding OutputPath}" Width="*" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+
+                            <ui:TextBlock Text="Drop one or more images here"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          Foreground="{StaticResource AppMutedTextBrush}"
+                                          FontSize="20"
+                                          IsHitTestVisible="False">
+                                <ui:TextBlock.Style>
+                                    <Style TargetType="ui:TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Items.Count}" Value="0">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ui:TextBlock.Style>
+                            </ui:TextBlock>
+                        </Grid>
+                    </Border>
+
+                    <Grid Grid.Row="2" Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ui:TextBlock Text="{Binding StatusMessage}"
+                                      VerticalAlignment="Center"
+                                      Foreground="{StaticResource AppMutedTextBrush}" />
+                        <ui:Button Grid.Column="1"
+                                   Content="Remove Metadata"
+                                   Command="{Binding ProcessCommand}"
+                                   Appearance="Primary"
+                                   Height="34"
+                                   MinWidth="170" />
+                    </Grid>
+                </Grid>
+            </TabItem>
         </TabControl>
 
         <StatusBar Grid.Row="2" Padding="2" Margin="0,8, 0, 0" Background="{StaticResource AppSurfaceBrush}">

@@ -139,6 +139,7 @@ public class MainViewModel : INotifyPropertyChanged
     // Node Graph ViewModel
     public NodeGraphViewModel NodeGraphViewModel { get; }
     public DirectorToolsViewModel DirectorToolsViewModel { get; }
+    public MetadataRemovalViewModel MetadataRemovalViewModel { get; }
 
     public MainViewModel()
     {
@@ -152,6 +153,7 @@ public class MainViewModel : INotifyPropertyChanged
         _updateService = new UpdateService();
         _imageGenerationWorkflow = new ImageGenerationWorkflow(_novelAiService, _imageService);
         DirectorToolsViewModel = new DirectorToolsViewModel(this, _imageGenerationWorkflow, _imageEncodingService);
+        MetadataRemovalViewModel = new MetadataRemovalViewModel(new ImageMetadataRemovalService());
 
         // Initialize NodeGraphViewModel
         NodeGraphViewModel = new NodeGraphViewModel(
@@ -969,6 +971,7 @@ public class MainViewModel : INotifyPropertyChanged
             case 2:
                 return DirectorToolsViewModel.RunToolCommand.CanExecute(null);
             case 3:
+            case 4:
                 return false;
         }
 
@@ -1538,6 +1541,7 @@ public class MainViewModel : INotifyPropertyChanged
                 DirectorToolsViewModel.RunToolCommand.Execute(null);
                 return;
             case 3:
+            case 4:
                 return;
         }
 

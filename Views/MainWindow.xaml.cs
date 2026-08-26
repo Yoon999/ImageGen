@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.IO;
 using ImageGen.Helpers;
 using ImageGen.Models.Api;
+using ImageGen.Services;
 using ImageGen.ViewModels;
 using Button = System.Windows.Controls.Button;
 using DataFormats = System.Windows.DataFormats;
@@ -297,6 +298,32 @@ public partial class MainWindow : Window
         {
             ViewModel.LoadExifImage(filePath);
         }
+    }
+
+    private void MetadataRemoval_DragOver(object sender, DragEventArgs e)
+    {
+        bool hasSupportedImage = ViewModel?.MetadataRemovalViewModel.IsProcessing == false
+            && e.Data.GetDataPresent(DataFormats.FileDrop)
+            && e.Data.GetData(DataFormats.FileDrop) is string[] files
+            && files.Any(ImageMetadataRemovalService.IsSupportedImagePath);
+
+        e.Effects = hasSupportedImage
+            ? System.Windows.DragDropEffects.Copy
+            : System.Windows.DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private void MetadataRemoval_Drop(object sender, DragEventArgs e)
+    {
+        if (ViewModel?.MetadataRemovalViewModel.IsProcessing == true
+            || !e.Data.GetDataPresent(DataFormats.FileDrop)
+            || e.Data.GetData(DataFormats.FileDrop) is not string[] files)
+        {
+            return;
+        }
+
+        ViewModel?.MetadataRemovalViewModel.AddFiles(files);
+        e.Handled = true;
     }
 
     private void SourceImage_Drop(object sender, DragEventArgs e)
