@@ -160,16 +160,23 @@
                             <TabItem Header="Parameters">
                                 <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,6,0,0">
                                     <StackPanel>
+                                        <DockPanel Margin="0,0,0,8">
+                                            <ui:TextBlock Text="Resolution" Width="78" Foreground="{StaticResource AppMutedTextBrush}" VerticalAlignment="Center" />
+                                            <ComboBox ItemsSource="{Binding ResolutionPresets}"
+                                                      SelectedItem="{Binding SelectedResolutionPreset, Mode=TwoWay}"
+                                                      MinWidth="210" />
+                                        </DockPanel>
+
                                         <DockPanel Margin="0,0,0,6">
                                             <ui:TextBlock Text="Width" Width="62" Foreground="{StaticResource AppMutedTextBrush}" />
-                                            <ui:TextBox Text="{Binding Request.parameters.width}" ClearButtonEnabled="False" Width="58" DockPanel.Dock="Right" TextAlignment="Center" />
-                                            <Slider Minimum="64" Maximum="2048" Value="{Binding Request.parameters.width}" TickFrequency="64" IsSnapToTickEnabled="True" />
+                                            <ui:TextBox Text="{Binding ImageWidth, Mode=TwoWay}" ClearButtonEnabled="False" Width="58" DockPanel.Dock="Right" TextAlignment="Center" />
+                                            <Slider Minimum="64" Maximum="2048" Value="{Binding ImageWidth, Mode=TwoWay}" TickFrequency="64" IsSnapToTickEnabled="True" />
                                         </DockPanel>
 
                                         <DockPanel Margin="0,0,0,6">
                                             <ui:TextBlock Text="Height" Width="62" Foreground="{StaticResource AppMutedTextBrush}" />
-                                            <ui:TextBox Text="{Binding Request.parameters.height}" ClearButtonEnabled="False" Width="58" DockPanel.Dock="Right" TextAlignment="Center" />
-                                            <Slider Minimum="64" Maximum="2048" Value="{Binding Request.parameters.height}" TickFrequency="64" IsSnapToTickEnabled="True" />
+                                            <ui:TextBox Text="{Binding ImageHeight, Mode=TwoWay}" ClearButtonEnabled="False" Width="58" DockPanel.Dock="Right" TextAlignment="Center" />
+                                            <Slider Minimum="64" Maximum="2048" Value="{Binding ImageHeight, Mode=TwoWay}" TickFrequency="64" IsSnapToTickEnabled="True" />
                                         </DockPanel>
 
                                         <DockPanel Margin="0,0,0,6">

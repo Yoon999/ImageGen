@@ -23,6 +23,10 @@ namespace ImageGen.ViewModels;
 public class MainViewModel : INotifyPropertyChanged
 {
     private const int MaxGenerationCount = 100;
+    private const string HorizontalResolutionPreset = "Horizontal (1216 x 832)";
+    private const string VerticalResolutionPreset = "Vertical (832 x 1216)";
+    private const string WallpaperResolutionPreset = "Wallpaper (1920 x 1088)";
+    private const string CustomResolutionPreset = "Custom";
 
     private readonly INovelAiService _novelAiService;
     private readonly IImageService _imageService;
@@ -73,6 +77,7 @@ public class MainViewModel : INotifyPropertyChanged
     private int _generationQueueRemaining;
     private bool _isGeneratorStopRequested;
     private int _nodeGraphQueueCount = 1;
+    private string _selectedResolutionPreset = CustomResolutionPreset;
 
     private ObservableCollection<TagSuggestion> _tagSuggestions = new();
     private TagSuggestion? _selectedSuggestion;
@@ -134,6 +139,14 @@ public class MainViewModel : INotifyPropertyChanged
         "style"
     };
 
+    public IReadOnlyList<string> ResolutionPresets { get; } = new[]
+    {
+        HorizontalResolutionPreset,
+        VerticalResolutionPreset,
+        WallpaperResolutionPreset,
+        CustomResolutionPreset
+    };
+
     public ObservableCollection<VibeReferenceImage> VibeReferences { get; } = new();
 
     // Node Graph ViewModel
@@ -180,6 +193,11 @@ public class MainViewModel : INotifyPropertyChanged
             Request.parameters = settings.LastParameters;
             _isRandomSeed = settings.IsRandomSeed;
         }
+
+        _selectedResolutionPreset = RestoreResolutionPreset(
+            settings.ResolutionPreset,
+            Request.parameters.width,
+            Request.parameters.height);
 
         var imageInputSettings = settings.ImageInput ?? new ImageInputSettings();
         _generationMode = GenerationModes.Contains(imageInputSettings.GenerationMode)
@@ -633,6 +651,55 @@ public class MainViewModel : INotifyPropertyChanged
     }
 
     public GenerationRequest Request { get; set; } = new GenerationRequest();
+
+    public string SelectedResolutionPreset
+    {
+        get => _selectedResolutionPreset;
+        set
+        {
+            string normalized = NormalizeResolutionPreset(value);
+            if (_selectedResolutionPreset == normalized) return;
+
+            _selectedResolutionPreset = normalized;
+            OnPropertyChanged();
+
+            if (TryGetResolutionPresetSize(normalized, out int width, out int height))
+            {
+                Request.parameters.width = width;
+                Request.parameters.height = height;
+                OnPropertyChanged(nameof(ImageWidth));
+                OnPropertyChanged(nameof(ImageHeight));
+            }
+
+            SaveCurrentSettings();
+        }
+    }
+
+    public int ImageWidth
+    {
+        get => Request.parameters.width;
+        set
+        {
+            if (Request.parameters.width == value) return;
+            Request.parameters.width = value;
+            MarkResolutionAsCustom();
+            OnPropertyChanged();
+            SaveCurrentSettings();
+        }
+    }
+
+    public int ImageHeight
+    {
+        get => Request.parameters.height;
+        set
+        {
+            if (Request.parameters.height == value) return;
+            Request.parameters.height = value;
+            MarkResolutionAsCustom();
+            OnPropertyChanged();
+            SaveCurrentSettings();
+        }
+    }
 
     public string SelectedModel
     {
@@ -1476,6 +1543,7 @@ public class MainViewModel : INotifyPropertyChanged
             IsRandomSeed = IsRandomSeed,
             GenerationCount = GenerationCount,
             NodeGraphQueueCount = NodeGraphQueueCount,
+            ResolutionPreset = SelectedResolutionPreset,
             LastParameters = Request.parameters,
             CharacterPrompts = CharacterPrompts.Select(cp => new CharacterPromptSettings
             {
@@ -1888,6 +1956,73 @@ public class MainViewModel : INotifyPropertyChanged
         return value is "character" or "character&style" or "style"
             ? value
             : "character";
+    }
+
+    private void MarkResolutionAsCustom()
+    {
+        if (_selectedResolutionPreset == CustomResolutionPreset) return;
+        _selectedResolutionPreset = CustomResolutionPreset;
+        OnPropertyChanged(nameof(SelectedResolutionPreset));
+    }
+
+    private static string RestoreResolutionPreset(string? savedPreset, int width, int height)
+    {
+        if (savedPreset != null)
+        {
+            string normalized = NormalizeResolutionPreset(savedPreset);
+            if (normalized == CustomResolutionPreset)
+            {
+                return CustomResolutionPreset;
+            }
+
+            if (TryGetResolutionPresetSize(normalized, out int presetWidth, out int presetHeight)
+                && presetWidth == width
+                && presetHeight == height)
+            {
+                return normalized;
+            }
+
+            return CustomResolutionPreset;
+        }
+
+        return GetMatchingResolutionPreset(width, height);
+    }
+
+    private static string GetMatchingResolutionPreset(int width, int height)
+    {
+        if (width == 1216 && height == 832) return HorizontalResolutionPreset;
+        if (width == 832 && height == 1216) return VerticalResolutionPreset;
+        if (width == 1920 && height == 1088) return WallpaperResolutionPreset;
+        return CustomResolutionPreset;
+    }
+
+    private static string NormalizeResolutionPreset(string? value)
+    {
+        return value is HorizontalResolutionPreset
+            or VerticalResolutionPreset
+            or WallpaperResolutionPreset
+            or CustomResolutionPreset
+            ? value
+            : CustomResolutionPreset;
+    }
+
+    private static bool TryGetResolutionPresetSize(string preset, out int width, out int height)
+    {
+        switch (preset)
+        {
+            case HorizontalResolutionPreset:
+                (width, height) = (1216, 832);
+                return true;
+            case VerticalResolutionPreset:
+                (width, height) = (832, 1216);
+                return true;
+            case WallpaperResolutionPreset:
+                (width, height) = (1920, 1088);
+                return true;
+            default:
+                (width, height) = (0, 0);
+                return false;
+        }
     }
 
     private static double ClampUnit(double value)
