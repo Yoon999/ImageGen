@@ -16,6 +16,8 @@ using ImageGen.Services.Interfaces;
 using ImageGen.Views;
 using Application = System.Windows.Application;
 using Clipboard = System.Windows.Clipboard;
+using DataFormats = System.Windows.Forms.DataFormats;
+using DataObject = System.Windows.Forms.DataObject;
 using MessageBox = System.Windows.MessageBox;
 
 namespace ImageGen.ViewModels;
@@ -1129,17 +1131,26 @@ public class MainViewModel : INotifyPropertyChanged
 
     private void ExecuteCopyImage(object? parameter)
     {
-        if (GeneratedImage != null)
+        if (GeneratedImage == null) return;
+        
+        try
         {
-            try
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(GeneratedImage));
+                
+            using (var ms = new MemoryStream())
             {
-                Clipboard.SetImage(GeneratedImage);
-                StatusMessage = "Image copied to clipboard";
+                encoder.Save(ms);
+                var dataObject = new DataObject();
+                dataObject.SetData("PNG", false, ms);
+                dataObject.SetData("Bitmap", false, GeneratedImage);
+                Clipboard.SetDataObject(dataObject, true);
             }
-            catch (Exception ex)
-            {
-                StatusMessage = $"Failed to copy image: {ex.Message}";
-            }
+            StatusMessage = "Image copied to clipboard";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Failed to copy image: {ex.Message}";
         }
     }
 

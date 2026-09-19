@@ -18,6 +18,7 @@ public class ImageGenerationWorkflow
         _imageService = imageService;
     }
 
+    /*
     public async Task<string?> GenerateAndSaveAsync(
         GenerationRequest request,
         string accessToken,
@@ -28,6 +29,7 @@ public class ImageGenerationWorkflow
         var result = await GenerateAndSaveWithCostAsync(request, accessToken, saveDirectory, filePrefix, updatePreview);
         return result.FileName;
     }
+    */
 
     public async Task<ImageGenerationResult> GenerateAndSaveWithCostAsync(
         GenerationRequest request,
