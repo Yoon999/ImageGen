@@ -942,6 +942,13 @@
                                  Margin="0,3,0,0"
                                  Foreground="#FFF4A3"
                                  Background="{StaticResource AppBackgroundBrush}" />
+                    <ProgressBar Minimum="0"
+                                 Maximum="100"
+                                 Value="{Binding OpusPurchasedUsageProgress, Mode=OneWay}"
+                                 Height="4"
+                                 Margin="0,3,0,0"
+                                 Foreground="#B388FF"
+                                 Background="{StaticResource AppBackgroundBrush}" />
                 </StackPanel>
             </StatusBarItem>
             <StatusBarItem>

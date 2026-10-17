@@ -583,6 +583,7 @@ public class MainViewModel : INotifyPropertyChanged
             OnPropertyChanged();
             OnPropertyChanged(nameof(OpusUsageDisplay));
             OnPropertyChanged(nameof(OpusUsageProgress));
+            OnPropertyChanged(nameof(OpusPurchasedUsageProgress));
             OnPropertyChanged(nameof(OpusUsageRefillDisplay));
         }
     }
@@ -593,7 +594,7 @@ public class MainViewModel : INotifyPropertyChanged
         {
             if (OpusUsage == null) return string.Empty;
             int percent = OpusUsage.IsNegative ? -OpusUsage.Percent : OpusUsage.Percent;
-            return $"{percent}% of Opus Generations remaining";
+            return $"{percent}% remaining (Purchased: {OpusUsage.PurchasedPercent}%)";
         }
     }
 
@@ -605,6 +606,8 @@ public class MainViewModel : INotifyPropertyChanged
             return Math.Clamp(OpusUsage.Percent, 0, 100);
         }
     }
+
+    public int OpusPurchasedUsageProgress => Math.Clamp(OpusUsage?.PurchasedPercent ?? 0, 0, 100);
 
     public string OpusUsageRefillDisplay
     {

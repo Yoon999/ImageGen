@@ -22,6 +22,9 @@ public class OpusUsageData
     [JsonPropertyName("percent")]
     public int Percent { get; set; }
 
+    [JsonPropertyName("purchasedPercent")]
+    public int PurchasedPercent { get; set; }
+
     [JsonPropertyName("isNegative")]
     public bool IsNegative { get; set; }
 
