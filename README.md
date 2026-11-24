@@ -32,6 +32,16 @@ NovelAI Image Generation API를 데스크톱에서 편리하게 사용할 수 �
 
 ![](https://ch99.atlasimg.org/n2.PNG)
 
+### Macro와 로컬 MCP
+
+`Macro` 탭에서 이름과 태그 문자열을 저장합니다. 이름이 `화풍`이면 Generator와 MCP에서 `__화풍__`으로 호출합니다. 베이스와 캐릭터의 긍정·부정 프롬프트에 쓸 수 있으며 이름의 대소문자를 구분합니다.
+
+`build.bat`로 배포한 폴더에서 ImageGen을 열어 토큰과 생성 설정을 저장하세요. 동봉된 `imagegen-mcp.example.toml`의 경로를 실제 `ImageGen.Mcp.exe` 경로로 바꿔 클라이언트에 등록하면 앱 창을 닫아도 사용할 수 있습니다.
+
+- `imagegen://macros`에서 매크로 이름과 호출 표기를 조회합니다.
+- `generate_t2i` 호출 예시: `{"basePrompt":"__화풍__, rainy street","characters":[{"prompt":"red coat","negativePrompt":"hat"}]}`. 베이스 `negativePrompt`를 생략하면 저장된 네거티브를 사용하고 빈 문자열이면 비웁니다.
+- 호출당 PNG 한 장을 저장하고 절대 경로와 시드를 반환합니다.
+
 ### 인페인팅
 
 - 원본 이미지 위에서 직접 마스크 편집

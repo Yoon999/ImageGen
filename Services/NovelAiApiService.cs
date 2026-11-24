@@ -22,27 +22,16 @@ public class NovelAiApiService : INovelAiService
 
     public async Task<byte[]> GenerateImageAsync(GenerationRequest request, string accessToken)
     {
-        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        return await GenerateImageAsync(request, accessToken, CancellationToken.None);
+    }
 
-        try
-        {
-            var response = await _httpClient.PostAsJsonAsync("/ai/generate-image", request);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                var errorMessage = $"API Error: {response.StatusCode} - {errorContent}";
-                Logger.LogError(errorMessage);
-                throw new HttpRequestException(errorMessage);
-            }
-
-            return await response.Content.ReadAsByteArrayAsync();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError("Exception in GenerateImageAsync", ex);
-            throw;
-        }
+    public async Task<byte[]> GenerateImageAsync(GenerationRequest request, string accessToken, CancellationToken cancellation)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Post, "/ai/generate-image") { Content = JsonContent.Create(request) };
+        message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await _httpClient.SendAsync(message, cancellation);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsByteArrayAsync(cancellation);
     }
 
     public async IAsyncEnumerable<byte[]> GenerateImageStreamAsync(GenerationRequest request, string accessToken)

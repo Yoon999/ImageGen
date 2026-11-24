@@ -4,6 +4,7 @@ using System.Windows.Input;
 using System.ComponentModel;
 using System.IO;
 using ImageGen.Helpers;
+using ImageGen.Models;
 using ImageGen.Models.Api;
 using ImageGen.Services;
 using ImageGen.ViewModels;
@@ -298,6 +299,51 @@ public partial class MainWindow : Window
         {
             ViewModel.LoadExifImage(filePath);
         }
+    }
+
+    private void MacroSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        var selected = MacroList.SelectedItem as PromptMacro;
+        MacroName.Text = selected?.Name ?? string.Empty;
+        MacroText.Text = selected?.Text ?? string.Empty;
+        MacroFeedback.Text = "Use __name__ in a Generator or MCP prompt.";
+    }
+
+    private void NewMacro(object sender, RoutedEventArgs e)
+    {
+        MacroList.SelectedIndex = -1;
+        MacroName.Clear();
+        MacroText.Clear();
+        MacroName.Focus();
+    }
+
+    private void SaveMacro(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel == null) return;
+        string name = MacroName.Text.Trim();
+        if (name.Length == 0 || name.Contains("__") || string.IsNullOrWhiteSpace(MacroText.Text))
+        {
+            MacroFeedback.Text = "Enter a name without __ and non-empty replacement text.";
+            return;
+        }
+
+        var selected = MacroList.SelectedItem as PromptMacro;
+        if (ViewModel.Macros.Any(m => m != selected && m.Name == name))
+        {
+            MacroFeedback.Text = $"A macro named '{name}' already exists.";
+            return;
+        }
+
+        var macro = new PromptMacro(name, MacroText.Text);
+        if (selected == null) ViewModel.Macros.Add(macro);
+        else ViewModel.Macros[ViewModel.Macros.IndexOf(selected)] = macro;
+        MacroList.SelectedItem = macro;
+        MacroFeedback.Text = $"Saved {macro.Token}";
+    }
+
+    private void DeleteMacro(object sender, RoutedEventArgs e)
+    {
+        if (MacroList.SelectedItem is PromptMacro selected) ViewModel?.Macros.Remove(selected);
     }
 
     private void MetadataRemoval_DragOver(object sender, DragEventArgs e)

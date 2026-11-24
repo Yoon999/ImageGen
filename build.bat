@@ -113,7 +113,10 @@ dotnet restore
 
 echo.
 echo [Step 3] Publish...
-dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o Release_Output
+dotnet publish ImageGen.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o Release_Output
+if errorlevel 1 goto :PublishFinished
+dotnet publish Mcp\ImageGen.Mcp.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o Release_Output
+:PublishFinished
 set "PUBLISH_EXIT=%errorlevel%"
 
 call :RestoreJsonFiles

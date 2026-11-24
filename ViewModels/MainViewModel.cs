@@ -155,6 +155,7 @@ public class MainViewModel : INotifyPropertyChanged
     public NodeGraphViewModel NodeGraphViewModel { get; }
     public DirectorToolsViewModel DirectorToolsViewModel { get; }
     public MetadataRemovalViewModel MetadataRemovalViewModel { get; }
+    public ObservableCollection<PromptMacro> Macros { get; }
 
     public MainViewModel()
     {
@@ -179,6 +180,10 @@ public class MainViewModel : INotifyPropertyChanged
             _imageGenerationWorkflow);
 
         var settings = _settingsService.LoadSettings();
+        Macros = new(settings.Macros ?? new());
+        Macros.CollectionChanged += (_, _) => SaveCurrentSettings();
+        _smeaMode = settings.SmeaMode;
+        _variety = settings.Variety;
         _apiToken = settings.ApiToken;
         _saveDirectory = string.IsNullOrWhiteSpace(settings.SaveDirectory)
             ? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Output")
@@ -1044,6 +1049,7 @@ public class MainViewModel : INotifyPropertyChanged
                 return DirectorToolsViewModel.RunToolCommand.CanExecute(null);
             case 3:
             case 4:
+            case 5:
                 return false;
         }
 
@@ -1558,6 +1564,9 @@ public class MainViewModel : INotifyPropertyChanged
             GenerationCount = GenerationCount,
             NodeGraphQueueCount = NodeGraphQueueCount,
             ResolutionPreset = SelectedResolutionPreset,
+            Macros = Macros.ToList(),
+            SmeaMode = SmeaMode,
+            Variety = Variety,
             LastParameters = Request.parameters,
             CharacterPrompts = CharacterPrompts.Select(cp => new CharacterPromptSettings
             {
@@ -1624,6 +1633,7 @@ public class MainViewModel : INotifyPropertyChanged
                 return;
             case 3:
             case 4:
+            case 5:
                 return;
         }
 
@@ -1696,16 +1706,19 @@ public class MainViewModel : INotifyPropertyChanged
                 useRandomSeed);
 
             ApplyGeneratorOptions(firstRequest);
-            var requestTemplate = GenerationRequestBuilder.Clone(firstRequest);
             
             Request = GenerationRequestBuilder.Clone(firstRequest);
-            ClearVolatileRequestData(Request);
+            GenerationRequestBuilder.ClearVolatileRequestData(Request);
             Request.model = uiModel;
             Request.parameters.sampler = uiSampler;
+            GenerationRequestBuilder.ExpandMacros(firstRequest, Macros);
             OnPropertyChanged(nameof(Request));
             OnPropertyChanged(nameof(Seed));
 
             string currentRequestJson = JsonSerializer.Serialize(Request)
+                                        + JsonSerializer.Serialize(new[] { firstRequest.input, firstRequest.parameters.uc })
+                                        + JsonSerializer.Serialize(firstRequest.parameters.V4Prompt)
+                                        + JsonSerializer.Serialize(firstRequest.parameters.V4NegativePrompt)
                                         + SourceImagePath
                                         + InpaintMask?.RevisionId
                                         + PreciseReferencePath
@@ -1738,7 +1751,7 @@ public class MainViewModel : INotifyPropertyChanged
             {
                 var request = imageNumber == 1
                     ? firstRequest
-                    : GenerationRequestBuilder.Clone(requestTemplate);
+                    : GenerationRequestBuilder.Clone(firstRequest);
                 if (imageNumber > 1 && useRandomSeed)
                 {
                     request.parameters.seed = RandomSeedService.NextSeed();
@@ -1914,55 +1927,7 @@ public class MainViewModel : INotifyPropertyChanged
 
     public void ApplySharedGeneratorOptions(GenerationRequest request)
     {
-        request.parameters.prompt = Prompt;
-        request.parameters.negative_prompt = NegativePrompt;
-        request.parameters.sm = (SmeaMode == "SMEA" || SmeaMode == "SMEA+DYN") && request.parameters.sampler != "ddim";
-        request.parameters.sm_dyn = SmeaMode == "SMEA+DYN" && request.parameters.sampler != "ddim";
-        request.parameters.skip_cfg_above_sigma = Variety
-            ? CalculateSkipCfgAboveSigma(request.parameters.width, request.parameters.height)
-            : null;
-        request.parameters.image = null;
-        request.parameters.mask = null;
-        request.parameters.img2img = null;
-        request.parameters.reference_image_multiple.Clear();
-        request.parameters.reference_information_extracted_multiple.Clear();
-        request.parameters.reference_strength_multiple.Clear();
-        request.parameters.director_reference_images = null;
-        request.parameters.director_reference_descriptions = null;
-        request.parameters.director_reference_strength_values = null;
-        request.parameters.director_reference_secondary_strength_values = null;
-        request.parameters.director_reference_information_extracted = null;
-
-        if (request.parameters.sampler == "ddim" && !request.model.Contains("nai-diffusion-2", StringComparison.OrdinalIgnoreCase))
-        {
-            request.parameters.sampler = "ddim_v3";
-        }
-
-        if (request.parameters.sampler == "k_euler_ancestral" && request.parameters.noise_schedule != "native")
-        {
-            request.parameters.deliberate_euler_ancestral_bug = false;
-            request.parameters.prefer_brownian = true;
-        }
-    }
-
-    private static void ClearVolatileRequestData(GenerationRequest request)
-    {
-        request.parameters.image = null;
-        request.parameters.mask = null;
-        request.parameters.img2img = null;
-        request.parameters.reference_image_multiple.Clear();
-        request.parameters.reference_information_extracted_multiple.Clear();
-        request.parameters.reference_strength_multiple.Clear();
-        request.parameters.director_reference_images = null;
-        request.parameters.director_reference_descriptions = null;
-        request.parameters.director_reference_strength_values = null;
-        request.parameters.director_reference_secondary_strength_values = null;
-        request.parameters.director_reference_information_extracted = null;
-    }
-
-    private static double CalculateSkipCfgAboveSigma(int width, int height)
-    {
-        return Math.Sqrt(width * height / 1011712d) * 19d;
+        GenerationRequestBuilder.ApplySharedOptions(request, Prompt, NegativePrompt, SmeaMode, Variety);
     }
 
     private static string NormalizePreciseReferenceType(string? value)

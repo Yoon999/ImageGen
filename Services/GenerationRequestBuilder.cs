@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using ImageGen.Models;
 using ImageGen.Models.Api;
 
@@ -146,7 +147,69 @@ public static class GenerationRequestBuilder
         return JsonSerializer.Deserialize<GenerationRequest>(json) ?? new GenerationRequest();
     }
 
-    private static bool IsV4(GenerationRequest request)
+    public static void ApplySharedOptions(GenerationRequest request, string prompt, string negativePrompt, string smeaMode, bool variety)
+    {
+        request.parameters.prompt = prompt;
+        request.parameters.negative_prompt = negativePrompt;
+        request.parameters.sm = (smeaMode == "SMEA" || smeaMode == "SMEA+DYN") && request.parameters.sampler != "ddim";
+        request.parameters.sm_dyn = smeaMode == "SMEA+DYN" && request.parameters.sampler != "ddim";
+        request.parameters.skip_cfg_above_sigma = variety
+            ? CalculateSkipCfgAboveSigma(request.parameters.width, request.parameters.height)
+            : null;
+        ClearVolatileRequestData(request);
+
+        if (request.parameters.sampler == "ddim" && !request.model.Contains("nai-diffusion-2", StringComparison.OrdinalIgnoreCase))
+        {
+            request.parameters.sampler = "ddim_v3";
+        }
+
+        if (request.parameters.sampler == "k_euler_ancestral" && request.parameters.noise_schedule != "native")
+        {
+            request.parameters.deliberate_euler_ancestral_bug = false;
+            request.parameters.prefer_brownian = true;
+        }
+    }
+
+    public static void ClearVolatileRequestData(GenerationRequest request)
+    {
+        request.parameters.image = null;
+        request.parameters.mask = null;
+        request.parameters.img2img = null;
+        request.parameters.reference_image_multiple.Clear();
+        request.parameters.reference_information_extracted_multiple.Clear();
+        request.parameters.reference_strength_multiple.Clear();
+        request.parameters.director_reference_images = null;
+        request.parameters.director_reference_descriptions = null;
+        request.parameters.director_reference_strength_values = null;
+        request.parameters.director_reference_secondary_strength_values = null;
+        request.parameters.director_reference_information_extracted = null;
+    }
+
+    private static double CalculateSkipCfgAboveSigma(int width, int height)
+    {
+        return Math.Sqrt(width * height / 1011712d) * 19d;
+    }
+
+    public static void ExpandMacros(GenerationRequest request, IEnumerable<PromptMacro> macros)
+    {
+        var definitions = macros.ToDictionary(m => m.Name, m => m.Text, StringComparer.Ordinal);
+        string Expand(string input) => Regex.Replace(input, @"__(.+?)__", match =>
+            definitions.TryGetValue(match.Groups[1].Value, out var value) ? value
+                : throw new ArgumentException($"Unknown macro: {match.Value}"));
+
+        var p = request.parameters;
+        request.input = p.prompt = Expand(request.input);
+        p.uc = p.negative_prompt = Expand(p.uc);
+        foreach (var condition in new[] { p.V4Prompt, p.V4NegativePrompt })
+        {
+            if (condition == null) continue;
+            condition.Caption.BaseCaption = Expand(condition.Caption.BaseCaption);
+            foreach (var character in condition.Caption.CharCaptions)
+                character.CharCaption = Expand(character.CharCaption);
+        }
+    }
+
+    public static bool IsV4(GenerationRequest request)
     {
         return request.model.Contains("nai-diffusion-4", StringComparison.OrdinalIgnoreCase) || request.model.Contains("nai-diffusion-5", StringComparison.OrdinalIgnoreCase);
     }

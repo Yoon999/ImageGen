@@ -14,10 +14,19 @@ public class AppSettings
     public int GenerationCount { get; set; } = 1;
     public int NodeGraphQueueCount { get; set; } = 1;
     public string? ResolutionPreset { get; set; }
+    public List<PromptMacro> Macros { get; set; } = new();
+    public string SmeaMode { get; set; } = "none";
+    public bool Variety { get; set; }
     public RequestParameters LastParameters { get; set; } = new RequestParameters();
     public List<CharacterPromptSettings> CharacterPrompts { get; set; } = new List<CharacterPromptSettings>();
     public ImageInputSettings ImageInput { get; set; } = new ImageInputSettings();
     public ReferenceSettings References { get; set; } = new ReferenceSettings();
+}
+
+public sealed record PromptMacro(string Name, string Text)
+{
+    [JsonIgnore]
+    public string Token => $"__{Name}__";
 }
 
 public class CharacterPromptSettings
