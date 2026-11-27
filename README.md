@@ -27,7 +27,7 @@ NovelAI Image Generation API를 데스크톱에서 편리하게 사용할 수 �
 - 여러 캐릭터의 프롬프트, 네거티브 프롬프트, 화면 내 위치 지정
 - 폴더 구조를 지원하는 캐릭터 프리셋 저장 및 재사용
 - 여러 Vibe Transfer 참조 이미지와 개별 강도 설정
-- Character, Character & Style, Style 타입의 Precise Reference
+- Precise Reference 타입은 `character`, `character&style`, `style`을 지원하며, V5에서는 `character&style_anyoutfit`, `character_mainoutfit`, `outfit`도 선택할 수 있습니다.
 - 이미지를 드래그 앤 드롭하거나 `Ctrl+V`로 붙여 넣은 뒤 Img2Img, Inpaint, Vibe Transfer, Precise Reference 중 용도 선택
 
 ![](https://ch99.atlasimg.org/n2.PNG)

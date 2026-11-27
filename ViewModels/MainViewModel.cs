@@ -134,12 +134,12 @@ public class MainViewModel : INotifyPropertyChanged
         "Inpaint"
     };
 
-    public IReadOnlyList<string> PreciseReferenceTypes { get; } = new[]
-    {
-        "character",
-        "character&style",
-        "style"
-    };
+    private static readonly string[] StandardReferenceTypes = ["character", "character&style", "style"];
+    private static readonly string[] V5ReferenceTypes =
+        [.. StandardReferenceTypes, "character&style_anyoutfit", "character_mainoutfit", "outfit"];
+
+    public IReadOnlyList<string> PreciseReferenceTypes =>
+        SelectedModel == "nai-diffusion-5-full" ? V5ReferenceTypes : StandardReferenceTypes;
 
     public IReadOnlyList<string> ResolutionPresets { get; } = new[]
     {
@@ -719,7 +719,10 @@ public class MainViewModel : INotifyPropertyChanged
             if (Request.model != value)
             {
                 Request.model = value;
+                _preciseReferenceType = NormalizePreciseReferenceType(_preciseReferenceType);
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(PreciseReferenceTypes));
+                OnPropertyChanged(nameof(PreciseReferenceType));
                 SaveCurrentSettings();
             }
         }
@@ -905,6 +908,7 @@ public class MainViewModel : INotifyPropertyChanged
         get => _preciseReferenceType;
         set
         {
+            if (value == null) return; // ComboBox clears its selection while the model's options change.
             string normalized = NormalizePreciseReferenceType(value);
             if (_preciseReferenceType == normalized) return;
             _preciseReferenceType = normalized;
@@ -1930,11 +1934,9 @@ public class MainViewModel : INotifyPropertyChanged
         GenerationRequestBuilder.ApplySharedOptions(request, Prompt, NegativePrompt, SmeaMode, Variety);
     }
 
-    private static string NormalizePreciseReferenceType(string? value)
+    private string NormalizePreciseReferenceType(string? value)
     {
-        return value is "character" or "character&style" or "style"
-            ? value
-            : "character";
+        return value != null && PreciseReferenceTypes.Contains(value) ? value : "character";
     }
 
     private void MarkResolutionAsCustom()
